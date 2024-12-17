@@ -63,46 +63,9 @@
       debug: 
         var: ddl_output
       
-    - name: Display message for not allowed indexes 
-      debug:  
-        msg: "{{ item }} is not allowed to create" 
-      with_items: 
-        - "primary_index_01" 
-        - "primary_index_02" 
-        - "primary_index_03" 
-        - "primary_index_04" 
-      when: ddl_output is defined and ddl_output.results is defined and item in ddl_output.results and ddl_output.results[item].rc != 0
+  
 
-    - name: Debug output of primary index creation
-      debug:
-        msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
-      when: false  # Condition to ensure this task does not run
-
-    - name: Print message that primary indexes are not allowed
-      debug:
-        msg: |
-          Primary index creation is not allowed.
-          The following primary indexes were skipped:
-          {% for index in primary_index_creation_statements %}
-          {{ index }}
-          {% endfor %}
-
-    - name: Append primary index creation output to file with message 
-      blockinfile: 
-        path: /home/ubuntu/output_file.txt
-        block: | 
-          Primary index creation is not allowed.
-          The following primary indexes were skipped:
-          {% for index in primary_index_creation_statements %}
-          {{ index }}
-          {% endfor %}
-
-
-    - name: Print custom message 
-      debug: 
-        msg: "NOT ALLOWED TO CREATE THE PRIMARY INDEX" 
-      when: true # Always print this message
-
+  
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ index_creation_statements }}"
@@ -133,10 +96,4 @@
       debug:
         msg: "{{ build_output.results | map(attribute='stderr') | join('\n') }}"
 
-    - name: Append primary index creation output to file with message 
-      blockinfile: 
-        path: /home/ubuntu/output_file.txt
-        block: | 
-          NOT ALLOWED TO CREATE PRIMARY 
-          {{ ddl_output.results | map(attribute='stderr') | join('\n') }} 
-      when: ddl_output is defined and ddl_output.results is defined
+   
