@@ -17,4 +17,4 @@
 
     - name: Display the primary index names
       debug:
-        msg: "Primary index names found: {{ primary_index_names }}"
+        msg: "The following index names are not allowed to be created or built: {{ primary_index_names }}"
