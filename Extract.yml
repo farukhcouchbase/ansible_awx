@@ -1,0 +1,20 @@
+---
+- name: Extract and display primary index names from index_file.txt
+  hosts: all
+  tasks:
+    - name: Read contents of index_file.txt
+      ansible.builtin.slurp:
+        src: "/path/to/index_file.txt"
+      register: file_contents
+
+    - name: Decode file contents
+      set_fact:
+        file_data: "{{ file_contents['content'] | b64decode }}"
+
+    - name: Extract primary index names using regex
+      set_fact:
+        primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
+
+    - name: Display the primary index names
+      debug:
+        msg: "Primary index names found: {{ primary_index_names }}"
