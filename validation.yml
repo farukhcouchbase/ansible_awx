@@ -72,7 +72,14 @@
     - name: Display the primary index names
       debug:
         msg: "The following index  are not allowed to be created or built: {{ primary_index_names }}"
-
+        
+    - name: Validate index scope is not '_default'
+      shell: |
+        echo "{{ item }}" | grep -q 'scope:default'
+      with_items: "{{ index_creation_statements }}"
+      register: check_default_scope
+      failed_when: check_default_scope.rc == 0
+      when: item is defined and item != ""  # Ensure there is an item to check
 
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
