@@ -43,10 +43,7 @@
       debug:
         msg: "{{ index_creation_statements }}"
 
-    - name: Debug primary index creation statements
-      debug:
-        msg: "{{ primary_index_creation_statements }}"
-
+   
     - name: Validate Couchbase CLI availability
       shell: "/opt/couchbase/bin/cbq --version"
       register: cbq_check
@@ -59,17 +56,22 @@
       register: ddl_output
       when: false  # Condition to ensure this task does not run
 
-    - name: Debug ddl_output 
-      debug: 
-        var: ddl_output
-      
-  
+    - name: Read contents of index_file.txt
+      ansible.builtin.slurp:
+        src: "/home/ubuntu/index_file.txt"
+      register: file_contents
 
-    - name: Debug output of primary index creation
+    - name: Decode file contents
+      set_fact:
+        file_data: "{{ file_contents['content'] | b64decode }}"
+
+    - name: Extract primary index names using regex
+      set_fact:
+        primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
+
+    - name: Display the primary index names
       debug:
-        msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
-      when: false  # Condition to ensure this task does not run
-
+        msg: "The following index  are not allowed to be created or built: {{ primary_index_names }}"
 
 
     - name: Create indexes
