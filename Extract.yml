@@ -4,7 +4,7 @@
   tasks:
     - name: Read contents of index_file.txt
       ansible.builtin.slurp:
-        src: "/path/to/index_file.txt"
+        src: "/home/ubuntu/index_file.txt"
       register: file_contents
 
     - name: Decode file contents
