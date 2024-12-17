@@ -80,7 +80,7 @@
         fi
       with_items: "{{ index_creation_statements }}"
       register: check_default_scope
-      failed_when: check_default_scope.rc != 1  # Fail the task if '_default' scope is detected
+      failed_when: check_default_scope.rc != 0  # Fail the task if '_default' scope is detected
       when: item is defined and item != ""  # Ensure there is an item to check
 
     - name: Create indexes
