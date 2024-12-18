@@ -2,22 +2,14 @@
   hosts: all
   become: yes
   tasks:
-    # - name: Ensure jq is installed
-    #   apt:
-    #     name: jq
-    #     state: present
-    #     update_cache: yes
+  
 
     - name: Validate index file existence
       ansible.builtin.stat:
         path: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt
       register: index_file_stat
 
-    - name: Fail if index file is missing
-      fail:
-        msg: "Index file not found: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt"
-      when: not index_file_stat.stat.exists
-
+   
     - name: Read and decode index file
       ansible.builtin.slurp:
         src: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt
@@ -35,9 +27,7 @@
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE INDEX.*?;') }}"
 
-    - name: Extract primary index creation SQL
-      set_fact:
-        primary_index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE PRIMARY INDEX.*?;') }}"
+    
 
     - name: Debug index creation statements
       debug:
@@ -69,9 +59,7 @@
       set_fact:
         primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
-    - name: Display the primary index names
-      debug:
-        msg: "The following index  are not allowed to be created or built: {{ primary_index_names }}"
+    
         
     - name: Validate index scope is not '_default'
       shell: |
