@@ -11,17 +11,17 @@
     - name: Validate index file existence
       ansible.builtin.stat:
         path: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt
-      register: Clause_without_Clause_stat
+      register: index_file_stat
 
     - name: Fail if index file is missing
       fail:
         msg: "Index file not found: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt"
-      when: not Clause_without_Clause_stat
+      when: not index_file_stat.stat.exists
 
     - name: Read and decode index file
       ansible.builtin.slurp:
         src: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt
-      register: Clause_without_Clause_content
+      register: index_file_content
 
     - name: Decode the index file content
       set_fact:
