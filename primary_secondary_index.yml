@@ -10,17 +10,17 @@
 
     - name: Validate index file existence
       ansible.builtin.stat:
-        path: /home/ubuntu/index_file.txt
+        path: /home/ubuntu/Couchbase_UPS/primary_secondary_index.txt
       register: index_file_stat
 
     - name: Fail if index file is missing
       fail:
-        msg: "Index file not found: /home/ubuntu/index_file.txt"
+        msg: "Index file not found: /home/ubuntu/Couchbase_UPS/primary_secondary_index.txt"
       when: not index_file_stat.stat.exists
 
     - name: Read and decode index file
       ansible.builtin.slurp:
-        src: /home/ubuntu/index_file.txt
+        src: /home/ubuntu/Couchbase_UPS/primary_secondary_index.txt
       register: index_file_content
 
     - name: Decode the index file content
@@ -58,7 +58,7 @@
 
     - name: Read contents of index_file.txt
       ansible.builtin.slurp:
-        src: "/home/ubuntu/index_file.txt"
+        src: "/home/ubuntu/Couchbase_UPS/primary_secondary_index.txt"
       register: file_contents
 
     - name: Decode file contents
