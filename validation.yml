@@ -10,17 +10,17 @@
 
     - name: Validate index file existence
       ansible.builtin.stat:
-        path: /home/ubuntu/index_file.txt
+        path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
     - name: Fail if index file is missing
       fail:
-        msg: "Index file not found: /home/ubuntu/index_file.txt"
+        msg: "Index file not found: /home/ubuntu/Couchbase_UPS/index_file.txt"
       when: not index_file_stat.stat.exists
 
     - name: Read and decode index file
       ansible.builtin.slurp:
-        src: /home/ubuntu/index_file.txt
+        src: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_content
 
     - name: Decode the index file content
@@ -58,7 +58,7 @@
 
     - name: Read contents of index_file.txt
       ansible.builtin.slurp:
-        src: "/home/ubuntu/index_file.txt"
+        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
       register: file_contents
 
     - name: Decode file contents
@@ -95,22 +95,4 @@
         msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
       when: true  # Condition to ensure this task runs
 
-    - name: Extract build index SQL
-      set_fact:
-        build_index_statements: "{{ decoded_index_file_content | regex_findall('BUILD INDEX.*?;') }}"
-
-    - name: Debug build index statements
-      debug:
-        msg: "{{ build_index_statements }}"
-
-    - name: Build indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ build_index_statements }}"
-      ignore_errors: true
-      register: build_output
-
-    - name: Debug output of index building
-      debug:
-        msg: "{{ build_output.results | map(attribute='stderr') | join('\n') }}"
-
-  
+    
