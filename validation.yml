@@ -95,11 +95,7 @@
         msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
       when: true  # Condition to ensure this task runs
       
-    - name: Copy deferred index script to RHEL server
-      copy:
-        src: /home/ubuntu/Couchbase_UPS/deferred_index.sh  # Path to the script on the local machine
-        dest: /tmp/deferred_index.sh  # Destination path on the RHEL server
-        mode: '0755'  # Ensure the script is executable
+   
 
     - name: Execute deferred index script
       command: /tmp/deferred_index.sh  # Run the script on the remote RHEL server
