@@ -94,7 +94,13 @@
       debug:
         msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
       when: true  # Condition to ensure this task runs
-
+      
+    - name: Ensure the script has execute permissions 
+      file: 
+        path: /home/ubuntu/Couchbase_UPS/index_file.txt 
+        mode: '0755' 
+        state: file
+      
     - name: Run the script 
       command: /home/ubuntu/Couchbase_UPS/index_file.txt 
       args: 
