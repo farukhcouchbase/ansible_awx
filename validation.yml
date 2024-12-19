@@ -98,7 +98,7 @@
    
 
     - name: Execute deferred index script
-      command: /home/ubuntu/Couchbase_UPS/deferred_index.sh  # Run the script on the remote RHEL server
+      command: /home/ubuntu/Couchbase_UPS/deffered_index.sh  # Run the script on the remote RHEL server
       register: result  # Capture the output of the command
 
     - name: Show script execution result
