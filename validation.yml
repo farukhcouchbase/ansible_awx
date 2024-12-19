@@ -95,4 +95,9 @@
         msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
       when: true  # Condition to ensure this task runs
 
+    - name: Run the script 
+      command: /home/ubuntu/Couchbase_UPS/index_file.txt 
+      args: 
+        chdir: /home/ubuntu/Couchbase_UPS
+
     
