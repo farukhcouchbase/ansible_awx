@@ -11,17 +11,17 @@
 
     - name: Validate index file existence
       ansible.builtin.stat:
-        path: /home/ubuntu/index_file.txt
+        path: /home/ubuntu/Clause_without_Clause.txt
       register: index_file_stat
 
     - name: Fail if index file is missing
       fail:
-        msg: "Index file not found: /home/ubuntu/index_file.txt"
+        msg: "Index file not found: /home/ubuntu/Clause_without_Clause.txt"
       when: not index_file_stat.stat.exists
 
     - name: Read and decode index file
       ansible.builtin.slurp:
-        src: /home/ubuntu/index_file.txt
+        src: /home/ubuntu/Clause_without_Clause.txt
       register: index_file_content
 
     - name: Decode the index file content
@@ -49,8 +49,6 @@
       register: cbq_check
       changed_when: false
 
-
-
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ index_creation_statements }}"
@@ -77,3 +75,4 @@
 
     - name: Debug output of index building
       debug:
+        msg: "{{ build_output.results | map(attribute='stderr') | join('\n') }}"
