@@ -4,7 +4,6 @@
   become: yes
   tasks:
    
-
     - name: Validate index file existence
       ansible.builtin.stat:
         path: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt
@@ -32,22 +31,27 @@
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE INDEX.*?;') }}"
 
-    # - name: Extract index creation SQL
-    #   set_fact:
-    #     index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE PRIMARY INDEX.*?;') }}"
+    - name: Filter out invalid index creation statements
+      set_fact:
+        valid_index_creation_statements: "{{ index_creation_statements | selectattr('regex_search', args=['WHERE'], case_sensitive=False) | selectattr('regex_search', args=['_default'], negate=True) | list }}"
 
-    - name: Debug index creation statements
+    - name: Debug valid index creation statements
       debug:
-        msg: "{{ index_creation_statements }}"
+        msg: "{{ valid_index_creation_statements }}"
 
     - name: Validate Couchbase CLI availability
       shell: "/opt/couchbase/bin/cbq --version"
       register: cbq_check
       changed_when: false
 
+    - name: Fail if there are no valid index creation statements
+      fail:
+        msg: "No valid index creation statements found"
+      when: valid_index_creation_statements | length == 0
+
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ index_creation_statements }}"
+      with_items: "{{ valid_index_creation_statements }}"
       ignore_errors: true
       register: ddl_output
 
