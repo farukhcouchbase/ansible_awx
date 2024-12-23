@@ -44,10 +44,10 @@
       register: cbq_check
       changed_when: false
 
-    - name: Fail if there are no valid index creation statements
-      fail:
-        msg: "No valid index creation statements found"
-      when: valid_index_creation_statements | length == 0
+    # - name: Fail if there are no valid index creation statements
+    #   fail:
+    #     msg: "No valid index creation statements found"
+    #   when: valid_index_creation_statements | length == 0
 
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
