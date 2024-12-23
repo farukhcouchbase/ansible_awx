@@ -33,7 +33,7 @@
 
     - name: Filter out invalid index creation statements
       set_fact:
-        valid_index_creation_statements: "{{ index_creation_statements | selectattr('regex_search', args=['WHERE'], case_sensitive=False) | selectattr('regex_search', args=['_default'], negate=True) | list }}"
+        valid_index_creation_statements: "{{ index_creation_statements | select('match', 'WHERE') | select('match', '_default', invert=True) | list }}"
 
     - name: Debug valid index creation statements
       debug:
