@@ -3,11 +3,7 @@
   hosts: all
   become: yes
   tasks:
-    - name: Ensure jq is installed
-      apt:
-        name: jq
-        state: present
-        update_cache: yes
+   
 
     - name: Validate index file existence
       ansible.builtin.stat:
