@@ -44,6 +44,25 @@
       register: cbq_check
       changed_when: false
 
+  
+
+    - name: Create indexes
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ index_creation_statements }}"
+      ignore_errors: true
+      register: ddl_output
+
+    - name: Debug output of index creation
+      debug:
+        msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
+
+    - name: Extract build index SQL
+      set_fact:
+        build_index_statements: "{{ decoded_index_file_content | regex_findall('BUILD INDEX.*?;') }}"
+
+    - name: Debug build index statements
+      debug:
+        msg: "{{ build_index_statements }}"
    
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
