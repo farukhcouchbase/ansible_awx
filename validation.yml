@@ -4,29 +4,11 @@
   become: yes
   tasks:
     
-    # Ensure the default apt cache is updated
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-    
-    # Ensure jq is installed from the default repository
-    - name: Ensure jq is installed
-      apt:
-        name: jq
-        state: present
-
-    # Add Couchbase repository (for Ubuntu 22.04/Jammy) if required
-    - name: Add Couchbase repository
-      apt_repository:
-        repo: "deb https://packages.couchbase.com/clients/c/repos/deb/ubuntu2404 jammy InRelease"
-        state: present
-        filename: "couchbase"
-      when: ansible_facts['distribution_version'] is version('22.04', '>=')
-
-    # Update apt cache again after adding Couchbase repo
-    - name: Update apt cache after adding Couchbase repository
-      apt:
-        update_cache: yes
+   # - name: Ensure jq is installed
+    #   apt:
+    #     name: jq
+    #     state: present
+    #     update_cache: yes
 
     # Validate index file existence
     - name: Validate index file existence
