@@ -3,19 +3,32 @@
   hosts: all
   become: yes
   tasks:
-
+    
+    # Ensure the default apt cache is updated
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+    
+    # Ensure jq is installed from the default repository
     - name: Ensure jq is installed
       apt:
         name: jq
         state: present
-        update_cache: yes
 
-    - name: Ensure jq is installed
-      apt:
-        name: jq
+    # Add Couchbase repository (for Ubuntu 22.04/Jammy) if required
+    - name: Add Couchbase repository
+      apt_repository:
+        repo: "deb https://packages.couchbase.com/clients/c/repos/deb/ubuntu2404 jammy InRelease"
         state: present
+        filename: "couchbase"
+      when: ansible_facts['distribution_version'] is version('22.04', '>=')
+
+    # Update apt cache again after adding Couchbase repo
+    - name: Update apt cache after adding Couchbase repository
+      apt:
         update_cache: yes
 
+    # Validate index file existence
     - name: Validate index file existence
       ansible.builtin.stat:
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
@@ -26,6 +39,7 @@
         msg: "Index file not found: /home/ubuntu/Couchbase_UPS/index_file.txt"
       when: not index_file_stat.stat.exists
 
+    # Read and decode index file
     - name: Read and decode index file
       ansible.builtin.slurp:
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
@@ -35,48 +49,39 @@
       set_fact:
         decoded_index_file_content: "{{ index_file_content.content | b64decode }}"
 
+    # Debug decoded index file content
     - name: Debug decoded index file content
       debug:
         msg: "{{ decoded_index_file_content }}"
 
+    # Extract index creation SQL
     - name: Extract index creation SQL
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE INDEX.*?;') }}"
-
-    # - name: Extract index creation SQL
-    #   set_fact:
-    #     index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE PRIMARY INDEX.*?;') }}"
 
     - name: Debug index creation statements
       debug:
         msg: "{{ index_creation_statements }}"
 
+    # Validate Couchbase CLI availability
     - name: Validate Couchbase CLI availability
       shell: "/opt/couchbase/bin/cbq --version"
       register: cbq_check
       changed_when: false
 
-    # - name: Create primary index
-    #   shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-    #   with_items: "{{ index_creation_statements }}"
-    #   ignore_errors: true
-    #   register: ddl_output
-
-    # - name: Debug output of primary index creation
-    #   debug:
-    #     msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
-        
-
+    # Create indexes
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ index_creation_statements }}"
       ignore_errors: true
       register: ddl_output
 
+    # Debug output of index creation
     - name: Debug output of index creation
       debug:
         msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
 
+    # Extract build index SQL
     - name: Extract build index SQL
       set_fact:
         build_index_statements: "{{ decoded_index_file_content | regex_findall('BUILD INDEX.*?;') }}"
@@ -85,12 +90,14 @@
       debug:
         msg: "{{ build_index_statements }}"
 
+    # Build indexes
     - name: Build indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ build_index_statements }}"
       ignore_errors: true
       register: build_output
 
+    # Debug output of index building
     - name: Debug output of index building
       debug:
         msg: "{{ build_output.results | map(attribute='stderr') | join('\n') }}"
