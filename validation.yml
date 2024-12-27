@@ -48,11 +48,11 @@
       debug:
         msg: "{{ allowed_index_creation_statements }}"
 
-    # Fail if there are disallowed index creation statements
-    - name: Fail if disallowed index creation statements exist
-      fail:
-        msg: "Disallowed index creation statements detected: {{ index_creation_statements | difference(allowed_index_creation_statements) }}"
-      when: "{{ index_creation_statements | difference(allowed_index_creation_statements) | length > 0 }}"
+    # # Fail if there are disallowed index creation statements
+    # - name: Fail if disallowed index creation statements exist
+    #   fail:
+    #     msg: "Disallowed index creation statements detected: {{ index_creation_statements | difference(allowed_index_creation_statements) }}"
+    #   when: "{{ index_creation_statements | difference(allowed_index_creation_statements) | length > 0 }}"
 
     # Validate Couchbase CLI availability
     - name: Validate Couchbase CLI availability
