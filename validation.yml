@@ -1,22 +1,18 @@
+---
 - name: Manage Couchbase indexes
   hosts: all
   become: yes
   tasks:
-    # - name: Ensure jq is installed
-    #   apt:
-    #     name: jq
-    #     state: present
-    #     update_cache: yes
-
+   
     - name: Validate index file existence
       ansible.builtin.stat:
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
-    - name: Fail if index file is missing
-      fail:
-        msg: "Index file not found: /home/ubuntu/Couchbase_UPS/index_file.txt"
-      when: not index_file_stat.stat.exists
+    # - name: Fail if index file is missing
+    #   fail:
+    #     msg: "Index file not found: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt"
+    #   when: not index_file_stat.stat.exists
 
     - name: Read and decode index file
       ansible.builtin.slurp:
@@ -35,73 +31,44 @@
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE INDEX.*?;') }}"
 
-    - name: Extract primary index creation SQL
+    - name: Filter out invalid index creation statements
       set_fact:
-        primary_index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE PRIMARY INDEX.*?;') }}"
+        valid_index_creation_statements: "{{ index_creation_statements | select('match', 'WHERE') | select('match', '_default', invert=True) | list }}"
 
-    - name: Debug index creation statements
+    - name: Debug valid index creation statements
       debug:
-        msg: "{{ index_creation_statements }}"
+        msg: "{{ valid_index_creation_statements }}"
 
-   
     - name: Validate Couchbase CLI availability
       shell: "/opt/couchbase/bin/cbq --version"
       register: cbq_check
       changed_when: false
 
-    - name: Create primary index
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ primary_index_creation_statements }}"
-      ignore_errors: true
-      register: ddl_output
-      when: false  # Condition to ensure this task does not run
-
-    - name: Read contents of index_file.txt
-      ansible.builtin.slurp:
-        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-      register: file_contents
-
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode }}"
-
-    - name: Extract primary index names using regex
-      set_fact:
-        primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
-
-    - name: Display the primary index names
-      debug:
-        msg: "The following index  are not allowed to be created or built: {{ primary_index_names }}"
-        
-    - name: Validate index scope is not '_default'
-      shell: |
-        if echo "{{ item }}" | grep -q 'scope:\s*_default'; then
-          echo "Error: Index creation in '_default' scope is not allowed!" && exit 1
-        fi
-      with_items: "{{ index_creation_statements }}"
-      register: check_default_scope
-      failed_when: check_default_scope.rc != 0  # Fail the task if '_default' scope is detected
-      when: item is defined and item != ""  # Ensure there is an item to check
-
+   
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ index_creation_statements }}"
+      with_items: "{{ valid_index_creation_statements }}"
       ignore_errors: true
       register: ddl_output
-      when: true  # Condition to ensure this task runs
 
     - name: Debug output of index creation
       debug:
         msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
-      when: true  # Condition to ensure this task runs
-      
-   
 
-    - name: Execute deferred index script
-      command: /home/ubuntu/Couchbase_UPS/deffered_index.sh  # Run the script on the remote RHEL server
-      register: result  # Capture the output of the command
+    - name: Extract build index SQL
+      set_fact:
+        build_index_statements: "{{ decoded_index_file_content | regex_findall('BUILD INDEX.*?;') }}"
 
-    - name: Show script execution result
+    - name: Debug build index statements
       debug:
-        msg: "Script output: {{ result.stdout }}"
-    
+        msg: "{{ build_index_statements }}"
+
+    - name: Build indexes
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ build_index_statements }}"
+      ignore_errors: true
+      register: build_output
+
+    - name: Debug output of index building
+      debug:
+        msg: "{{ build_output.results | map(attribute='stderr') | join('\n') }}"
