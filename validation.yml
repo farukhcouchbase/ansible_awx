@@ -4,11 +4,11 @@
   become: yes
   tasks:
 
-    # - name: Ensure jq is installed
-    #   apt:
-    #     name: jq
-    #     state: present
-    #     update_cache: yes
+    - name: Ensure jq is installed
+      apt:
+        name: jq
+        state: present
+        update_cache: yes
 
     - name: Ensure jq is installed
       apt:
