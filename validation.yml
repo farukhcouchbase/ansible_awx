@@ -3,16 +3,21 @@
   hosts: all
   become: yes
   tasks:
-   
+    - name: Ensure jq is installed
+      apt:
+        name: jq
+        state: present
+        update_cache: yes
+
     - name: Validate index file existence
       ansible.builtin.stat:
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
-    # - name: Fail if index file is missing
-    #   fail:
-    #     msg: "Index file not found: /home/ubuntu/Couchbase_UPS/Clause_without_Clause.txt"
-    #   when: not index_file_stat.stat.exists
+    - name: Fail if index file is missing
+      fail:
+        msg: "Index file not found: /home/ubuntu/Couchbase_UPS/index_file.txt"
+      when: not index_file_stat.stat.exists
 
     - name: Read and decode index file
       ansible.builtin.slurp:
@@ -31,42 +36,33 @@
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE INDEX.*?;') }}"
 
-    - name: Filter out invalid index creation statements
-      set_fact:
-        valid_index_creation_statements: "{{ index_creation_statements | select('match', 'WHERE') | select('match', '_default', invert=True) | list }}"
+    # - name: Extract index creation SQL
+    #   set_fact:
+    #     index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE PRIMARY INDEX.*?;') }}"
 
-    - name: Debug valid index creation statements
+    - name: Debug index creation statements
       debug:
-        msg: "{{ valid_index_creation_statements }}"
+        msg: "{{ index_creation_statements }}"
 
     - name: Validate Couchbase CLI availability
       shell: "/opt/couchbase/bin/cbq --version"
       register: cbq_check
       changed_when: false
 
-  
+    # - name: Create primary index
+    #   shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+    #   with_items: "{{ index_creation_statements }}"
+    #   ignore_errors: true
+    #   register: ddl_output
+
+    # - name: Debug output of primary index creation
+    #   debug:
+    #     msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
+        
 
     - name: Create indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ index_creation_statements }}"
-      ignore_errors: true
-      register: ddl_output
-
-    - name: Debug output of index creation
-      debug:
-        msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
-
-    - name: Extract build index SQL
-      set_fact:
-        build_index_statements: "{{ decoded_index_file_content | regex_findall('BUILD INDEX.*?;') }}"
-
-    - name: Debug build index statements
-      debug:
-        msg: "{{ build_index_statements }}"
-   
-    - name: Create indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ valid_index_creation_statements }}"
       ignore_errors: true
       register: ddl_output
 
