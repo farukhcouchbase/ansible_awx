@@ -60,7 +60,7 @@
     # Create indexes
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-     # with_items: "{{ allowed_index_creation_statements }}"
+      with_items: "{{ allowed_index_creation_statements }}"
       ignore_errors: true
      # register: ddl_output
 
@@ -84,7 +84,7 @@
       command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
       args:
         chdir: /home/ubuntu/Couchbase_UPS
-#      register: script_output
+      register: script_output
 
     # - name: Display script output
     #   debug:
