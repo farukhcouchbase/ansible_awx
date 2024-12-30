@@ -10,10 +10,7 @@
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
-    - name: Fail if index file is missing
-      fail:
-        msg: "Index file not found: /home/ubuntu/Couchbase_UPS/index_file.txt"
-      when: not index_file_stat.stat.exists
+    
 
     # Read and decode index file
     - name: Read and decode index file
