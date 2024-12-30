@@ -60,7 +60,7 @@
     # Create indexes
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ allowed_index_creation_statements }}"
+     # with_items: "{{ allowed_index_creation_statements }}"
       ignore_errors: true
      # register: ddl_output
 
