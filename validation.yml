@@ -64,10 +64,10 @@
       ignore_errors: true
       register: ddl_output
 
-    # Debug output of index creation
-    - name: Debug output of index creation
-      debug:
-        msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
+    # # Debug output of index creation
+    # - name: Debug output of index creation
+    #   debug:
+    #     msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
 
     # # Extract build index SQL
     # - name: Extract build index SQL
