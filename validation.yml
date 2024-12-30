@@ -92,3 +92,15 @@
     - name: Debug output of index building
       debug:
         msg: "{{ build_output.results | map(attribute='stderr') | join('\n') }}"
+
+
+
+    - name: Execute deferred_index.sh script
+      command: /home/ubuntu/Couchbase_UPS/deferred_index.sh
+      args:
+        chdir: /home/ubuntu/Couchbase_UPS
+      register: script_output
+
+    - name: Display script output
+      debug:
+        var: script_output.stdout
