@@ -10,8 +10,6 @@
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
-    
-
     # Read and decode index file
     - name: Read and decode index file
       ansible.builtin.slurp:
@@ -30,26 +28,20 @@
     # Extract index creation SQL
     - name: Extract index creation SQL
       set_fact:
-        index_creation_statements: "{{ decoded_index_file_content | regex_findall('CREATE INDEX.*?;') }}"
+        index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
 
     - name: Debug index creation statements
       debug:
         msg: "{{ index_creation_statements }}"
 
-    # Filter allowed index creation statements
+    # Filter allowed index creation statements (case-insensitive for WHERE)
     - name: Filter allowed index creation statements
       set_fact:
-        allowed_index_creation_statements: "{{ index_creation_statements | select('match', 'CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
+        allowed_index_creation_statements: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
 
     - name: Debug allowed index creation statements
       debug:
         msg: "{{ allowed_index_creation_statements }}"
-
-    # # Fail if there are disallowed index creation statements
-    # - name: Fail if disallowed index creation statements exist
-    #   fail:
-    #     msg: "Disallowed index creation statements detected: {{ index_creation_statements | difference(allowed_index_creation_statements) }}"
-    #   when: "{{ index_creation_statements | difference(allowed_index_creation_statements) | length > 0 }}"
 
     # Validate Couchbase CLI availability
     - name: Validate Couchbase CLI availability
@@ -62,30 +54,15 @@
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ allowed_index_creation_statements }}"
       ignore_errors: true
-     # register: ddl_output
 
-    # # Debug output of index creation
-    # - name: Debug output of index creation
-    #   debug:
-    #     msg: "{{ ddl_output.results | map(attribute='stderr') | join('\n') }}"
-
-    # # Extract build index SQL
-    # - name: Extract build index SQL
-    #   set_fact:
-    #     build_index_statements: "{{ decoded_index_file_content | regex_findall('BUILD INDEX.*?;') }}"
-
-    # - name: Debug build index statements
-    #   debug:
-    #     msg: "{{ build_index_statements }}"
-
-
-
+    # Execute deferred_index.sh script
     - name: Execute deferred_index.sh script
       command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
       args:
         chdir: /home/ubuntu/Couchbase_UPS
       register: script_output
 
-    # - name: Display script output
-    #   debug:
-    #     var: script_output.stdout
+    # Debug script output
+    - name: Display script output
+      debug:
+        var: script_output.stdout
