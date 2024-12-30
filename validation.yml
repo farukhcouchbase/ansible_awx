@@ -78,18 +78,6 @@
       debug:
         msg: "{{ build_index_statements }}"
 
-    # Build indexes
-    - name: Build indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ build_index_statements }}"
-      ignore_errors: true
-      register: build_output
-
-    # Debug output of index building
-    - name: Debug output of index building
-      debug:
-        msg: "{{ build_output.results | map(attribute='stderr') | join('\n') }}"
-
 
 
     - name: Execute deferred_index.sh script
