@@ -20,21 +20,21 @@
       set_fact:
         decoded_index_file_content: "{{ index_file_content.content | b64decode }}"
 
-    # Debug decoded index file content
-    - name: Debug decoded index file content
+    # Extract all index creation statements with WHERE clauses
+    - name: Extract index creation statements
+      set_fact:
+        index_creation_statements: >
+          {{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\).*?WHERE .*? USING GSI WITH {.*?defer_build.*?};') }}
+
+    # Filter valid index creation statements
+    - name: Filter valid index creation statements
+      set_fact:
+        valid_index_statements: "{{ index_creation_statements | list }}"
+
+    # Debug filtered index creation statements
+    - name: Debug valid index creation statements
       debug:
-        msg: "{{ decoded_index_file_content }}"
-
-    # Extract index creation SQL
-    - name: Extract index creation SQL
-      set_fact:
-        index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
-
-    # Filter allowed index creation statements (case-insensitive for WHERE)
-    - name: Filter allowed index creation statements
-      set_fact:
-        allowed_index_creation_statements: >
-          {{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}
+        msg: "{{ valid_index_statements }}"
 
     # Validate Couchbase CLI availability
     - name: Validate Couchbase CLI availability
@@ -42,49 +42,20 @@
       register: cbq_check
       changed_when: false
 
-    # Create indexes
-    - name: Create allowed indexes
+    # Create valid indexes
+    - name: Create valid indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ allowed_index_creation_statements }}"
+      with_items: "{{ valid_index_statements }}"
       ignore_errors: true
 
-    - name: Create primary index
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ primary_index_creation_statements }}"
-      ignore_errors: true
-      register: ddl_output
-      when: false  # Condition to ensure this task does not run
-
-    # Read and process index_file.txt
-    - name: Read contents of index_file.txt
-      ansible.builtin.slurp:
-        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-      register: file_contents
-
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode }}"
-
-    - name: Extract primary index names using regex
-      set_fact:
-        primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
-
-    - name: Display the primary index names
-      debug:
-        msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
-
-    - name: Decode file contents (if it's base64 encoded)
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode | to_nice_yaml }}"
-
-    - name: Create allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ file_data.splitlines() }}"
-      ignore_errors: true
-
-    # Execute deferred_index.sh script
+    # Optional: Trigger deferred builds (if applicable)
     - name: Execute deferred_index.sh script
       command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
       args:
         chdir: /home/ubuntu/Couchbase_UPS
       register: script_output
+
+    # Debug script output
+    - name: Display script output
+      debug:
+        var: script_output.stdout
