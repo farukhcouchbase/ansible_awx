@@ -1,4 +1,3 @@
-
 ---
 - name: Manage Couchbase indexes
   hosts: all
@@ -31,11 +30,18 @@
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
 
+    # - name: Debug index creation statements
+    #   debug:
+    #     msg: "{{ index_creation_statements }}"
+
     # Filter allowed index creation statements (case-insensitive for WHERE)
     - name: Filter allowed index creation statements
       set_fact:
-        allowed_index_creation_statements: >
-          {{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}
+        allowed_index_creation_statements: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
+
+    # - name: Debug allowed index creation statements
+    #   debug:
+    #     msg: "{{ allowed_index_creation_statements }}"
 
     # Validate Couchbase CLI availability
     - name: Validate Couchbase CLI availability
@@ -56,7 +62,6 @@
       register: ddl_output
       when: false  # Condition to ensure this task does not run
 
-    # Read and process index_file.txt
     - name: Read contents of index_file.txt
       ansible.builtin.slurp:
         src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
@@ -68,11 +73,17 @@
 
     - name: Extract primary index names using regex
       set_fact:
-        primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
+        primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX (primary_index_\\d+)') }}"
 
     - name: Display the primary index names
       debug:
-        msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
+        msg: "The following index  are not allowed to be created or built: {{ primary_index_names }}"
+
+
+    - name: Read contents of index_file.txt
+      ansible.builtin.slurp:
+        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
+      register: file_contents
 
     - name: Decode file contents (if it's base64 encoded)
       set_fact:
@@ -83,9 +94,15 @@
       with_items: "{{ file_data.splitlines() }}"
       ignore_errors: true
 
+
     # Execute deferred_index.sh script
     - name: Execute deferred_index.sh script
       command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
       args:
         chdir: /home/ubuntu/Couchbase_UPS
       register: script_output
+
+    # # Debug script output
+    # - name: Display script output
+    #   debug:
+    #     var: script_output.stdout
