@@ -30,18 +30,18 @@
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
 
-    # - name: Debug index creation statements
-    #   debug:
-    #     msg: "{{ index_creation_statements }}"
+    - name: Debug index creation statements
+      debug:
+        msg: "{{ index_creation_statements }}"
 
     # Filter allowed index creation statements (case-insensitive for WHERE)
     - name: Filter allowed index creation statements
       set_fact:
         allowed_index_creation_statements: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
 
-    # - name: Debug allowed index creation statements
-    #   debug:
-    #     msg: "{{ allowed_index_creation_statements }}"
+    - name: Debug allowed index creation statements
+      debug:
+        msg: "{{ allowed_index_creation_statements }}"
 
     # Validate Couchbase CLI availability
     - name: Validate Couchbase CLI availability
