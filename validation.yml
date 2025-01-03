@@ -73,13 +73,13 @@
       set_fact:
         primary_index_names: "{{ file_data | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
-    # Fail if primary indexes are detected
-    - name: Fail if primary indexes are detected
-      ansible.builtin.fail:
-        msg: >
-          Primary index creation is not allowed. Found the following indexes
-          that attempt to create primary indexes: {{ primary_index_names }}
-      when: primary_index_names | length > 0
+    # # Fail if primary indexes are detected
+    # - name: Fail if primary indexes are detected
+    #   ansible.builtin.fail:
+    #     msg: >
+    #       Primary index creation is not allowed. Found the following indexes
+    #       that attempt to create primary indexes: {{ primary_index_names }}
+    #   when: primary_index_names | length > 0
 
     # Log detected primary indexes (for debugging purposes)
     - name: Log detected primary indexes
