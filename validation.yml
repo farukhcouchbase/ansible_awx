@@ -49,6 +49,16 @@
       register: cbq_check
       changed_when: false
 
+    - name: Read file data
+      slurp:
+        src: /home/ubuntu/Couchbase_UPS/index_file.txt
+      register: file_content
+
+    - name: Decode file content
+      set_fact:
+        file_data: "{{ file_content.content | b64decode | string }}"
+ 
+
       # Extract primary index names using regex
     - name: Extract primary index names using regex
       set_fact:
