@@ -55,15 +55,9 @@
       with_items: "{{ allowed_index_creation_statements }}"
       ignore_errors: true
 
-   # Create primary index
-    - name: Create primary index
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ primary_index_creation_statements }}"
-      ignore_errors: true
-      register: ddl_output
-      when: false  # Condition to ensure this task does not run
+    
 
-    # Read contents of index_file.txt
+   # Read contents of index_file.txt
     - name: Read contents of index_file.txt
       ansible.builtin.slurp:
         src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
@@ -79,11 +73,29 @@
       set_fact:
         primary_index_names: "{{ file_data | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
-    - name: Display the primary index names
-      debug:
-        msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
+    # Fail if primary indexes are detected
+    - name: Fail if primary indexes are detected
+      ansible.builtin.fail:
+        msg: >
+          Primary index creation is not allowed. Found the following indexes
+          that attempt to create primary indexes: {{ primary_index_names }}
+      when: primary_index_names | length > 0
 
-   
+    # Log detected primary indexes (for debugging purposes)
+    - name: Log detected primary indexes
+      debug:
+        msg: >
+          The following primary indexes were found in the file and are not allowed to be created:
+          {{ primary_index_names }}
+      when: primary_index_names | length > 0
+
+    # Task to prevent primary index creation
+    - name: Skip primary index creation task
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ primary_index_creation_statements }}"
+      ignore_errors: true
+      register: ddl_output
+      when: primary_index_names | length == 0
 
 
 
