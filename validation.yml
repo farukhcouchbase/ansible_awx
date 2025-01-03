@@ -55,9 +55,7 @@
       with_items: "{{ allowed_index_creation_statements }}"
       ignore_errors: true
 
-    
-
-   # Read contents of index_file.txt
+    # Read contents of index_file.txt
     - name: Read contents of index_file.txt
       ansible.builtin.slurp:
         src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
@@ -73,54 +71,32 @@
       set_fact:
         primary_index_names: "{{ file_data | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
-    - name: Read contents of index_file.txt
-  ansible.builtin.slurp:
-    src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-  register: file_contents
+    - name: Display the primary index names
+      debug:
+        msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
 
-- name: Decode file contents
-  set_fact:
-    file_data: "{{ file_contents['content'] | b64decode }}"
+    - name: Fail the playbook if primary indexes are found
+      fail:
+        msg: "Primary index creation is not allowed. Found the following primary indexes: {{ primary_index_names }}"
+      when: primary_index_names | length > 0
 
-- name: Extract primary index names using regex
-  set_fact:
-    primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
+    - name: Create primary index
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ primary_index_creation_statements }}"
+      ignore_errors: true
+      register: ddl_output
+      when: primary_index_names | length == 0
 
-- name: Display the primary index names
-  debug:
-    msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
-
-- name: Fail the playbook if primary indexes are found
-  fail:
-    msg: "Primary index creation is not allowed. Found the following primary indexes: {{ primary_index_names }}"
-  when: primary_index_names | length > 0
-
-- name: Create primary index
-  shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-  with_items: "{{ primary_index_creation_statements }}"
-  ignore_errors: true
-  register: ddl_output
-  when: primary_index_names | length == 0
-
-
-
-  
-
-
-    - name: Read contents of index_file.txt
-      ansible.builtin.slurp:
-        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-      register: file_contents
-
-    - name: Decode file contents (if it's base64 encoded)
+    # Decode file contents (if it's base64 encoded)
+    - name: Decode file contents
       set_fact:
         file_data: "{{ file_contents['content'] | b64decode | to_nice_yaml }}"
 
+    # Create allowed indexes
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ file_data.splitlines() }}"
       ignore_errors: true
-
 
     # Execute deferred_index.sh script
     - name: Execute deferred_index.sh script
@@ -129,7 +105,7 @@
         chdir: /home/ubuntu/Couchbase_UPS
       register: script_output
 
-    # # Debug script output
-    # - name: Display script output
-    #   debug:
-    #     var: script_output.stdout
+    # Debug script output
+    - name: Display script output
+      debug:
+        var: script_output.stdout
