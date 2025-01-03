@@ -25,70 +25,34 @@
       debug:
         msg: "{{ decoded_index_file_content }}"
 
-    # Extract index creation SQL
-    - name: Extract index creation SQL
+    # Extract valid index creation SQL
+    - name: Extract valid index creation SQL
       set_fact:
-        index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
+        index_creation_statements: >-
+          {{
+            decoded_index_file_content | regex_findall(
+              '(?i)(CREATE INDEX `[^`]+` ON `travel-sample`\.[^`]+\.[^`]+\(`[^`]+`\)( WHERE .+?)? USING GSI WITH {\"defer_build\":true};)'
+            )
+          }}
 
-    - name: Debug index creation statements
+    - name: Debug extracted index creation statements
       debug:
         msg: "{{ index_creation_statements }}"
 
-    # Filter allowed index creation statements (with deferred build only)
-    - name: Filter allowed index creation statements with deferred build
+    # Filter indexes that match required patterns
+    - name: Filter allowed indexes
       set_fact:
-        allowed_index_creation_statements: >-
-          {{
-            index_creation_statements | select('search',
-            '(?i)CREATE INDEX .*? ON .*?\\..*?\\(.*?\\) USING GSI WITH {\\"defer_build\\":true};') | list
-          }}
+        allowed_index_creation_statements: "{{ index_creation_statements }}"
 
     - name: Debug allowed index creation statements
       debug:
-        msg: "{{ allowed_index_creation_statements }}"
-
-    # Extract disallowed index creation statements
-    - name: Extract disallowed index creation statements
-      set_fact:
-        disallowed_index_creation_statements: "{{ index_creation_statements | difference(allowed_index_creation_statements) }}"
-
-    - name: Debug disallowed index creation statements
-      debug:
-        msg: "The following indexes are not allowed to be created: {{ disallowed_index_creation_statements }}"
+        msg: "Allowed index creation statements: {{ allowed_index_creation_statements }}"
 
     # Validate Couchbase CLI availability
     - name: Validate Couchbase CLI availability
       shell: "/opt/couchbase/bin/cbq --version"
       register: cbq_check
       changed_when: false
-
-    # Create primary index
-    - name: Create primary index
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ primary_index_creation_statements }}"
-      ignore_errors: true
-      register: ddl_output
-      when: false  # Condition to ensure this task does not run
-
-    # Read contents of index_file.txt
-    - name: Read contents of index_file.txt
-      ansible.builtin.slurp:
-        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-      register: file_contents
-
-    # Decode file contents
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode }}"
-
-    # Extract primary index names using regex
-    - name: Extract primary index names using regex
-      set_fact:
-        primary_index_names: "{{ file_data | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
-
-    - name: Display the primary index names
-      debug:
-        msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
 
     # Create allowed indexes
     - name: Create allowed indexes
