@@ -78,3 +78,34 @@
     - name: Display the primary index names
       debug:
         msg: "The following index  are not allowed to be created or built: {{ primary_index_names }}"
+
+   
+
+
+
+    - name: Read contents of index_file.txt
+      ansible.builtin.slurp:
+        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
+      register: file_contents
+
+    - name: Decode file contents (if it's base64 encoded)
+      set_fact:
+        file_data: "{{ file_contents['content'] | b64decode | to_nice_yaml }}"
+
+    - name: Create allowed indexes
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ file_data.splitlines() }}"
+      ignore_errors: true
+
+
+    # Execute deferred_index.sh script
+    - name: Execute deferred_index.sh script
+      command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
+      args:
+        chdir: /home/ubuntu/Couchbase_UPS
+      register: script_output
+
+    # # Debug script output
+    # - name: Display script output
+    #   debug:
+    #     var: script_output.stdout
