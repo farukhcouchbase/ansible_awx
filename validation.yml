@@ -73,47 +73,38 @@
       set_fact:
         primary_index_names: "{{ file_data | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
-    - name: Create primary index
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ primary_index_creation_statements }}"
-      ignore_errors: true
-      register: ddl_output
-      when: false  # Condition to ensure this task does not run
-
     - name: Read contents of index_file.txt
-      ansible.builtin.slurp:
-        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-      register: file_contents
+  ansible.builtin.slurp:
+    src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
+  register: file_contents
 
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode }}"
+- name: Decode file contents
+  set_fact:
+    file_data: "{{ file_contents['content'] | b64decode }}"
 
-    - name: Extract primary index names using regex
-      set_fact:
-        primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX (primary_index_\\d+)') }}"
+- name: Extract primary index names using regex
+  set_fact:
+    primary_index_names: "{{ file_data | regex_findall('CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
-    - name: Display the primary index names
-      debug:
-        msg: "The following index  are not allowed to be created or built: {{ primary_index_names }}"
+- name: Display the primary index names
+  debug:
+    msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
+
+- name: Fail the playbook if primary indexes are found
+  fail:
+    msg: "Primary index creation is not allowed. Found the following primary indexes: {{ primary_index_names }}"
+  when: primary_index_names | length > 0
+
+- name: Create primary index
+  shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+  with_items: "{{ primary_index_creation_statements }}"
+  ignore_errors: true
+  register: ddl_output
+  when: primary_index_names | length == 0
 
 
-    # Log detected primary indexes (for debugging purposes)
-    - name: Log detected primary indexes
-      debug:
-        msg: >
-          The following primary indexes  are not allowed to be create:
-          {{ primary_index_names }}
-      when: primary_index_names | length > 0
 
-    # Task to prevent primary index creation
-    - name: Skip primary index creation task
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ primary_index_creation_statements }}"
-      ignore_errors: true
-      register: ddl_output
-      when: primary_index_names | length == 0
-
+  
 
 
     - name: Read contents of index_file.txt
