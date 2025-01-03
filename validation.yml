@@ -105,7 +105,7 @@
         chdir: /home/ubuntu/Couchbase_UPS
       register: script_output
 
-    # # Debug script output
-    # - name: Display script output
-    #   debug:
-    #     var: script_output.stdout
+    # Debug script output
+    - name: Display script output
+      debug:
+        var: script_output.stdout
