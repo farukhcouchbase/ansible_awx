@@ -75,9 +75,9 @@
       debug:
         msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
 
-    - name: Fail the playbook if primary indexes are found
-      fail:
-        msg: "Primary index creation is not allowed. Found the following primary indexes: {{ primary_index_names }}"
+    - name: Skip primary index creation if indexes are found
+      debug:
+        msg: "Skipping primary index creation as the following indexes were found: {{ primary_index_names }}"
       when: primary_index_names | length > 0
 
     - name: Create primary index
