@@ -85,7 +85,7 @@
     - name: Log detected primary indexes
       debug:
         msg: >
-          The following primary indexes were found in the file and are not allowed to be created:
+          The following primary indexes  are not allowed to be create:
           {{ primary_index_names }}
       when: primary_index_names | length > 0
 
