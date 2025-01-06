@@ -11,32 +11,11 @@
       register: index_file_stat
 
 
-    # Read contents of index_file.txt
-    - name: Read contents of index_file.txt
-      ansible.builtin.slurp:
-        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-      register: file_contents
+   
 
-    # Decode file contents
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode }}"
+   
 
-    # Extract index creation statements
-    - name: Parse index creation statements from file
-      set_fact:
-        allowed_index_creation_statements: "{{ file_data.splitlines() }}"
-
-    # Debug to verify index creation statements
-    - name: Display parsed index creation statements
-      debug:
-        msg: "{{ allowed_index_creation_statements }}"
-
-    # Create indexes
-    - name: Create allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ allowed_index_creation_statements }}"
-      ignore_errors: true
+   
 
 
     
@@ -113,6 +92,17 @@
       register: check_default_scope
       failed_when: check_default_scope.rc != 0  # Fail the task if '_default' scope is detected
       when: item is defined and item != ""  # Ensure there is an item to check
+
+    - name: Validate index scope is not '_default'
+      shell: |
+        if echo "{{ item }}" | grep -Eq 'scope:\s*_default|`[^`]+`\.`_default`\.`_default`'; then
+          echo "Error: Index creation in '_default' scope or '_default._default' is not allowed!" && exit 1
+        fi
+      with_items: "{{ index_creation_statements }}"
+      register: check_default_scope
+      failed_when: check_default_scope.rc != 0  # Fail the task if '_default' scope is detected
+      when: item is defined and item != ""  # Ensure there is an item to check
+
 
 
     # Create indexes
