@@ -10,12 +10,6 @@
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
-  
-    # Create indexes
-    - name: Create allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ allowed_index_creation_statements }}"
-      ignore_errors: true
 
     # Read contents of index_file.txt
     - name: Read contents of index_file.txt
@@ -33,11 +27,19 @@
       set_fact:
         allowed_index_creation_statements: "{{ file_data.splitlines() }}"
 
-    # Debug output for verification
+    # Debug to verify index creation statements
     - name: Display parsed index creation statements
       debug:
         msg: "{{ allowed_index_creation_statements }}"
 
+    # Create indexes
+    - name: Create allowed indexes
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ allowed_index_creation_statements }}"
+      ignore_errors: true
+
+
+    
 
     # Read and decode index file
     - name: Read and decode index file
