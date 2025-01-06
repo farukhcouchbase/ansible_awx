@@ -10,9 +10,7 @@
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
-    ---
-- hosts: localhost
-  tasks:
+  
     # Create indexes
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
