@@ -85,15 +85,16 @@
       failed_when: check_default_scope.rc != 0  # Fail the task if '_default' scope is detected
       when: item is defined and item != ""  # Ensure there is an item to check
 
-    - name: Validate index scope is not '_default'
+    - name: Validate index scope and collection are not '_default'
       shell: |
-        if echo "{{ item }}" | grep -Eq 'scope:\s*_default|`[^`]+`\.`_default`\.`_default`'; then
-          echo "Error: Index creation in '_default' scope or '_default._default' is not allowed!" && exit 1
+        if echo "{{ item }}" | grep -qE 'scope:\s*_default|collection:\s*_default'; then
+          echo "Error: Index creation in '_default' scope or collection is not allowed!" && exit 1
         fi
       with_items: "{{ index_creation_statements }}"
-      register: check_default_scope
-      failed_when: check_default_scope.rc != 0  # Fail the task if '_default' scope is detected
+      register: check_default_scope_and_collection
+      failed_when: check_default_scope_and_collection.rc != 0  # Fail the task if '_default' scope or collection is detected
       when: item is defined and item != ""  # Ensure there is an item to check
+
 
 
 
