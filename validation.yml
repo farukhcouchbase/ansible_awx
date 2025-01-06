@@ -10,6 +10,37 @@
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
+    ---
+- hosts: localhost
+  tasks:
+    # Create indexes
+    - name: Create allowed indexes
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ allowed_index_creation_statements }}"
+      ignore_errors: true
+
+    # Read contents of index_file.txt
+    - name: Read contents of index_file.txt
+      ansible.builtin.slurp:
+        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
+      register: file_contents
+
+    # Decode file contents
+    - name: Decode file contents
+      set_fact:
+        file_data: "{{ file_contents['content'] | b64decode }}"
+
+    # Extract index creation statements
+    - name: Parse index creation statements from file
+      set_fact:
+        allowed_index_creation_statements: "{{ file_data.splitlines() }}"
+
+    # Debug output for verification
+    - name: Display parsed index creation statements
+      debug:
+        msg: "{{ allowed_index_creation_statements }}"
+
+
     # Read and decode index file
     - name: Read and decode index file
       ansible.builtin.slurp:
