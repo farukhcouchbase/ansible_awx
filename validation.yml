@@ -64,9 +64,9 @@
       set_fact:
         primary_index_names: "{{ file_data | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
-    - name: Display the primary index names
-      debug:
-        msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
+    # - name: Display the primary index names
+    #   debug:
+    #     msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
 
     - name: Skip primary index creation if indexes are found
       debug:
