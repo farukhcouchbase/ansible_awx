@@ -12,14 +12,6 @@
 
 
    
-
-   
-
-   
-
-
-    
-
     # Read and decode index file
     - name: Read and decode index file
       ansible.builtin.slurp:
