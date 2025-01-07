@@ -4,60 +4,39 @@
   become: yes
   tasks:
 
-    # Validate index file existence
-    - name: Validate index file existence
-      ansible.builtin.stat:
-        path: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: index_file_stat
-
+  
     - name: Validate index file existence
       ansible.builtin.stat:
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat_01 
 
-     # Read and decode index file
-    - name: Read and decode index file
-      ansible.builtin.slurp:
-        src: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: index_file_content
+  
 
     - name: Read and decode index file
       ansible.builtin.slurp:
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_content_01
 
-    - name: Decode the index file content
-      set_fact:
-        decoded_index_file_content: "{{ index_file_content.content | b64decode }}"
+    
 
     - name: Decode the index file content
       set_fact:
         decoded_index_file_content_01: "{{ index_file_content_01.content | b64decode }}"
 
-    # Debug decoded index file content
-    - name: Debug decoded index file content
-      debug:
-        msg: "{{ decoded_index_file_content }}"
+  
 
     - name: Debug decoded index file content
       debug:
         msg: "{{ decoded_index_file_content_01 }}"
 
-    # Extract index creation SQL
-    - name: Extract index creation SQL
-      set_fact:
-        index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
-
+ 
     # Extract index creation SQL
     - name: Extract index creation SQL
       set_fact:
         index_creation_statements_01: "{{ decoded_index_file_content_01 | regex_findall('(?i)CREATE INDEX.*?;') }}"
 
 
-    - name: Debug index creation statements
-      debug:
-        msg: "{{ index_creation_statements }}"
-
+  
     - name: Debug index creation statements
       debug:
         msg: "{{ index_creation_statements_01 }}"
