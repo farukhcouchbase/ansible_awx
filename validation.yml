@@ -28,6 +28,11 @@
             '  (?i)CREATE\s+INDEX\s+`[^`]+`\s+ON\s+`[^`]+`(?:\.`[^`]+`)*\s*\(.*?\)\s*(WHERE\s+[^;]*)?\s+USING\s+GSI\s+WITH\s+\{[^}]+\};'
           ) }}
 
+    - name: Debug index creation statements
+      debug:
+        msg: "{{ index_creation_statements }}"
+
+
         
   
     # Filter allowed index creation statements (case-insensitive for WHERE)
