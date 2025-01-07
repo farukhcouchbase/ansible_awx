@@ -110,10 +110,7 @@
     # - name: Display the primary index names
     #   debug:
     #     msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
-    - name: Skip disallowed index statements
-      set_fact:
-        index_creation_statements_to_process: "{{ allowed_index_creation_statements_01 }}"
-
+   
 
     - name: Skip primary index creation if indexes are found
       debug:
