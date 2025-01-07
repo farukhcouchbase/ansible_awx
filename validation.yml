@@ -10,6 +10,11 @@
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
+    - name: Fail if index file does not exist
+      fail:
+        msg: "Index file does not exist at /home/ubuntu/Couchbase_UPS/index_file.txt"
+      when: not index_file_stat.stat.exists
+
     # Read and decode index file
     - name: Read and decode index file
       ansible.builtin.slurp:
@@ -25,11 +30,10 @@
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
 
-  
     # Filter allowed index creation statements (case-insensitive for WHERE)
     - name: Filter allowed index creation statements
       set_fact:
-        allowed_index_creation_statements: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
+        allowed_index_creation_statements: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON `travel-sample`\..*?\..*?\(.*?\) .*? USING GSI WITH {\"defer_build\":true};') | list }}"
 
     - name: Debug allowed index creation statements
       debug:
@@ -41,68 +45,41 @@
       register: cbq_check
       changed_when: false
 
-    - name: Read file data
-      slurp:
-        src: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: file_content
+    - name: Fail if Couchbase CLI is not available
+      fail:
+        msg: "Couchbase CLI is not available at /opt/couchbase/bin/cbq."
+      when: cbq_check.rc != 0
 
-    - name: Decode file content
-      set_fact:
-        file_data: "{{ file_content.content | b64decode | string }}"
-
-    
- 
-
-      # Extract primary index names using regex
+    # Extract primary index names using regex
     - name: Extract primary index names using regex
       set_fact:
-        primary_index_names: "{{ file_data | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
+        primary_index_names: "{{ decoded_index_file_content | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
-    # - name: Display the primary index names
-    #   debug:
-    #     msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
-
-    - name: Skip primary index creation if indexes are found
+    - name: Debug primary index names
       debug:
         msg: "Skipping primary index creation as the following indexes were found: {{ primary_index_names }}"
       when: primary_index_names | length > 0
 
-    - 
     # Create indexes
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ allowed_index_creation_statements }}"
       ignore_errors: true
 
-    # Read contents of index_file.txt
-    - name: Read contents of index_file.txt
-      ansible.builtin.slurp:
-        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-      register: file_contents
+    # Execute deferred_index.sh script if necessary
+    - name: Check if deferred_index.sh exists
+      ansible.builtin.stat:
+        path: /home/ubuntu/Couchbase_UPS/deffered_index.sh
+      register: deferred_script_stat
 
-    # Decode file contents
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode }}"
+    - name: Execute deferred_index.sh script
+      command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
+      args:
+        chdir: /home/ubuntu/Couchbase_UPS
+      register: script_output
+      when: deferred_script_stat.stat.exists
 
-   
-  
-
-    # Decode file contents (if it's base64 encoded)
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode | to_nice_yaml }}"
-
-
-
-    # # Execute deferred_index.sh script
-    # - name: Execute deferred_index.sh script
-    #   command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
-    #   args:
-    #     chdir: /home/ubuntu/Couchbase_UPS
-    #   register: script_output
-
-    # # Debug script output
-    # - name: Display script output
-    #   debug:
-    #     var: script_output.stdout
+    - name: Debug script output
+      debug:
+        var: script_output.stdout
+      when: deferred_script_stat.stat.exists
