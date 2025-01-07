@@ -26,15 +26,15 @@
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
 
   
-    # Filter allowed index creation statements (case-insensitive for WHERE)
-    - name: Filter allowed index creation statements
-      set_fact:
-        allowed_index_creation_statements: >-
-          {{ 
-            index_creation_statements | 
-            select('match', '(?i)CREATE INDEX `[^`]+` ON `[^`]+`(?:\\.`[^`]+`){0,2}\\([^\\)]+\\)(?: WHERE .*?)? USING GSI WITH {\\s*"defer_build"\\s*:\\s*true\\s*};') | 
-            list 
-          }}
+    # # Filter allowed index creation statements (case-insensitive for WHERE)
+    # - name: Filter allowed index creation statements
+    #   set_fact:
+    #     allowed_index_creation_statements: >-
+    #       {{ 
+    #         index_creation_statements | 
+    #         select('match', '(?i)CREATE INDEX `[^`]+` ON `[^`]+`(?:\\.`[^`]+`){0,2}\\([^\\)]+\\)(?: WHERE .*?)? USING GSI WITH {\\s*"defer_build"\\s*:\\s*true\\s*};') | 
+    #         list 
+    #       }}
 
     - name: Debug allowed index creation statements
       debug:
