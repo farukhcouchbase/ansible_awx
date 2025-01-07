@@ -45,17 +45,9 @@
     # Filter allowed index creation statements (case-insensitive for WHERE)
     - name: Filter allowed index creation statements
       set_fact:
-        allowed_index_creation_statements: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
+        allowed_index_creation_statements_01: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
 
-    # Filter out disallowed index creation statements
-    - name: Filter allowed index creation statements
-      set_fact:
-        allowed_index_creation_statements_01: >-
-          {{
-            index_creation_statements_01
-            | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {.*"defer_build":true.*};')
-            | list
-          }}
+  
 
     - name: Debug allowed index creation statements
       debug:
