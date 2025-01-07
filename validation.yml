@@ -62,19 +62,7 @@
       debug:
         msg: "{{ index_creation_statements_01 }}"
 
-     # Fail if disallowed indexes are found
-    - name: Fail on disallowed index creation statements
-      fail:
-        msg: "Disallowed index creation statements found: {{ disallowed_index_creation_statements }}"
-      when: disallowed_index_creation_statements | length > 0
-      vars:
-        disallowed_index_creation_statements: >-
-          {{
-            index_creation_statements_01
-            | reject('match', '(?i)CREATE INDEX .*? ON `.*?`\\(.*?\\) USING GSI WITH \\{.*"defer_build":true.*\\};')
-            | list
-          }}
-
+   
     # Filter allowed index creation statements (case-insensitive for WHERE)
     - name: Filter allowed index creation statements
       set_fact:
@@ -122,6 +110,10 @@
     # - name: Display the primary index names
     #   debug:
     #     msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
+    - name: Skip disallowed index statements
+      set_fact:
+        index_creation_statements_to_process: "{{ allowed_index_creation_statements_01 }}"
+
 
     - name: Skip primary index creation if indexes are found
       debug:
