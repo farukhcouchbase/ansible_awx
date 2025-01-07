@@ -59,6 +59,16 @@
     - name: Decode file content
       set_fact:
         file_data: "{{ file_content.content | b64decode | string }}"
+
+    - name: Validate index scope is not '_default'
+      shell: |
+        if echo "{{ item }}" | grep -q 'scope:\s*_default'; then
+          echo "Error: Index creation in '_default' scope is not allowed!" && exit 1
+        fi
+      with_items: "{{ index_creation_statements }}"
+      register: check_default_scope
+      failed_when: check_default_scope.rc != 0  # Fail the task if '_default' scope is detected
+      when: item is defined and item != ""  # Ensure there is an item to check
  
 
       # Extract primary index names using regex
@@ -75,31 +85,7 @@
         msg: "Skipping primary index creation as the following indexes were found: {{ primary_index_names }}"
       when: primary_index_names | length > 0
 
-    - name: Validate index scope and collection are not '_default'
-      shell: |
-        if echo "{{ item }}" | grep -qE 'scope:\s*_default|collection:\s*_default'; then
-          echo "Error: Index creation in '_default' scope or collection is not allowed!" && exit 1
-        fi
-      with_items: "{{ index_creation_statements }}"
-      register: check_default_scope_and_collection
-      failed_when: check_default_scope_and_collection.rc != 0  # Fail the task if '_default' scope or collection is detected
-      when: item is defined and item != ""  # Ensure there is an item to check
-
-    - name: Validate index scope is not '_default'
-      shell: |
-        if echo "{{ item }}" | grep -q 'scope:\s*_default'; then
-          echo "Error: Index creation in '_default' scope is not allowed!" && exit 1
-        fi
-      with_items: "{{ index_creation_statements }}"
-      register: check_default_scope
-      failed_when: check_default_scope.rc != 0  # Fail the task if '_default' scope is detected
-      when: item is defined and item != ""  # Ensure there is an item to check
-
-    
-
-
-
-
+    - 
     # Create indexes
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
