@@ -32,10 +32,10 @@
       set_fact:
         decoded_index_file_content: "{{ index_file_content.content | b64decode }}"
 
-    # Debug decoded index file content
-    - name: Debug decoded index file content
-      debug:
-        msg: "{{ decoded_index_file_content }}"
+    # # Debug decoded index file content
+    # - name: Debug decoded index file content
+    #   debug:
+    #     msg: "{{ decoded_index_file_content }}"
 
     # Extract index creation SQL
     - name: Extract index creation SQL
