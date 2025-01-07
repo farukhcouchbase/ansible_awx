@@ -1,3 +1,6 @@
+---
+- name: Manage Couchbase indexes
+  hosts: all
   become: yes
   tasks:
 
