@@ -78,7 +78,7 @@
     # Create indexes
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ allowed_index_creation_statements }}"
+      with_items: "{{ decoded_index_file_content }}"
       ignore_errors: true
 
     # Read contents of index_file.txt
