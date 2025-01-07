@@ -10,42 +10,82 @@
         path: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_stat
 
-    # Read and decode index file
+    - name: Validate index file existence
+      ansible.builtin.stat:
+        path: /home/ubuntu/Couchbase_UPS/index_file.txt
+      register: index_file_stat_01 
+
+     # Read and decode index file
     - name: Read and decode index file
       ansible.builtin.slurp:
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_content
 
+    - name: Read and decode index file
+      ansible.builtin.slurp:
+        src: /home/ubuntu/Couchbase_UPS/index_file.txt
+      register: index_file_content_01
+
     - name: Decode the index file content
       set_fact:
         decoded_index_file_content: "{{ index_file_content.content | b64decode }}"
+
+    - name: Decode the index file content
+      set_fact:
+        decoded_index_file_content_01: "{{ index_file_content_01.content | b64decode }}"
 
     # Debug decoded index file content
     - name: Debug decoded index file content
       debug:
         msg: "{{ decoded_index_file_content }}"
 
+    - name: Debug decoded index file content
+      debug:
+        msg: "{{ decoded_index_file_content_01 }}"
+
     # Extract index creation SQL
     - name: Extract index creation SQL
       set_fact:
         index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
 
+    # Extract index creation SQL
+    - name: Extract index creation SQL
+      set_fact:
+        index_creation_statements_01: "{{ decoded_index_file_content_01 | regex_findall('(?i)CREATE INDEX.*?;') }}"
+
+
     - name: Debug index creation statements
       debug:
         msg: "{{ index_creation_statements }}"
 
+    - name: Debug index creation statements
+      debug:
+        msg: "{{ index_creation_statements_01 }}"
+
+   
     # Filter allowed index creation statements (case-insensitive for WHERE)
     - name: Filter allowed index creation statements
       set_fact:
         allowed_index_creation_statements: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
 
-
+    # Filter out disallowed index creation statements
+    - name: Filter allowed index creation statements
+      set_fact:
+        allowed_index_creation_statements_01: >-
+          {{
+            index_creation_statements_01
+            | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {.*"defer_build":true.*};')
+            | list
+          }}
 
     - name: Debug allowed index creation statements
       debug:
         msg: "{{ allowed_index_creation_statements }}"
         
- 
+    - name: Debug allowed index creation statements
+      debug:
+        msg: "{{ allowed_index_creation_statements }}"
+
     # Validate Couchbase CLI availability
     - name: Validate Couchbase CLI availability
       shell: "/opt/couchbase/bin/cbq --version"
@@ -80,12 +120,20 @@
         msg: "Skipping primary index creation as the following indexes were found: {{ primary_index_names }}"
       when: primary_index_names | length > 0
 
+    # # Create indexes
+    # - name: Create allowed indexes
+    #   shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+    #   with_items: "{{ index_creation_statements }}"
+    #   #with_items: "{{ decoded_index_file_content }}"
+    #   #with_items: "{{ allowed_index_creation_statements }}"
+
     # Create indexes
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ index_creation_statements }}"
+      with_items: "{{ index_creation_statements_01 }}"
       #with_items: "{{ decoded_index_file_content }}"
-      #with_items: "{{ allowed_index_creation_statements }}"
+      #with_items: "{{ allowed_index_creation_statements_01 }}"
+      
       ignore_errors: true
 
     # Read contents of index_file.txt
