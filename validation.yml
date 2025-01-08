@@ -1,174 +1,70 @@
 ---
-- name: Manage Couchbase indexes
+- name: Create Couchbase Indexes based on index_file.txt
   hosts: all
-  become: yes
+  become: true
+  vars:
+    # Couchbase Cluster Credentials
+    couchbase_cluster: "http://localhost:8091"
+    couchbase_user: "Admin"
+    couchbase_password: "redhat"
+
+    # Path to the index creation file
+    index_file_path: "/home/ubuntu/Couchbase_UPS/index_file.txt"
+    
   tasks:
 
-    # Validate index file existence
-    - name: Validate index file existence
-      ansible.builtin.stat:
-        path: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: index_file_stat
-
-    # - name: Validate index file existence
-    #   ansible.builtin.stat:
-    #     path: /home/ubuntu/Couchbase_UPS/index_file.txt
-    #   register: index_file_stat_01 
-
-     # Read and decode index file
-    - name: Read and decode index file
+    - name: Read index creation queries from the file
       ansible.builtin.slurp:
-        src: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: index_file_content
+        src: "{{ index_file_path }}"
+      register: index_file
 
-    # - name: Read and decode index file
-    #   ansible.builtin.slurp:
-    #     src: /home/ubuntu/Couchbase_UPS/index_file.txt
-    #   register: index_file_content_01
-
-    - name: Decode the index file content
+    - name: Decode the file content from base64
       set_fact:
-        decoded_index_file_content: "{{ index_file_content.content | b64decode }}"
+        index_queries: "{{ index_file.content | b64decode | splitlines }}"
 
-    # - name: Decode the index file content
-    #   set_fact:
-    #     decoded_index_file_content_01: "{{ index_file_content_01.content | b64decode }}"
-
-    # Debug decoded index file content
-    - name: Debug decoded index file content
-      debug:
-        msg: "{{ decoded_index_file_content }}"
-
-    # - name: Debug decoded index file content
-    #   debug:
-    #     msg: "{{ decoded_index_file_content_01 }}"
-
-    # Extract index creation SQL
-    - name: Extract index creation SQL
+    - name: Parse index queries and filter allowed queries
       set_fact:
-        index_creation_statements: "{{ decoded_index_file_content | regex_findall('(?i)CREATE INDEX.*?;') }}"
+        allowed_queries: []
+        not_allowed_queries: []
 
-    # # Extract index creation SQL
-    # - name: Extract index creation SQL
-    #   set_fact:
-    #     index_creation_statements_01: "{{ decoded_index_file_content_01 | regex_findall('(?i)CREATE INDEX.*?;') }}"
+    - name: Categorize index queries into allowed and not-allowed
+      block:
+        - name: Loop through each index creation query
+          ansible.builtin.set_fact:
+            allowed_queries: "{{ allowed_queries + [item] if item is match('^(?!//not-allowed).*') else allowed_queries }}"
+            not_allowed_queries: "{{ not_allowed_queries + [item] if item is match('^//not-allowed') else not_allowed_queries }}"
+          loop: "{{ index_queries }}"
+          loop_control:
+            loop_var: item
 
+    - name: Print allowed queries
+      ansible.builtin.debug:
+        msg: "Allowed Queries: {{ allowed_queries }}"
 
-    - name: Debug index creation statements
-      debug:
-        msg: "{{ index_creation_statements }}"
+    - name: Print not-allowed queries
+      ansible.builtin.debug:
+        msg: "Not Allowed Queries: {{ not_allowed_queries }}"
 
-    # - name: Debug index creation statements
-    #   debug:
-    #     msg: "{{ index_creation_statements_01 }}"
+    - name: Execute allowed queries on Couchbase
+      couchbase_index:
+        cluster: "{{ couchbase_cluster }}"
+        username: "{{ couchbase_user }}"
+        password: "{{ couchbase_password }}"
+        query: "{{ item }}"
+      loop: "{{ allowed_queries }}"
+      when: allowed_queries | length > 0
+      notify:
+        - Refresh index
 
-   
-    # Filter allowed index creation statements (case-insensitive for WHERE)
-    - name: Filter allowed index creation statements
-      set_fact:
-        allowed_index_creation_statements: "{{ index_creation_statements | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {\"defer_build\":true};') | list }}"
+    - name: Report not-allowed queries
+      ansible.builtin.debug:
+        msg: "The following queries are not allowed and will be skipped: {{ not_allowed_queries }}"
+      when: not_allowed_queries | length > 0
 
-    # # Filter out disallowed index creation statements
-    # - name: Filter allowed index creation statements
-    #   set_fact:
-    #     allowed_index_creation_statements_01: >-
-    #       {{
-    #         index_creation_statements_01
-    #         | select('match', '(?i)CREATE INDEX .*? ON .*?\\..*?\\..*?\\(.*?\\) USING GSI WITH {.*"defer_build":true.*};')
-    #         | list
-    #       }}
-
-    - name: Debug allowed index creation statements
-      debug:
-        msg: "{{ allowed_index_creation_statements }}"
-        
-    - name: Debug allowed index creation statements
-      debug:
-        msg: "{{ allowed_index_creation_statements }}"
-
-    # Validate Couchbase CLI availability
-    - name: Validate Couchbase CLI availability
-      shell: "/opt/couchbase/bin/cbq --version"
-      register: cbq_check
-      changed_when: false
-
-    - name: Read file data
-      slurp:
-        src: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: file_content
-
-    - name: Decode file content
-      set_fact:
-        file_data: "{{ file_content.content | b64decode | string }}"
- 
-
-      # Extract primary index names using regex
-    - name: Extract primary index names using regex
-      set_fact:
-        primary_index_names: "{{ file_data | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
-
-    # - name: Display the primary index names
-    #   debug:
-    #     msg: "The following indexes are not allowed to be created or built: {{ primary_index_names }}"
-   
-
-    - name: Skip primary index creation if indexes are found
-      debug:
-        msg: "Skipping primary index creation as the following indexes were found: {{ primary_index_names }}"
-      when: primary_index_names | length > 0
-
-    # Create indexes
-    - name: Create allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ index_creation_statements }}"
-      #with_items: "{{ decoded_index_file_content }}"
-      #with_items: "{{ allowed_index_creation_statements }}"
-
-    # # Create indexes
-    # - name: Create allowed indexes
-    #   shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-    #   with_items: "{{ index_creation_statements_01 }}"
-    #   #with_items: "{{ decoded_index_file_content }}"
-    #   #with_items: "{{ allowed_index_creation_statements_01 }}"
-      
-    #   ignore_errors: true
-
-    # Read contents of index_file.txt
-    - name: Read contents of index_file.txt
-      ansible.builtin.slurp:
-        src: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-      register: file_contents
-
-    # Decode file contents
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode }}"
-
-    # Decode file contents (if it's base64 encoded)
-    - name: Decode file contents
-      set_fact:
-        file_data: "{{ file_contents['content'] | b64decode | to_nice_yaml }}"
-
-    # Execute deferred_index.sh script
-    - name: Execute deferred_index.sh script
-      command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
-      args:
-        chdir: /home/ubuntu/Couchbase_UPS
-      register: script_output
-
-    # Debug script output
-    - name: Display script output
-      debug:
-        var: script_output.stdout
-
-
-
-
-
-
-
-
-
-
-
-
+  handlers:
+    - name: Refresh index
+      couchbase_index:
+        cluster: "{{ couchbase_cluster }}"
+        username: "{{ couchbase_user }}"
+        password: "{{ couchbase_password }}"
+        query: "REFRESH INDEXES"
