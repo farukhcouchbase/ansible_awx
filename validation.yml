@@ -30,8 +30,8 @@
       block:
         - name: Loop through each index creation query
           ansible.builtin.set_fact:
-            allowed_queries: "{{ allowed_queries + [item] if item is match('^(?!//not-allowed).*') else allowed_queries }}"
-            not_allowed_queries: "{{ not_allowed_queries + [item] if item is match('^//not-allowed') else not_allowed_queries }}"
+            allowed_queries: "{{ allowed_queries + [item] if item is match('^(?!//not-allowed).*?(?<=USING GSI WITH \\{\\\\\"defer_build\\\\\": true\\})$') else allowed_queries }}"
+            not_allowed_queries: "{{ not_allowed_queries + [item] if item is match('^(docType|USING GSI WITH \\{\\\\\"defer_build\\\\\": false\\\\}\\}|WITH \\{\\\\\"defer_build\\\\\": false\\\\}\\}|USING GSI|`_default`\\.\\`_default` .*? USING GSI WITH \\{\\\\\"defer_build\\\\\": true\\\\}\\}|.*docType.*)') else not_allowed_queries }}"
           loop: "{{ index_queries }}"
           loop_control:
             loop_var: item
@@ -64,7 +64,7 @@
         /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" refresh
       register: result
       ignore_errors: yes
-      
+
     - name: Debug output
       debug:
         var: result
