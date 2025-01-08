@@ -1,66 +1,28 @@
 ---
-- name: Create Couchbase Indexes based on index_file.txt
-  hosts: all
-  become: true
-  vars:
-    # Couchbase Cluster Credentials
-    couchbase_cluster: "http://localhost:8091"
-    couchbase_user: "Admin"
-    couchbase_password: "redhat"
-
-    # Path to the index creation file
-    index_file_path: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-    
+- name: Validate Index Creation Statements from File
+  hosts: all  # Replace with your target host or group
+  gather_facts: no
   tasks:
+    - name: Read index creation statements from file
+      slurp:
+        src: /home/ubuntu/Couchbase_UPS/index_file.txt
+      register: index_file_content
 
-    - name: Read index creation queries from the file
-      ansible.builtin.slurp:
-        src: "{{ index_file_path }}"
-      register: index_file
-
-    - name: Decode the file content from base64
+    - name: Decode and split index statements
       set_fact:
-        index_queries: "{{ index_file.content | b64decode | regex_findall('\\S.*?\\n') }}"
+        index_statements: "{{ index_file_content['content'] | b64decode | splitlines }}"
 
-    - name: Parse index queries and filter allowed queries
-      set_fact:
-        allowed_queries: []
-        not_allowed_queries: []
+    - name: Validate index creation statements
+      debug:
+        msg: "{{ item }}"
+      loop: "{{ index_statements }}"
+      when: >
+        (item is search('CREATE INDEX') or item is search('CREATE PRIMARY INDEX')) and
+        (item is search('defer_build": true') or item is search('defer_build": false')) and
+        not (item is search('defer_build": false') or item is search('WHERE') and item is search('idx_docType_04'))
+      register: valid_indexes
 
-    - name: Categorize index queries into allowed and not-allowed
-      block:
-        - name: Loop through each index creation query
-          ansible.builtin.set_fact:
-            allowed_queries: "{{ allowed_queries + [item] if item is match('^(?!//not-allowed).*') else allowed_queries }}"
-            not_allowed_queries: "{{ not_allowed_queries + [item] if item is match('^//not-allowed') else not_allowed_queries }}"
-          loop: "{{ index_queries }}"
-          loop_control:
-            loop_var: item
-
-    - name: Print allowed queries
-      ansible.builtin.debug:
-        msg: "Allowed Queries: {{ allowed_queries }}"
-
-    - name: Print not-allowed queries
-      ansible.builtin.debug:
-        msg: "Not Allowed Queries: {{ not_allowed_queries }}"
-
-    # Validate Couchbase CLI availability
-    - name: Validate Couchbase CLI availability
-      shell: "/opt/couchbase/bin/cbq --version"
-      register: cbq_check
-      changed_when: false
-
-    - name: Execute allowed queries on Couchbase
-      shell: |
-        echo "{{ item }}" | /opt/couchbase/bin/cbq  -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}"
-      loop: "{{ allowed_queries }}"
-      when: allowed_queries | length > 0
-      notify:
-        - Refresh index
-
-  handlers:
-    - name: Refresh index
-      shell: |
-        /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" -s "REFRESH INDEXES"
-     
+    - name: Log valid index creation statements
+      debug:
+        msg: "Valid index creation: {{ item }}"
+      loop: "{{ valid_indexes.results | selectattr('msg', 'defined') | map(attribute='msg') | list }}"
