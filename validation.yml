@@ -8,9 +8,9 @@
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_content
 
-    - name: Decode and split index statements
+    - name: Decode and split index statements using regex_findall
       set_fact:
-        index_statements: "{{ index_file_content['content'] | b64decode | splitlines }}"
+        index_statements: "{{ index_file_content['content'] | b64decode | regex_findall('[^\n]*') }}"
 
     - name: Validate index creation statements
       debug:
@@ -25,4 +25,4 @@
     - name: Log valid index creation statements
       debug:
         msg: "Valid index creation: {{ item }}"
-      loop: "{{ valid_indexes.results | selectattr('msg', 'defined') | map(attribute='msg') | list }}"
+      loop: "{{ valid_indexes.results | selectattr('msg', 'defined') | map(attribute='msg') | list }}"
