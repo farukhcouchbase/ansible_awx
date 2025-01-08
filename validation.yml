@@ -59,17 +59,17 @@
       notify:
         - Refresh index
 
-    - name: Report not-allowed queries
-      ansible.builtin.debug:
-        msg: "The following queries are not allowed and will be skipped: {{ not_allowed_queries }}"
-      when: not_allowed_queries | length > 0
+    # - name: Report not-allowed queries
+    #   ansible.builtin.debug:
+    #     msg: "The following queries are not allowed and will be skipped: {{ not_allowed_queries }}"
+    #   when: not_allowed_queries | length > 0
 
-    - name: Refresh index
-      shell: |
-        cbindex -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" refresh
-      register: result
-      ignore_errors: yes
+    # - name: Refresh index
+    #   shell: |
+    #     cbindex -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" refresh
+    #   register: result
+    #   ignore_errors: yes
 
-    - name: Debug output
-      debug:
-        var: result
+    # - name: Debug output
+    #   debug:
+    #     var: result
