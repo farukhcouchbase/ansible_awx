@@ -61,7 +61,10 @@
   handlers:
     - name: Refresh index
       shell: |
-        echo "Refreshing indexes..."
-        /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" -q "SELECT * FROM system:indexes"
-      when: allowed_queries | length > 0
-      ignore_errors: true
+        /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" refresh
+      register: result
+      ignore_errors: yes
+      
+    - name: Debug output
+      debug:
+        var: result
