@@ -51,18 +51,8 @@
       register: cbq_check
       changed_when: false
 
-   
-
-
     - name: Execute allowed queries on Couchbase
       shell: |
         echo "{{ item }}" | /opt/couchbase/bin/cbq  -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}"
       loop: "{{ allowed_queries }}"
       when: allowed_queries | length > 0
-      notify:
-        - Refresh index
-
-  handlers:
-    - name: Refresh index
-      shell: |
-        /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" -s "REFRESH INDEXES"
