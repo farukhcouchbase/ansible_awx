@@ -59,11 +59,6 @@
       notify:
         - Refresh index
 
-  handlers:
-    - name: Refresh index
-      shell: |
-        /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" -s "REFRESH INDEXES"
-     
 
 
 
