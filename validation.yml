@@ -45,12 +45,16 @@
       ansible.builtin.debug:
         msg: "Not Allowed Queries: {{ not_allowed_queries }}"
 
+    # Validate Couchbase CLI availability
+    - name: Validate Couchbase CLI availability
+      shell: "/opt/couchbase/bin/cbq --version"
+      register: cbq_check
+      changed_when: false
+
+
     - name: Execute allowed queries on Couchbase
-      couchbase_index:
-        cluster: "{{ couchbase_cluster }}"
-        username: "{{ couchbase_user }}"
-        password: "{{ couchbase_password }}"
-        query: "{{ item }}"
+      shell: |
+        echo "{{ item }}" | cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}"
       loop: "{{ allowed_queries }}"
       when: allowed_queries | length > 0
       notify:
@@ -61,10 +65,12 @@
         msg: "The following queries are not allowed and will be skipped: {{ not_allowed_queries }}"
       when: not_allowed_queries | length > 0
 
-  handlers:
     - name: Refresh index
-      couchbase.couchbase.couchbase_index:
-        cluster: "{{ couchbase_cluster }}"
-        username: "{{ couchbase_user }}"
-        password: "{{ couchbase_password }}"
-        query: "REFRESH INDEXES"
+      shell: |
+        cbindex -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" refresh
+      register: result
+      ignore_errors: yes
+
+    - name: Debug output
+      debug:
+        var: result
