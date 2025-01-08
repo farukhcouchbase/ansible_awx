@@ -63,7 +63,7 @@
 
   handlers:
     - name: Refresh index
-      couchbase_index:
+      couchbase.couchbase.couchbase_index:
         cluster: "{{ couchbase_cluster }}"
         username: "{{ couchbase_user }}"
         password: "{{ couchbase_password }}"
