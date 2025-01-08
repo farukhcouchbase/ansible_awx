@@ -54,7 +54,7 @@
     # Extract primary index names using regex
     - name: Extract primary index names using regex
       set_fact:
-        primary_index_names: "{{ index_file.content | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
+        primary_index_names: "{{ index_queries | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
 
     - name: Skip disallowed index statements
       set_fact:
