@@ -9,9 +9,9 @@
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_content
 
-    - name: Decode the index file content
+    - name: Decode the index file content and split into lines
       ansible.builtin.set_fact:
-        index_queries: "{{ index_file_content['content'] | b64decode | string | split('\n') }}"
+        index_queries: "{{ (index_file_content['content'] | b64decode).decode('utf-8').split('\n') }}"
 
     - name: Filter allowed index creation queries
       ansible.builtin.set_fact:
