@@ -37,6 +37,18 @@
           Valid queries:
           {{ valid_where_clauses }}
 
+    - name: Display allowed queries
+      ansible.builtin.debug:
+        msg: |
+          Allowed Queries:
+          {{ allowed_queries }}
+
+    - name: Display disallowed queries
+      ansible.builtin.debug:
+        msg: |
+          Disallowed Queries:
+          {{ disallowed_queries }}
+
     - name: Save allowed queries to a new file
       ansible.builtin.copy:
         dest: /home/ubuntu/Couchbase_UPS/allowed_index_queries.txt
