@@ -20,7 +20,7 @@
 
     - name: Decode the file content from base64
       set_fact:
-        index_queries: "{{ index_file.content | b64decode | splitlines }}"
+        index_queries: "{{ index_file.content | b64decode | split('\n') }}"
 
     - name: Parse index queries and filter allowed queries
       set_fact:
