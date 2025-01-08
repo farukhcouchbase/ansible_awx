@@ -1,70 +1,48 @@
 ---
-- name: Create Couchbase Indexes based on index_file.txt
+- name: Couchbase Index Control Playbook
   hosts: all
   become: true
-  vars:
-    # Couchbase Cluster Credentials
-    couchbase_cluster: "http://localhost:8091"
-    couchbase_user: "Admin"
-    couchbase_password: "redhat"
-
-    # Path to the index creation file
-    index_file_path: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-
   tasks:
-    - name: Read index creation queries from the file
+
+    - name: Read the index creation file
       ansible.builtin.slurp:
-        src: "{{ index_file_path }}"
-      register: index_file
+        src: /home/ubuntu/Couchbase_UPS/index_file.txt
+      register: index_file_content
 
-    - name: Decode the file content from base64
-      set_fact:
-        index_queries: "{{ index_file.content | b64decode | regex_findall('\\S.*?\\n') }}"
+    - name: Decode the index file content
+      ansible.builtin.set_fact:
+        index_queries: "{{ index_file_content['content'] | b64decode | split('\n') }}"
 
-    - name: Parse index queries and filter allowed queries
-      set_fact:
-        allowed_queries: []
-        not_allowed_queries: []
+    - name: Filter allowed index creation queries
+      ansible.builtin.set_fact:
+        allowed_queries: "{{ index_queries | select('match', '^CREATE INDEX .+ USING GSI WITH \\{.*defer_build:true.*\\}') | list }}"
 
-    - name: Categorize index queries into allowed and not-allowed
-      block:
-        - name: Loop through each index creation query
-          ansible.builtin.set_fact:
-            allowed_queries: "{{ allowed_queries + [item] if item is match('^(?!//not-allowed).*?(?<=USING GSI WITH \\{\\\\\"defer_build\\\\\": true\\})$') else allowed_queries }}"
-            not_allowed_queries: "{{ not_allowed_queries + [item] if item is match('^(docType|USING GSI WITH \\{\\\\\"defer_build\\\\\": false\\\\}\\}|WITH \\{\\\\\"defer_build\\\\\": false\\\\}\\}|USING GSI|`_default`\\.\\`_default` .*? USING GSI WITH \\{\\\\\"defer_build\\\\\": true\\\\}\\}|.*docType.*)') else not_allowed_queries }}"
-          loop: "{{ index_queries }}"
-          loop_control:
-            loop_var: item
+    - name: Disallow queries with missing `defer_build:true` or invalid WHERE clauses
+      ansible.builtin.set_fact:
+        disallowed_queries: "{{ index_queries | select('match', '^CREATE INDEX .+ USING GSI(?!.*defer_build:true.*).*$') | list }}"
 
-    - name: Print allowed queries
+    - name: Filter valid WHERE clauses
+      ansible.builtin.set_fact:
+        valid_where_clauses: "{{ index_queries | select('match', '^CREATE INDEX .+ WHERE .*(IS NOT NULL|=|IN|WherE).*') | list }}"
+
+    - name: Check for invalid queries without required conditions
       ansible.builtin.debug:
-        msg: "Allowed Queries: {{ allowed_queries }}"
+        msg: |
+          Invalid queries:
+          {{ disallowed_queries }}
 
-    - name: Print not-allowed queries
+    - name: Check for valid queries (with correct WHERE conditions)
       ansible.builtin.debug:
-        msg: "Not Allowed Queries: {{ not_allowed_queries }}"
+        msg: |
+          Valid queries:
+          {{ valid_where_clauses }}
 
-    # Validate Couchbase CLI availability
-    - name: Validate Couchbase CLI availability
-      shell: "/opt/couchbase/bin/cbq --version"
-      register: cbq_check
-      changed_when: false
+    - name: Save allowed queries to a new file
+      ansible.builtin.copy:
+        dest: /home/ubuntu/Couchbase_UPS/allowed_index_queries.txt
+        content: "{{ allowed_queries | join('\n') }}"
 
-    - name: Execute allowed queries on Couchbase
-      shell: |
-        echo "{{ item }}" | /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}"
-      loop: "{{ allowed_queries }}"
-      when: allowed_queries | length > 0
-      notify:
-        - Refresh index
-
-  handlers:
-    - name: Refresh index
-      shell: |
-        /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}" refresh
-      register: result
-      ignore_errors: yes
-
-    - name: Debug output
-      debug:
-        var: result
+    - name: Save disallowed queries to a new file
+      ansible.builtin.copy:
+        dest: /home/ubuntu/Couchbase_UPS/disallowed_index_queries.txt
+        content: "{{ disallowed_queries | join('\n') }}"
