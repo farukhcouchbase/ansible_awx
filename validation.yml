@@ -10,7 +10,7 @@
 
     # Path to the index creation file
     index_file_path: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-    
+
   tasks:
     - name: Read index creation queries from the file
       ansible.builtin.slurp:
@@ -52,7 +52,7 @@
 
     - name: Execute allowed queries on Couchbase
       shell: |
-        echo "{{ item }}" | /opt/couchbase/bin/cbq  -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}"
+        echo "{{ item }}" | /opt/couchbase/bin/cbq -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}"
       loop: "{{ allowed_queries }}"
       when: allowed_queries | length > 0
       notify:
