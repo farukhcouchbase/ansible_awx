@@ -51,6 +51,16 @@
       register: cbq_check
       changed_when: false
 
+    # Extract primary index names using regex
+    - name: Extract primary index names using regex
+      set_fact:
+        primary_index_names: "{{ allowed_queries | regex_findall('(?i)CREATE PRIMARY INDEX `(primary_index_\\d+)`') }}"
+
+    - name: Skip disallowed index statements
+      set_fact:
+        index_creation_statements_to_process: "{{ allowed_index_creation_statements_01 }}"
+
+
     - name: Execute allowed queries on Couchbase
       shell: |
         echo "{{ item }}" | /opt/couchbase/bin/cbq  -u "{{ couchbase_user }}" -p "{{ couchbase_password }}" -c "{{ couchbase_cluster }}"
