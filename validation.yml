@@ -7,7 +7,7 @@
     couchbase_host: "localhost:8091"  # Replace with your Couchbase hostname or IP
     couchbase_username: "Admin"  # Replace with your Couchbase admin username
     couchbase_password: "redhat"  # Replace with your Couchbase admin password
-    cbq_path: "/opt/couchbase/bin/cbq"  # Ensure this is the correct path to your cbq command
+    cbq_path: "/home/ubuntu/bin/cbq"  # Ensure this is the correct path to your cbq command
     index_file_path: "/home/ubuntu/Couchbase_UPS/index_file.txt"
     allowed_indexes: []
 
@@ -38,7 +38,7 @@
 
     - name: Execute allowed index statements
       shell: |
-        "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+        "/home/ubuntu/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ allowed_indexes }}"
       register: index_creation_results
 
