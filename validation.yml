@@ -1,6 +1,8 @@
 ---
 - name: Manage Couchbase Index Creation
   hosts: all
+  become: yes
+  become_user: ubuntu
   #connection: local
   gather_facts: false
 
