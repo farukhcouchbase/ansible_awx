@@ -24,23 +24,22 @@
             line: "Processing index definitions:"
             state: present
 
-        - name: Check each index
+        - name: Initialize skipped and created index lists
           set_fact:
             skipped_indexes: []
             created_indexes: []
+
+        - name: Check each index
           loop: "{{ indexes }}"
           loop_control:
             label: "{{ item }}"
-
           when: item is not none
-
           vars:
             index_name: "{{ item.split(' ')[2] | default('') }}"
             is_deferred: "{{ 'defer_build' in item and (item | regex_search('defer_build\\s*:\\s*true', 'ignorecase')) }}"
             has_where: "{{ 'WHERE' in item | upper }}"
             is_primary: "{{ 'PRIMARY INDEX' in item | upper }}"
             is_not_allowed: "{{ item | regex_search('not-allowed', 'ignorecase') }}"
-
           tasks:
             - name: Log not allowed indexes
               lineinfile:
@@ -65,8 +64,10 @@
                 line: "Skipped index: {{ item }}"
               when: not is_deferred and not has_where
 
-    - name: Display results
-      debug:
-        msg: 
-          - "Skipped Indexes: {{ skipped_indexes }}"
-          - "Created Indexes: {{ created_indexes }}"
+        - name: Log created indexes
+          debug:
+            msg: "Created Indexes: {{ created_indexes }}"
+
+        - name: Log skipped indexes
+          debug:
+            msg: "Skipped Indexes: {{ skipped_indexes }}"
