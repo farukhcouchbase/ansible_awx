@@ -4,7 +4,7 @@
   gather_facts: no
   vars:
     index_file: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-    log_file: "index_file_log.txt"
+    log_file: "/home/ubuntu/Couchbase_UPS/index_file_log.txt"
 
   tasks:
     - name: Read index definitions from file
@@ -58,21 +58,17 @@
                 skipped_indexes: "{{ skipped_indexes + [item] }}"
               when: not is_deferred and not has_where
 
-            - name: Log skipped indexes
-              lineinfile:
-                path: "{{ log_file }}"
-                line: "Skipped index: {{ item }}"
-              when: not is_deferred and not has_where
-
             - name: Add created indexes to list
               set_fact:
                 created_indexes: "{{ created_indexes + [item] }}"
               when: is_deferred or (has_where and is_deferred)
 
-    - name: Log created indexes
-      debug:
-        msg: "Created Indexes: {{ created_indexes }}"
+        - name: Log skipped indexes
+          debug:
+            msg: "Skipped Indexes: {{ skipped_indexes }}"
 
-    - name: Log skipped indexes
-      debug:
-        msg: "Skipped Indexes: {{ skipped_indexes }}"
+        - name: Log created indexes
+          debug:
+            msg: "Created Indexes: {{ created_indexes }}"
+
+
