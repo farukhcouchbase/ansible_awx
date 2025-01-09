@@ -16,6 +16,11 @@
       set_fact:
         indexes: "{{ index_content.content | b64decode | split('\n') }}"
 
+    - name: Initialize skipped and created index lists
+      set_fact:
+        skipped_indexes: []
+        created_indexes: []
+
     - name: Process indexes and log results
       block:
         - name: Initialize log
@@ -23,11 +28,6 @@
             path: "{{ log_file }}"
             line: "Processing index definitions:"
             state: present
-
-        - name: Initialize skipped and created index lists
-          set_fact:
-            skipped_indexes: []
-            created_indexes: []
 
         - name: Check each index
           loop: "{{ indexes }}"
@@ -64,10 +64,15 @@
                 line: "Skipped index: {{ item }}"
               when: not is_deferred and not has_where
 
-        - name: Log created indexes
-          debug:
-            msg: "Created Indexes: {{ created_indexes }}"
+            - name: Add created indexes to list
+              set_fact:
+                created_indexes: "{{ created_indexes + [item] }}"
+              when: is_deferred or (has_where and is_deferred)
 
-        - name: Log skipped indexes
-          debug:
-            msg: "Skipped Indexes: {{ skipped_indexes }}"
+    - name: Log created indexes
+      debug:
+        msg: "Created Indexes: {{ created_indexes }}"
+
+    - name: Log skipped indexes
+      debug:
+        msg: "Skipped Indexes: {{ skipped_indexes }}"
