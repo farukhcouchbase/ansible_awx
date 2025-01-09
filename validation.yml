@@ -12,9 +12,9 @@
       set_fact:
         filtered_queries: "{{ file_content.content | b64decode | regex_findall('^(?!.*(USING GSI|WITH {\"defer_build\":|docType;}).*$).+', multiline=True) }}"
 
-    - name: Display filtered queries
+    - name: Print filtered queries to the playbook log
       debug:
-        msg: "{{ filtered_queries }}"
+        msg: "Filtered Index Queries: {{ filtered_queries }}"
 
     - name: Write filtered queries back to a new file
       ansible.builtin.copy:
