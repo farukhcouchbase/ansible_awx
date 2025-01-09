@@ -1,34 +1,52 @@
 ---
-- name: Create Couchbase Index
-  hosts: localhost
-  gather_facts: false
+- name: Create valid Couchbase indexes
+  hosts: all  # Adjust this to your specific Couchbase host or group
+  become: yes
+  become_user: ubuntu
+  vars:
+    couchbase_host: "localhost:8091"  # Replace with your Couchbase hostname or IP
+    couchbase_username: "Admin"               # Replace with your Couchbase admin username
+    couchbase_password: "redhat"           # Replace with your Couchbase admin password
+
   tasks:
-
-
-    - name: Check if the index file exists 
-      stat: 
-        path: /home/ubuntu/Couchbase_UPS/index_file.txt 
-      register: file_status 
-      
-    - debug: 
-        msg: "File exists: {{ file_status.stat.exists }}; Readable: {{ file_status.stat.readable }}"
-   
-    - name: Read index file
-      slurp:
+    - name: Read index file content
+      ansible.builtin.slurp:
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_content
 
-    - name: Extract index name
+    - name: Decode index file content
       set_fact:
-        index_content: "{{ index_file_content['content'] | b64decode }}"
-        index_name: "{{ index_content | regex_search('INDEX\\s+(\\w+)\\s+ON', '\\1') }}"
+        index_lines: "{{ index_file_content.content | b64decode | splitlines }}"
 
-    - name: Check conditions and create index
-      shell: |
-        if [[ -n "{{ index_name }}" && "{{ index_content }}" =~ 'deferred_build:true' && "{{ index_content }}" =~ 'WHERE' ]]; then
-          couchbase-cli cbstats localhost:8091 -u USERNAME -p PASSWORD --stats all --index {{ index_name }}
-        fi
-      register: create_index
+    - name: Filter valid index creation queries
+      set_fact:
+        valid_queries: |
+          {%- set valid = [] -%}
+          {%- for line in index_lines -%}
+            {%- if line is search('CREATE INDEX') and line is not search('PRIMARY INDEX') -%}
+              {%- if line is search('"defer_build":true') -%}
+                {%- if line is search('WHERE') -%}
+                  {%- do valid.append(line) -%}
+                {%- endif -%}
+              {%- endif -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ valid }}
 
-    - debug:
-        msg: "Index creation result: {{ create_index.stdout }}"
+    - name: Show filtered valid index creation queries
+      debug:
+        msg: "{{ valid_queries }}"
+
+    - name: Create the valid indexes in Couchbase
+      community.couchbase.couchbase_query:
+        query: "{{ item }}"
+        hostname: "{{ couchbase_host }}"
+        username: "{{ couchbase_username }}"
+        password: "{{ couchbase_password }}"
+      loop: "{{ valid_queries }}"
+      when: valid_queries | length > 0
+      register: index_creation_result
+
+    - name: Show result of index creation
+      debug:
+        msg: "{{ index_creation_result }}"
