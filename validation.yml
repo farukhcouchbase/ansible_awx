@@ -1,10 +1,10 @@
 ---
-- name: Process Indexes from index.txt
+- name: Process Indexes from index_file.txt
   hosts: all
   gather_facts: no
   vars:
     index_file: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-    log_file: "/home/ubuntu/Couchbase_UPS/index_file_log.txt"
+    log_file: "/home/ubuntu/Couchbase_UPS/index_log.txt"
 
   tasks:
     - name: Read index definitions from file
@@ -16,59 +16,46 @@
       set_fact:
         indexes: "{{ index_content.content | b64decode | split('\n') }}"
 
-    - name: Initialize skipped and created index lists
-      set_fact:
-        skipped_indexes: []
-        created_indexes: []
+    - name: Initialize log file
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "Processing index definitions:"
+        state: present
 
     - name: Process indexes and log results
       block:
-        - name: Initialize log
-          lineinfile:
-            path: "{{ log_file }}"
-            line: "Processing index definitions:"
-            state: present
-
         - name: Check each index
+          set_fact:
+            skipped_indexes: []
+            created_indexes: []
           loop: "{{ indexes }}"
           loop_control:
             label: "{{ item }}"
+
           when: item is not none
+
           vars:
             index_name: "{{ item.split(' ')[2] | default('') }}"
-            is_deferred: "{{ 'defer_build' in item and (item | regex_search('defer_build\\s*:\\s*true', 'ignorecase')) }}"
+            is_deferred_false: "{{ 'defer_build' in item and (item | regex_search('defer_build\\s*:\\s*false', 'ignorecase')) }}"
+            is_deferred_true: "{{ 'defer_build' in item and (item | regex_search('defer_build\\s*:\\s*true', 'ignorecase')) }}"
             has_where: "{{ 'WHERE' in item | upper }}"
             is_primary: "{{ 'PRIMARY INDEX' in item | upper }}"
-            is_not_allowed: "{{ item | regex_search('not-allowed', 'ignorecase') }}"
+
           tasks:
             - name: Log not allowed indexes
               lineinfile:
                 path: "{{ log_file }}"
                 line: "Not allowed index: {{ item }}"
-              when: is_not_allowed and not is_deferred
+              when: is_primary or is_deferred_false or (is_deferred_true and not has_where)
 
             - name: Log allowed indexes
               lineinfile:
                 path: "{{ log_file }}"
                 line: "Allowed index: {{ item }}"
-              when: is_deferred or (has_where and is_deferred)
+              when: is_deferred_true and has_where
 
-            - name: Add skipped indexes to list
-              set_fact:
-                skipped_indexes: "{{ skipped_indexes + [item] }}"
-              when: not is_deferred and not has_where
-
-            - name: Add created indexes to list
-              set_fact:
-                created_indexes: "{{ created_indexes + [item] }}"
-              when: is_deferred or (has_where and is_deferred)
-
-        - name: Log skipped indexes
-          debug:
-            msg: "Skipped Indexes: {{ skipped_indexes }}"
-
-        - name: Log created indexes
-          debug:
-            msg: "Created Indexes: {{ created_indexes }}"
-
-
+    - name: Display results
+      debug:
+        msg: 
+          - "Skipped Indexes: {{ skipped_indexes }}"
+          - "Created Indexes: {{ created_indexes }}"
