@@ -4,9 +4,10 @@
   become: yes
   become_user: ubuntu
   vars:
-    couchbase_host: "localhost:8091"  # Replace with your Couchbase hostname or IP
-    couchbase_username: "Admin"               # Replace with your Couchbase admin username
-    couchbase_password: "redhat"           # Replace with your Couchbase admin password
+    couchbase_host: "localhost"  # Replace with your Couchbase hostname or IP
+    couchbase_username: "admin"  # Replace with your Couchbase admin username
+    couchbase_password: "password"  # Replace with your Couchbase admin password
+    cbq_path: "/opt/couchbase/bin/cbq"  # Adjust the path to the cbq command if it's not in the default PATH
 
   tasks:
     - name: Read index file content
@@ -37,15 +38,13 @@
       debug:
         msg: "{{ valid_queries }}"
 
-    - name: Create the valid indexes in Couchbase
-      community.couchbase.couchbase_query:
-        query: "{{ item }}"
-        hostname: "{{ couchbase_host }}"
-        username: "{{ couchbase_username }}"
-        password: "{{ couchbase_password }}"
+    - name: Create the valid indexes using shell (cbq)
+      shell: |
+        echo "{{ item }}" | {{ cbq_path }} -u {{ couchbase_username }} -p {{ couchbase_password }} -s {{ couchbase_host }}
       loop: "{{ valid_queries }}"
       when: valid_queries | length > 0
       register: index_creation_result
+      ignore_errors: yes  # Optional, ignore errors if you don't want the playbook to fail on a query
 
     - name: Show result of index creation
       debug:
