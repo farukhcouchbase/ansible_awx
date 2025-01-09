@@ -47,6 +47,7 @@
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ valid_queries }}"
+      register: index_creation_result
       ignore_errors: true
 
     # - name: Create the valid indexes using shell (cbq)
