@@ -8,9 +8,9 @@
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: file_content
 
-    - name: Set filtered index creation queries
+    - name: Set filtered index creation queries using regex
       set_fact:
-        filtered_queries: "{{ file_content.content | b64decode | splitlines() | select('match', '^((?!USING GSI|WITH {\"defer_build\":|docType;}).)*$') | list }}"
+        filtered_queries: "{{ file_content.content | b64decode | regex_findall('^(?!.*(USING GSI|WITH {\"defer_build\":|docType;}).*$).+', multiline=True) }}"
 
     - name: Display filtered queries
       debug:
