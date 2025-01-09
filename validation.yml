@@ -27,7 +27,7 @@
             {%- if line is search('CREATE INDEX') and line is not search('PRIMARY INDEX') -%}
               {%- if line is search('"defer_build":true') -%}
                 {%- if line is search('WHERE') -%}
-                  {%- do valid.append(line) -%}
+                  {%- set valid = valid + [line] -%}  # Correct way to append to a list in Jinja2
                 {%- endif -%}
               {%- endif -%}
             {%- endif -%}
