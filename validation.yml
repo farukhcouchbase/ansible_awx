@@ -17,7 +17,7 @@
 
     - name: Decode base64 content and split into lines using regex
       set_fact:
-        index_lines: "{{ index_file_content.content | b64decode | regex_findall('(?<=CREATE\\sINDEX)(.*?)(?=//|$)', multiline=True) }}"
+        index_lines: "{{ index_file_content.content | b64decode }}"
 
     - name: Filter valid index creation queries
       set_fact:
