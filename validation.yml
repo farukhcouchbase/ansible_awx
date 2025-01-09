@@ -1,15 +1,13 @@
 ---
-- name: Create valid Couchbase indexes
-  hosts: all  # Adjust this to your specific Couchbase host or group
-  become: yes
-  become_user: ubuntu
+- name: Manage Couchbase Index Creation
+  hosts: all
+  #connection: local
+  gather_facts: false
+
   vars:
-    couchbase_host: "localhost:8091"  # Replace with your Couchbase hostname or IP
-    couchbase_username: "Admin"  # Replace with your Couchbase admin username
-    couchbase_password: "redhat"  # Replace with your Couchbase admin password
-    cbq_path: "/home/ubuntu/bin/cbq"  # Ensure this is the correct path to your cbq command
     index_file_path: "/home/ubuntu/Couchbase_UPS/index_file.txt"
     allowed_indexes: []
+    not_allowed_indexes: []
 
   tasks:
     - name: Read the index file
@@ -17,89 +15,47 @@
         src: "{{ index_file_path }}"
       register: index_file_content
 
-    - name: Parse and filter allowed index statements
+    - name: Parse and filter index statements
       set_fact:
         allowed_indexes: >
           {%- set allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-          {%- if "CREATE INDEX" in line or "create index" in line -%}
-          {%- set def_build = '"defer_build":true' in line.lower() -%}
-          {%- set has_where = 'where' in line.lower() -%}
-          {%- if def_build and has_where -%}
-          {{ allowed.append(line) }}
-          {%- endif -%}
-          {%- endif -%}
+            {%- if 'where' in line.lower() -%}
+              {{ allowed.append(line) }}
+            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
+              {{ allowed.append(line) }}
+            {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
 
+        not_allowed_indexes: >
+          {%- set not_allowed = [] -%}
+          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+            {%- if 'where' not in line.lower() and 'scope' not in line.lower() and '{"defer_build":true}' not in line.lower() and 'primary' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
+              {{ not_allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ not_allowed }}
+
     - name: Debug allowed index statements
       debug:
-        msg: "{{ allowed_indexes }}"
+        msg: "{{ item }}"
+      loop: "{{ allowed_indexes }}"
+      loop_control:
+        loop_var: item
+
+    - name: Debug not-allowed index statements
+      debug:
+        msg: "{{ item }}"
+      loop: "{{ not_allowed_indexes }}"
+      loop_control:
+        loop_var: item
 
     - name: Execute allowed index statements
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s'{{ item }}'"
       with_items: "{{ allowed_indexes }}"
       register: index_creation_results
-      ignore_errors: true
-
 
     - name: Debug index creation results
       debug:
         var: index_creation_results
-
-  # tasks:
-  #   - name: Read index file content
-  #     ansible.builtin.slurp:
-  #       src: /home/ubuntu/Couchbase_UPS/index_file.txt
-  #     register: index_file_content
-
-  #   - name: Decode base64 content and split into lines using regex
-  #     set_fact:
-  #       index_lines: "{{ index_file_content.content | b64decode }}"
-
-  #   # Debug decoded index file content
-  #   - name: Debug decoded index file content
-  #     debug:
-  #       msg: "{{ index_lines }}"
-
-  #   - name: Filter valid index creation queries
-  #     set_fact:
-  #       valid_queries: |
-  #         {%- set valid = [] -%}
-  #         {%- for line in index_lines -%}
-  #           {%- if line is search('CREATE INDEX') and line is not search('PRIMARY INDEX') -%}
-  #             {%- if line is search('"defer_build":true') -%}
-  #               {%- if line is search('WHERE') -%}
-  #                 {%- set valid = valid + [line] -%}  # Correct way to append to a list in Jinja2
-  #               {%- endif -%}
-  #             {%- endif -%}
-  #           {%- endif -%}
-  #         {%- endfor -%}
-  #         {{ valid }}
-
-  #   - name: Show filtered valid index creation queries
-  #     debug:
-  #       msg: "{{ valid_queries }}"
-
-  #   # Create allowed indexes
-  #   - name: Create allowed indexes
-  #     shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-  #     with_items: "{{ valid_queries }}"
-  #     register: index_creation_result
-  #     ignore_errors: true
-
-  #   # - name: Create the valid indexes using shell (cbq)
-  #   #   shell: |
-  #   #     echo "{{ item }}" | {{ cbq_path }} -u "{{ couchbase_username }}" -p "{{ couchbase_password }}" -s "{{ couchbase_host }}"
-  #   #   loop: "{{ valid_queries }}"
-  #   #   when: valid_queries | length > 0
-  #   #   register: index_creation_result
-  #   #   ignore_errors: yes  # Optional: allows the playbook to continue even if a query fails
-
-  #   - name: Show result of index creation
-  #     debug:
-  #       msg: "{{ index_creation_result }}"
-
-
-
-  
