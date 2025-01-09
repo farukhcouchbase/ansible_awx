@@ -37,10 +37,11 @@
         msg: "{{ allowed_indexes }}"
 
     - name: Execute allowed index statements
-      shell: |
-        "/home/ubuntu/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ allowed_indexes }}"
       register: index_creation_results
+      ignore_errors: true
+
 
     - name: Debug index creation results
       debug:
