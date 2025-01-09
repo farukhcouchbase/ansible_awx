@@ -43,13 +43,19 @@
       debug:
         msg: "{{ valid_queries }}"
 
-    - name: Create the valid indexes using shell (cbq)
-      shell: |
-        echo "{{ item }}" | {{ cbq_path }} -u "{{ couchbase_username }}" -p "{{ couchbase_password }}" -s "{{ couchbase_host }}"
-      loop: "{{ valid_queries }}"
-      when: valid_queries | length > 0
-      register: index_creation_result
-      ignore_errors: yes  # Optional: allows the playbook to continue even if a query fails
+    # Create allowed indexes
+    - name: Create allowed indexes
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ valid_queries }}"
+      ignore_errors: true
+
+    # - name: Create the valid indexes using shell (cbq)
+    #   shell: |
+    #     echo "{{ item }}" | {{ cbq_path }} -u "{{ couchbase_username }}" -p "{{ couchbase_password }}" -s "{{ couchbase_host }}"
+    #   loop: "{{ valid_queries }}"
+    #   when: valid_queries | length > 0
+    #   register: index_creation_result
+    #   ignore_errors: yes  # Optional: allows the playbook to continue even if a query fails
 
     - name: Show result of index creation
       debug:
