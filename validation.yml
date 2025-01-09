@@ -19,6 +19,11 @@
       set_fact:
         index_lines: "{{ index_file_content.content | b64decode }}"
 
+    # Debug decoded index file content
+    - name: Debug decoded index file content
+      debug:
+        msg: "{{ index_lines }}"
+
     - name: Filter valid index creation queries
       set_fact:
         valid_queries: |
