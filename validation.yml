@@ -34,7 +34,7 @@
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' not in line.lower() and 'scope' not in line.lower() and '{"defer_build":true}' not in line.lower() and 'primary' not  in line.lower() and line.strip() != '' and not line.startswith('//') -%}
+            {%- if 'where' not in line.lower() and 'scope' not in line.lower() and '{"defer_build":true}' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
