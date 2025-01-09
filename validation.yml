@@ -34,7 +34,7 @@
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' not in line.lower() and 'create' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
