@@ -3,12 +3,16 @@
   hosts: localhost
   gather_facts: false
   tasks:
-    # Validate index file existence
-    - name: Validate index file existence
-      ansible.builtin.stat:
-        path: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: index_file_stat
+
+
+    - name: Check if the index file exists 
+      stat: 
+        path: /home/ubuntu/Couchbase_UPS/index_file.txt 
+      register: file_status 
       
+    - debug: 
+        msg: "File exists: {{ file_status.stat.exists }}; Readable: {{ file_status.stat.readable }}"
+   
     - name: Read index file
       slurp:
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
