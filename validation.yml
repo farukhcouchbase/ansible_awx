@@ -71,10 +71,14 @@
         chdir: /home/ubuntu/Couchbase_UPS
       register: script_output
 
+    - name: Execute  deffered_index_01.sh script
+      command: /home/ubuntu/Couchbase_UPS/deffered_index_01.sh
+      args:
+        chdir: /home/ubuntu/Couchbase_UPS
+      register: script_output
+
     
-    - name: Display script output
-      debug:
-         var: script_output.stdout
+   
 
 
 
