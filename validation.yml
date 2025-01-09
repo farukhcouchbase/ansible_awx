@@ -1,6 +1,6 @@
 ---
 - name: Create Couchbase Index
-  hosts: all
+  hosts: localhost
   gather_facts: false
   tasks:
     - name: Read index file
@@ -8,11 +8,15 @@
         src: /home/ubuntu/Couchbase_UPS/index_file.txt
       register: index_file_content
 
+    - name: Extract index name
+      set_fact:
+        index_content: "{{ index_file_content['content'] | b64decode }}"
+        index_name: "{{ index_content | regex_search('INDEX\\s+(\\w+)\\s+ON', '\\1') }}"
+
     - name: Check conditions and create index
       shell: |
-        INDEX_NAME=$(echo "{{ index_file_content['content'] | b64decode }}" | grep -oP '(?<=INDEX ).*(?= ON)')
-        if [[ -n "$INDEX_NAME" && $(echo "{{ index_file_content['content'] | b64decode }}" | grep -q 'deferred_build:true') && $(echo "{{ index_file_content['content'] | b64decode }}" | grep -q 'WHERE') ]]; then
-          /opt/couchbase/bin/cbq localhost:8091 -u Admin -p redhat --stats all --index {{ INDEX_NAME }}
+        if [[ -n "{{ index_name }}" && "{{ index_content }}" =~ 'deferred_build:true' && "{{ index_content }}" =~ 'WHERE' ]]; then
+          couchbase-cli cbstats localhost:8091 -u USERNAME -p PASSWORD --stats all --index {{ index_name }}
         fi
       register: create_index
 
