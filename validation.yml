@@ -8,56 +8,97 @@
     couchbase_username: "Admin"  # Replace with your Couchbase admin username
     couchbase_password: "redhat"  # Replace with your Couchbase admin password
     cbq_path: "/opt/couchbase/bin/cbq"  # Ensure this is the correct path to your cbq command
+    index_file_path: "/home/ubuntu/Couchbase_UPS/index_file.txt"
+    allowed_indexes: []
 
   tasks:
-    - name: Read index file content
-      ansible.builtin.slurp:
-        src: /home/ubuntu/Couchbase_UPS/index_file.txt
+    - name: Read the index file
+      slurp:
+        src: "{{ index_file_path }}"
       register: index_file_content
 
-    - name: Decode base64 content and split into lines using regex
+    - name: Parse and filter allowed index statements
       set_fact:
-        index_lines: "{{ index_file_content.content | b64decode }}"
-
-    # Debug decoded index file content
-    - name: Debug decoded index file content
-      debug:
-        msg: "{{ index_lines }}"
-
-    - name: Filter valid index creation queries
-      set_fact:
-        valid_queries: |
-          {%- set valid = [] -%}
-          {%- for line in index_lines -%}
-            {%- if line is search('CREATE INDEX') and line is not search('PRIMARY INDEX') -%}
-              {%- if line is search('"defer_build":true') -%}
-                {%- if line is search('WHERE') -%}
-                  {%- set valid = valid + [line] -%}  # Correct way to append to a list in Jinja2
-                {%- endif -%}
-              {%- endif -%}
-            {%- endif -%}
+        allowed_indexes: >
+          {%- set allowed = [] -%}
+          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+          {%- if "CREATE INDEX" in line or "create index" in line -%}
+          {%- set def_build = '"defer_build":true' in line.lower() -%}
+          {%- set has_where = 'where' in line.lower() -%}
+          {%- if def_build and has_where -%}
+          {{ allowed.append(line) }}
+          {%- endif -%}
+          {%- endif -%}
           {%- endfor -%}
-          {{ valid }}
+          {{ allowed }}
 
-    - name: Show filtered valid index creation queries
+    - name: Debug allowed index statements
       debug:
-        msg: "{{ valid_queries }}"
+        msg: "{{ allowed_indexes }}"
 
-    # Create allowed indexes
-    - name: Create allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
-      with_items: "{{ valid_queries }}"
-      register: index_creation_result
-      ignore_errors: true
+    - name: Execute allowed index statements
+      shell: |
+        "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ allowed_indexes }}"
+      register: index_creation_results
 
-    # - name: Create the valid indexes using shell (cbq)
-    #   shell: |
-    #     echo "{{ item }}" | {{ cbq_path }} -u "{{ couchbase_username }}" -p "{{ couchbase_password }}" -s "{{ couchbase_host }}"
-    #   loop: "{{ valid_queries }}"
-    #   when: valid_queries | length > 0
-    #   register: index_creation_result
-    #   ignore_errors: yes  # Optional: allows the playbook to continue even if a query fails
-
-    - name: Show result of index creation
+    - name: Debug index creation results
       debug:
-        msg: "{{ index_creation_result }}"
+        var: index_creation_results
+
+  # tasks:
+  #   - name: Read index file content
+  #     ansible.builtin.slurp:
+  #       src: /home/ubuntu/Couchbase_UPS/index_file.txt
+  #     register: index_file_content
+
+  #   - name: Decode base64 content and split into lines using regex
+  #     set_fact:
+  #       index_lines: "{{ index_file_content.content | b64decode }}"
+
+  #   # Debug decoded index file content
+  #   - name: Debug decoded index file content
+  #     debug:
+  #       msg: "{{ index_lines }}"
+
+  #   - name: Filter valid index creation queries
+  #     set_fact:
+  #       valid_queries: |
+  #         {%- set valid = [] -%}
+  #         {%- for line in index_lines -%}
+  #           {%- if line is search('CREATE INDEX') and line is not search('PRIMARY INDEX') -%}
+  #             {%- if line is search('"defer_build":true') -%}
+  #               {%- if line is search('WHERE') -%}
+  #                 {%- set valid = valid + [line] -%}  # Correct way to append to a list in Jinja2
+  #               {%- endif -%}
+  #             {%- endif -%}
+  #           {%- endif -%}
+  #         {%- endfor -%}
+  #         {{ valid }}
+
+  #   - name: Show filtered valid index creation queries
+  #     debug:
+  #       msg: "{{ valid_queries }}"
+
+  #   # Create allowed indexes
+  #   - name: Create allowed indexes
+  #     shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+  #     with_items: "{{ valid_queries }}"
+  #     register: index_creation_result
+  #     ignore_errors: true
+
+  #   # - name: Create the valid indexes using shell (cbq)
+  #   #   shell: |
+  #   #     echo "{{ item }}" | {{ cbq_path }} -u "{{ couchbase_username }}" -p "{{ couchbase_password }}" -s "{{ couchbase_host }}"
+  #   #   loop: "{{ valid_queries }}"
+  #   #   when: valid_queries | length > 0
+  #   #   register: index_creation_result
+  #   #   ignore_errors: yes  # Optional: allows the playbook to continue even if a query fails
+
+  #   - name: Show result of index creation
+  #     debug:
+  #       msg: "{{ index_creation_result }}"
+
+
+
+  
