@@ -7,7 +7,7 @@
     couchbase_host: "localhost"  # Replace with your Couchbase hostname or IP
     couchbase_username: "admin"  # Replace with your Couchbase admin username
     couchbase_password: "password"  # Replace with your Couchbase admin password
-    cbq_path: "/opt/couchbase/bin/cbq"  # Adjust the path to the cbq command if it's not in the default PATH
+    cbq_path: "/opt/couchbase/bin/cbq"  # Ensure this is the correct path to your cbq command
 
   tasks:
     - name: Read index file content
@@ -40,11 +40,11 @@
 
     - name: Create the valid indexes using shell (cbq)
       shell: |
-        echo "{{ item }}" | {{ cbq_path }} -u {{ couchbase_username }} -p {{ couchbase_password }} -s {{ couchbase_host }}
+        echo "{{ item }}" | {{ cbq_path }} -u "{{ couchbase_username }}" -p "{{ couchbase_password }}" -s "{{ couchbase_host }}"
       loop: "{{ valid_queries }}"
       when: valid_queries | length > 0
       register: index_creation_result
-      ignore_errors: yes  # Optional, ignore errors if you don't want the playbook to fail on a query
+      ignore_errors: yes  # Optional: allows the playbook to continue even if a query fails
 
     - name: Show result of index creation
       debug:
