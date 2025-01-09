@@ -53,11 +53,4 @@
       loop_control:
         loop_var: item
 
-    - name: Execute allowed index statements
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -q'{{ item }}'"
-      with_items: "{{ allowed_indexes }}"
-      register: index_creation_results
-
-    - name: Debug index creation results
-      debug:
-        var: index_creation_results
+   
