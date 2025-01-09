@@ -1,23 +1,72 @@
 ---
-- name: Skip unwanted index creation commands
+- name: Process Indexes from index.txt
   hosts: all
   gather_facts: no
+  vars:
+    index_file: "/home/ubuntu/Couchbase_UPS/index_file.txt"
+    log_file: "index_file_log.txt"
+
   tasks:
-    - name: Read index file content
-      ansible.builtin.slurp:
-        src: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: file_content
+    - name: Read index definitions from file
+      slurp:
+        src: "{{ index_file }}"
+      register: index_content
 
-    - name: Set filtered index creation queries using regex
+    - name: Decode index definitions
       set_fact:
-        filtered_queries: "{{ file_content.content | b64decode | regex_findall('^(?!.*(USING GSI|WITH {\"defer_build\":|docType;}).*$).+', multiline=True) }}"
+        indexes: "{{ index_content.content | b64decode | split('\n') }}"
 
-    - name: Print filtered queries to the playbook log
+    - name: Process indexes and log results
+      block:
+        - name: Initialize log
+          lineinfile:
+            path: "{{ log_file }}"
+            line: "Processing index definitions:"
+            state: present
+
+        - name: Check each index
+          set_fact:
+            skipped_indexes: []
+            created_indexes: []
+          loop: "{{ indexes }}"
+          loop_control:
+            label: "{{ item }}"
+
+          when: item is not none
+
+          vars:
+            index_name: "{{ item.split(' ')[2] | default('') }}"
+            is_deferred: "{{ 'defer_build' in item and (item | regex_search('defer_build\\s*:\\s*true', 'ignorecase')) }}"
+            has_where: "{{ 'WHERE' in item | upper }}"
+            is_primary: "{{ 'PRIMARY INDEX' in item | upper }}"
+            is_not_allowed: "{{ item | regex_search('not-allowed', 'ignorecase') }}"
+
+          tasks:
+            - name: Log not allowed indexes
+              lineinfile:
+                path: "{{ log_file }}"
+                line: "Not allowed index: {{ item }}"
+              when: is_not_allowed and not is_deferred
+
+            - name: Log allowed indexes
+              lineinfile:
+                path: "{{ log_file }}"
+                line: "Allowed index: {{ item }}"
+              when: is_deferred or (has_where and is_deferred)
+
+            - name: Add skipped indexes to list
+              set_fact:
+                skipped_indexes: "{{ skipped_indexes + [item] }}"
+              when: not is_deferred and not has_where
+
+            - name: Log skipped indexes
+              lineinfile:
+                path: "{{ log_file }}"
+                line: "Skipped index: {{ item }}"
+              when: not is_deferred and not has_where
+
+    - name: Display results
       debug:
-        msg: "Filtered Index Queries: {{ filtered_queries }}"
-
-    - name: Write filtered queries back to a new file
-      ansible.builtin.copy:
-        dest: /home/ubuntu/Couchbase_UPS/filtered_index_file.txt
-        content: "{{ filtered_queries | join('\n') }}"
-        mode: '0644'
+        msg: 
+          - "Skipped Indexes: {{ skipped_indexes }}"
+          - "Created Indexes: {{ created_indexes }}"
