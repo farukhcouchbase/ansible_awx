@@ -4,9 +4,9 @@
   become: yes
   become_user: ubuntu
   vars:
-    couchbase_host: "localhost"  # Replace with your Couchbase hostname or IP
-    couchbase_username: "admin"  # Replace with your Couchbase admin username
-    couchbase_password: "password"  # Replace with your Couchbase admin password
+    couchbase_host: "localhost:8091"  # Replace with your Couchbase hostname or IP
+    couchbase_username: "Admin"  # Replace with your Couchbase admin username
+    couchbase_password: "redhat"  # Replace with your Couchbase admin password
     cbq_path: "/opt/couchbase/bin/cbq"  # Ensure this is the correct path to your cbq command
 
   tasks:
