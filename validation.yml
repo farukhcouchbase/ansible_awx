@@ -64,5 +64,17 @@
       debug:
         var: index_creation_results
 
+    - name: Execute deferred_index.sh script
+      command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
+      args:
+        chdir: /home/ubuntu/Couchbase_UPS
+      register: script_output
+
+    
+    - name: Display script output
+      debug:
+         var: script_output.stdout
+
+
 
    
