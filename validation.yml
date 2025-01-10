@@ -1,7 +1,9 @@
+---
 - name: Manage Couchbase Index Creation
   hosts: all
   become: yes
   become_user: ubuntu
+  #connection: local
   gather_facts: false
 
   vars:
@@ -28,10 +30,11 @@
           {%- endfor -%}
           {{ allowed }}
 
+     
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
@@ -51,15 +54,7 @@
       loop_control:
         loop_var: item
 
-    - name: Debug allowed indexes
-      debug:
-        msg: "Allowed indexes: {{ allowed_indexes }}"
-
-    - name: Check if there are allowed indexes
-      fail:
-        msg: "No allowed indexes found. Please check the index file."
-      when: allowed_indexes | length == 0    
-
+   
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ allowed_indexes }}"
@@ -68,26 +63,15 @@
 
     - name: Debug index creation results
       debug:
-        var: index_creation_result
+        var: index_creation_results
 
-    - name: Build allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s 'BUILD INDEX ON travel-sample({{ item }})'"
-      with_items: "{{ allowed_indexes }}"
-      register: build_index_result
-      ignore_errors: true
-
-    - name: Debug build index results
-      debug:
-        var: build_index_result
-
-    - name: Check for errors in index creation
-      debug:
-        msg: "Error in creating index: {{ item.stderr }}"
-      loop: "{{ index_creation_result.results }}"
-      when: item.rc != 0
-
-    - name: Check for errors in building indexes
-      debug:
-        msg: "Error in building index: {{ item.stderr }}"
-      loop: "{{ build_index_result.results }}"
-      when: item.rc != 0
+    - name: Execute deferred_index.sh script
+      command: /home/ubuntu/Couchbase_UPS/test.sh
+      args:
+        chdir: /home/ubuntu/Couchbase_UPS
+      register: script_output
+    - name: Execute  deffered_index_01.sh script
+      command: /home/ubuntu/Couchbase_UPS/deffered_index_01.sh
+      args:
+        chdir: /home/ubuntu/Couchbase_UPS
+      register: script_output
