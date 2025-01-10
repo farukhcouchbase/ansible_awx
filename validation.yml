@@ -61,14 +61,17 @@
       debug:
         var: index_creation_result
 
-    - name: Build allowed indexes
-      shell: |
-        {% for item in allowed_indexes %}
-        /opt/couchbase/bin/cbq -u Admin -p redhat -s "BUILD INDEX {{ item | regex_replace('`', '') }} ON travel-sample;"
-        {% endfor %}
+    - name: Build indexes for allowed indexes
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      with_items: "{{ allowed_indexes }}"
       register: index_build_result
       ignore_errors: true
 
-    - name: Debug index build results
-      debug:
-        var: index_build_result
+    - name: Check if the index is built
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s 'SELECT * FROM system:indexes WHERE name=\"{{ item }}\"'"
+      with_items: "{{ allowed_indexes }}"
+      register: index_status_result
+      until: "'status\":\"online\"' in index_status_result.stdout"
+      retries: 5
+      delay: 10
+      ignore_errors: true
