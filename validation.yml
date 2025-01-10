@@ -51,6 +51,11 @@
       loop_control:
         loop_var: item
 
+    - name: Check if there are allowed indexes
+      fail:
+        msg: "No allowed indexes found. Please check the index file."
+      when: allowed_indexes | length == 0    
+
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ allowed_indexes }}"
