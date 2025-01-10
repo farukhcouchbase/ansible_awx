@@ -66,7 +66,7 @@
         var: index_creation_results
 
     - name: Execute deferred_index.sh script
-      command: /home/ubuntu/Couchbase_UPS/deffered_index.sh
+      command: /home/ubuntu/Couchbase_UPS/test.sh
       args:
         chdir: /home/ubuntu/Couchbase_UPS
       register: script_output
