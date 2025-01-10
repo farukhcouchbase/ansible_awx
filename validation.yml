@@ -62,8 +62,10 @@
         var: index_creation_result
 
     - name: Build allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s 'BUILD INDEX {{ item }} ON travel-sample '"
-      with_items: "{{ allowed_indexes }}"
+      shell: |
+        {% for item in allowed_indexes %}
+        /opt/couchbase/bin/cbq -u Admin -p redhat -s "BUILD INDEX {{ item | regex_replace('`', '') }} ON <bucket_name>;"
+        {% endfor %}
       register: index_build_result
       ignore_errors: true
 
