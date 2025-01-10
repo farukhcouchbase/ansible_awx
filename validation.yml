@@ -70,3 +70,15 @@
     - name: Debug build index results
       debug:
         var: build_index_result
+
+    - name: Check for errors in index creation
+      debug:
+        msg: "Error in creating index: {{ item.stderr }}"
+      loop: "{{ index_creation_result.results }}"
+      when: item.rc != 0
+
+    - name: Check for errors in building indexes
+      debug:
+        msg: "Error in building index: {{ item.stderr }}"
+      loop: "{{ build_index_result.results }}"
+      when: item.rc != 0
