@@ -3,6 +3,7 @@
   hosts: all
   become: yes
   become_user: ubuntu
+  #connection: local
   gather_facts: false
 
   vars:
@@ -25,16 +26,15 @@
               {{ allowed.append(line) }}
             {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
               {{ allowed.append(line) }}
-            {%- elif 'scope' not in line.lower() and '{"defer_build":true}' in line.lower() -%}
-              {{ allowed.append(line) }}  # Include default indexes
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
 
+     
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
@@ -54,6 +54,7 @@
       loop_control:
         loop_var: item
 
+   
     - name: Create allowed indexes
       shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
       with_items: "{{ allowed_indexes }}"
@@ -62,10 +63,15 @@
 
     - name: Debug index creation results
       debug:
-        var: index_creation_result
+        var: index_creation_results
 
     - name: Execute deferred_index.sh script
       command: /home/ubuntu/Couchbase_UPS/test.sh
       args:
         chdir: /home/ubuntu/Couchbase_UPS
       register: script_output
+    # - name: Execute  deffered_index_01.sh script
+    #   command: /home/ubuntu/Couchbase_UPS/deffered_index_01.sh
+    #   args:
+    #     chdir: /home/ubuntu/Couchbase_UPS
+    #   register: script_output
