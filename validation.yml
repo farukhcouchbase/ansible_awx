@@ -51,6 +51,10 @@
       loop_control:
         loop_var: item
 
+    - name: Debug allowed indexes
+      debug:
+        msg: "Allowed indexes: {{ allowed_indexes }}"
+
     - name: Check if there are allowed indexes
       fail:
         msg: "No allowed indexes found. Please check the index file."
