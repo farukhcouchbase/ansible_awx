@@ -1,4 +1,3 @@
----
 - name: Manage Couchbase Index Creation
   hosts: all
   become: yes
@@ -63,7 +62,7 @@
         var: index_creation_result
 
     - name: Build allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s 'BUILD INDEX ON `travel-sample` ({{ item }})'"
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s 'BUILD INDEX {{ item }}'"
       with_items: "{{ allowed_indexes }}"
       register: index_build_result
       ignore_errors: true
