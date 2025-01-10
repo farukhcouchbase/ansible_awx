@@ -31,7 +31,7 @@
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' not in line.lower() and 'field' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
@@ -61,17 +61,12 @@
       debug:
         var: index_creation_result
 
-    - name: Build indexes for allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+    - name: Build allowed indexes
+      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s 'BUILD INDEX ON travel-sample({{ item }})'"
       with_items: "{{ allowed_indexes }}"
-      register: index_build_result
+      register: build_index_result
       ignore_errors: true
 
-    - name: Check if the index is built
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s 'SELECT * FROM system:indexes WHERE name=\"{{ item }}\"'"
-      with_items: "{{ allowed_indexes }}"
-      register: index_status_result
-      until: "'status\":\"online\"' in index_status_result.stdout"
-      retries: 5
-      delay: 10
-      ignore_errors: true
+    - name: Debug build index results
+      debug:
+        var: build_index_result
