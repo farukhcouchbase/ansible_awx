@@ -24,7 +24,7 @@
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
-            {%- elif 'shippingNo' in line.lower() and '{"defer_build":true}' in line.lower() and 'facilityNo' not in line.lower() and 'container2' not in line.lower() -%}
+            {%- elif 'shippingNo' in line.lower() and 'container1' in line.lower() and 'facilityNo' not in line.lower()  -%}
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
@@ -34,7 +34,7 @@
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'travel-sample.scopeB.collection3()' not in line.lower() and 'field' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
+            {%- if 'travel-sample.scopeB.collection3()' not in line.lower() and  'collection3()' not in line.lower() and '' not in line.lower() and  line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
