@@ -24,7 +24,7 @@
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
-            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
+            {%- elif 'shippingNo' in line.lower() and '{"defer_build":true}' in line.lower() and 'facilityNo' not in line.lower() and 'container2' not in line.lower() -%}
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
