@@ -54,8 +54,9 @@
     - name: Create allowed indexes
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ allowed_indexes }}"
-      # register: index_creation_result
+      register: index_creation_result
       ignore_errors: true
+      no_log: true
 
     # - name: Debug index creation results
     #   debug:
