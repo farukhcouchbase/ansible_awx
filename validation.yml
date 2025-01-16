@@ -3,14 +3,11 @@
   hosts: all
   become: yes
   become_user: ubuntu
-  #connection: local
   gather_facts: false
 
-  vars:
-    index_file_path: "/home/ubuntu/Couchbase_UPS/index_file.txt"
-    allowed_indexes: []
-    not_allowed_indexes: []
-
+  vars_files:
+    - vars.yml  # Specify the variable file if needed
+  
   tasks:
     - name: Read the index file
       slurp:
@@ -24,12 +21,11 @@
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
-            {%- elif 'shippingNo' in line.lower() and 'container1' in line.lower() and 'facilityNo' not in line.lower()  -%}
+            {%- elif 'shippingNo' in line.lower() and 'container1' in line.lower() and 'facilityNo' not in line.lower() -%}
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
-
      
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
@@ -54,25 +50,18 @@
       loop_control:
         loop_var: item
 
-   
     - name: Create allowed indexes
-      shell: "/opt/couchbase/bin/cbq -u Admin -p redhat -s '{{ item }}'"
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ allowed_indexes }}"
       register: index_creation_result
       ignore_errors: true
 
     - name: Debug index creation results
       debug:
-        var: index_creation_results
+        var: index_creation_result
 
     - name: Execute test.sh script
-      command: /home/ubuntu/Couchbase_UPS/test.sh
+      command: "{{ test_script_path }}"
       args:
-        chdir: /home/ubuntu/Couchbase_UPS
+        chdir: "{{ test_script_path | dirname }}"
       register: script_output
-
-
-    
-
-  
-  
