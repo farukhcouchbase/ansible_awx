@@ -56,9 +56,9 @@
       register: index_creation_result
       ignore_errors: true
 
-    - name: Debug index creation results
-      debug:
-        var: index_creation_result
+    # - name: Debug index creation results
+    #   debug:
+    #     var: index_creation_result
 
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
