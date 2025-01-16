@@ -20,8 +20,8 @@
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
-            #{%- elif (allowed_1 in line.lower()) and (allowed_2 in line.lower()) and (allowed_3 not in line.lower()) -%}
             {%- elif (not_allowed_1 in line.lower()) and (not_allowed_2 in line.lower()) and (not_allowed_3 not in line.lower()) -%}
+            
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
