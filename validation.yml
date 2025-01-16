@@ -37,7 +37,7 @@
 
     - name: List of Index Queries 
       debug:
-        msg: " Index is to create {{ item }}"
+        msg: "{{ item }}"
       loop: "{{ allowed_indexes }}"
       loop_control:
         loop_var: item
