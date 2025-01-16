@@ -5,8 +5,6 @@
   become_user: ubuntu
   gather_facts: false
 
-
-  
   tasks:
     - name: Read the index file
       slurp:
@@ -26,8 +24,8 @@
           {%- endfor -%}
           {{ allowed }}
 
-
-     
+    - name: Parse and filter not allowed index statements
+      set_fact:
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
@@ -37,30 +35,12 @@
           {%- endfor -%}
           {{ not_allowed }}
 
-    # - name: List of Index Queries 
-    #   debug:
-    #     msg: "{{ item }}"
-    #   loop: "{{ allowed_indexes }}"
-    #   loop_control:
-    #     loop_var: item
-
-    # - name: Debug not-allowed index statements
-    #   debug:
-    #     msg: "{{ item }}"
-    #   loop: "{{ not_allowed_indexes }}"
-    #   loop_control:
-    #     loop_var: item
-
     - name: Create allowed indexes
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ allowed_indexes }}"
       register: index_creation_result
       ignore_errors: true
       no_log: true
-
-    # - name: Debug index creation results
-    #   debug:
-    #     var: index_creation_result
 
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
