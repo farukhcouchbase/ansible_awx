@@ -37,12 +37,12 @@
           {%- endfor -%}
           {{ not_allowed }}
 
-    - name: List of Index Queries 
-      debug:
-        msg: "{{ item }}"
-      loop: "{{ allowed_indexes }}"
-      loop_control:
-        loop_var: item
+    # - name: List of Index Queries 
+    #   debug:
+    #     msg: "{{ item }}"
+    #   loop: "{{ allowed_indexes }}"
+    #   loop_control:
+    #     loop_var: item
 
     # - name: Debug not-allowed index statements
     #   debug:
