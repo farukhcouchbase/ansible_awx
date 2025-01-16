@@ -5,8 +5,7 @@
   become_user: ubuntu
   gather_facts: false
 
-  vars_files:
-    - vars.yml  # Specify the variable file if needed
+
   
   tasks:
     - name: Read the index file
