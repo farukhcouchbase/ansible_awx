@@ -32,6 +32,8 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       loop: "{{ updated_queries.split('\n') }}"
       when: updated_queries is defined
+      ignore_errors: true
+      no_log: true
 
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
