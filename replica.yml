@@ -33,3 +33,9 @@
       loop: "{{ updated_queries.split('\n') }}"
       when: updated_queries is defined
 
+    - name: Execute test.sh script
+      command: "{{ test_script_path }}"
+      args:
+        chdir: "{{ test_script_path | dirname }}"
+      register: script_output 
+
