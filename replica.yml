@@ -29,7 +29,7 @@
    
 
     - name: Execute the updated index creation queries using shell
-      shell: "/opt/couchbase/bin/cbq -u Administrator -p password -s '{{ item }}'"
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       loop: "{{ updated_queries.split('\n') }}"
       when: updated_queries is defined
 
