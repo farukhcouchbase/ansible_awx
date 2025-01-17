@@ -33,7 +33,7 @@
       loop: "{{ updated_queries.split('\n') }}"
       when: updated_queries is defined
       ignore_errors: true
-      no_log: true
+      n
 
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
