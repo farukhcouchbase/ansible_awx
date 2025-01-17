@@ -1,0 +1,34 @@
+---
+- name: Update and execute index creation queries
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Read the index file
+      ansible.builtin.slurp:
+        src: /home/ubuntu/Couchbase_UPS/index_file.txt
+      register: index_file_content
+
+    - name: Decode the file content
+      set_fact:
+        decoded_content: "{{ index_file_content['content'] | b64decode }}"
+
+    - name: Update defer_build and num_replica properties in queries
+      set_fact:
+        updated_queries: "{{ decoded_content | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 0}') }}"
+
+    - name: Display the updated queries for verification
+      debug:
+        msg: "{{ updated_queries }}"
+
+    - name: Write the updated queries back to the file
+      ansible.builtin.copy:
+        dest: /home/ubuntu/Couchbase_UPS/updated_index_file.txt
+        content: "{{ updated_queries }}"
+        mode: '0644'
+
+    - name: Execute the updated index creation queries
+      command: >
+        /opt/couchbase/bin/cbq -u Administrator -p password -s "{{ item }}"
+      loop: "{{ updated_queries.split('\n') }}"
+      when: updated_queries is defined
+
