@@ -46,4 +46,4 @@
       command: "{{ test_script_path }}"
       args:
         chdir: "{{ test_script_path | dirname }}"
-      register: script_output
+      register: script_output 
