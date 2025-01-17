@@ -26,9 +26,10 @@
         content: "{{ updated_queries }}"
         mode: '0644'
 
-    - name: Execute the updated index creation queries
-      command: >
-        /opt/couchbase/bin/cbq -u Administrator -p password -s "{{ item }}"
+   
+
+    - name: Execute the updated index creation queries using shell
+      shell: "/opt/couchbase/bin/cbq -u Administrator -p password -s '{{ item }}'"
       loop: "{{ updated_queries.split('\n') }}"
       when: updated_queries is defined
 
