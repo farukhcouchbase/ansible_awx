@@ -14,7 +14,7 @@
 
     - name: Update defer_build and num_replica properties in queries
       set_fact:
-        updated_queries: "{{ decoded_content | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 0}') }}"
+        updated_queries: "{{ decoded_content | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') }}"
 
     - name: Display the updated queries for verification
       debug:
