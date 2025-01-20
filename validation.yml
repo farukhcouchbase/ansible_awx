@@ -6,30 +6,6 @@
   gather_facts: false
 
   tasks:
-
-    - name: Read the index file
-      ansible.builtin.slurp:
-        src: /home/ubuntu/Couchbase_UPS/index_file.txt
-      register: index_file_content
-
-    - name: Decode the file content
-      set_fact:
-        decoded_content: "{{ index_file_content['content'] | b64decode }}"
-
-    - name: Update defer_build and num_replica properties in queries
-      set_fact:
-        updated_queries: "{{ decoded_content | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') }}"
-
-    - name: Display the updated queries for verification
-      debug:
-        msg: "{{ updated_queries }}"
-
-    - name: Write the updated queries back to the file
-      ansible.builtin.copy:
-        dest: /home/ubuntu/Couchbase_UPS/updated_index_file.txt
-        content: "{{ updated_queries }}"
-        mode: '0644'
-
     - name: Read the index file again
       slurp:
         src: "{{ index_file_path }}"
@@ -47,6 +23,26 @@
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
+
+    - name: Update defer_build and num_replica properties in allowed indexes
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
+
+    - name: Display the updated queries for verification
+      debug:
+        msg: "{{ updated_queries }}"
+
+    - name: Write the updated queries back to the file
+      ansible.builtin.copy:
+        dest: /home/ubuntu/Couchbase_UPS/updated_index_file.txt
+        content: "{{ updated_queries }}"
+        mode: '0644'
 
     - name: Parse and filter not allowed index statements
       set_fact:
