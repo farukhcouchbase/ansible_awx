@@ -5,18 +5,16 @@
   become_user: ubuntu
   gather_facts: false
 
-  tasks:
-    - name: Read the index file again
-      slurp:
-        src: "{{ index_file_path }}"
-      register: index_file_content
-      # This task reads content from the index file
+  vars:
+    # index_queries will be provided by the user through the survey
+    index_queries: ""
 
+  tasks:
     - name: Parse and filter index statements
       set_fact:
         allowed_indexes: >
           {%- set allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+          {%- for line in index_queries.splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
             {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
@@ -24,7 +22,7 @@
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
-      # This task parses and filters index statements from the content read in the previous task
+      # Filters allowed index queries based on conditions
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
@@ -35,50 +33,30 @@
             {{ updated.append(updated_line) }}
           {%- endfor -%}
           {{ updated | join('\n') }}
-      # This task updates the defer_build and num_replica properties for allowed index statements
+      # Updates the defer_build and num_replica properties for allowed index queries
 
     - name: Display the updated queries for verification
       debug:
         msg: "{{ updated_queries }}"
-      # This task displays the updated queries for verification
+      # Displays the updated index creation queries for verification
 
-    - name: Write the updated queries back to the file
-      ansible.builtin.copy:
-        dest: /home/ubuntu/Couchbase_UPS/updated_index_file.txt
-        content: "{{ updated_queries }}"
-        mode: '0644'
-      # This task writes the updated queries to a new file
-
-    - name: Parse and filter not allowed index statements
-      set_fact:
-        not_allowed_indexes: >
-          {%- set not_allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
-              {{ not_allowed.append(line) }}
-            {%- endif -%}
-          {%- endfor -%}
-          {{ not_allowed }}
-      # This task parses and filters the not allowed index statements (not containing 'where' or 'field')
-
-    - name: Create allowed indexes
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries }}"
+    - name: Create allowed indexes using cbq
+      shell: >
+        echo "{{ item }}" | {{ couchbase_bin_path }}/cbq -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ couchbase_bucket }}'
+      with_items: "{{ updated_queries.splitlines() }}"
       register: index_creation_result
       ignore_errors: false
       no_log: false
-      # This task creates the allowed indexes using the filtered and updated queries from previous steps
+      # Passes each query individually to cbq for execution
 
-    - name: Create allowed indexes
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ allowed_indexes }}"
-      register: index_creation_result
-      ignore_errors: ftrue
-      no_log: true
+    - name: Show cbq command output
+      debug:
+        msg: "{{ index_creation_result }}"
+      # Shows the result of the cbq command execution
 
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
       args:
         chdir: "{{ test_script_path | dirname }}"
       register: script_output
-      # This task executes the test.sh script after the index creation
+      # Executes the test.sh script after index creation
