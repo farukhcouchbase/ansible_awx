@@ -6,7 +6,31 @@
   gather_facts: false
 
   tasks:
+
     - name: Read the index file
+      ansible.builtin.slurp:
+        src: /home/ubuntu/Couchbase_UPS/index_file.txt
+      register: index_file_content
+
+    - name: Decode the file content
+      set_fact:
+        decoded_content: "{{ index_file_content['content'] | b64decode }}"
+
+    - name: Update defer_build and num_replica properties in queries
+      set_fact:
+        updated_queries: "{{ decoded_content | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') }}"
+
+    - name: Display the updated queries for verification
+      debug:
+        msg: "{{ updated_queries }}"
+
+    - name: Write the updated queries back to the file
+      ansible.builtin.copy:
+        dest: /home/ubuntu/Couchbase_UPS/updated_index_file.txt
+        content: "{{ updated_queries }}"
+        mode: '0644'
+
+    - name: Read the index file again
       slurp:
         src: "{{ index_file_path }}"
       register: index_file_content
@@ -29,7 +53,7 @@
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' not in line.lower() and 'field' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
@@ -46,4 +70,4 @@
       command: "{{ test_script_path }}"
       args:
         chdir: "{{ test_script_path | dirname }}"
-      register: script_output 
+      register: script_output
