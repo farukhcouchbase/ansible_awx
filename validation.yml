@@ -64,7 +64,7 @@
       with_items: "{{ allowed_indexes }}"
       register: index_creation_result
       ignore_errors: true
-      no_log: true
+      no_log: false
 
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
