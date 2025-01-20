@@ -62,6 +62,10 @@
       ignore_errors: true
       no_log: false
 
+    - name: Display the result of index creation
+      debug:
+        msg: "{{ index_creation_result }}"  
+
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
       args:
