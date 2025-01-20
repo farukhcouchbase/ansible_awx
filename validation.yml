@@ -10,6 +10,7 @@
       slurp:
         src: "{{ index_file_path }}"
       register: index_file_content
+      # This task reads content from the index file
 
     - name: Parse and filter index statements
       set_fact:
@@ -23,6 +24,7 @@
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
+      # This task parses and filters index statements from the content read in the previous task
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
@@ -33,16 +35,19 @@
             {{ updated.append(updated_line) }}
           {%- endfor -%}
           {{ updated | join('\n') }}
+      # This task updates the defer_build and num_replica properties for allowed index statements
 
     - name: Display the updated queries for verification
       debug:
         msg: "{{ updated_queries }}"
+      # This task displays the updated queries for verification
 
     - name: Write the updated queries back to the file
       ansible.builtin.copy:
         dest: /home/ubuntu/Couchbase_UPS/updated_index_file.txt
         content: "{{ updated_queries }}"
         mode: '0644'
+      # This task writes the updated queries to a new file
 
     - name: Parse and filter not allowed index statements
       set_fact:
@@ -54,6 +59,7 @@
             {%- endif -%}
           {%- endfor -%}
           {{ not_allowed }}
+      # This task parses and filters the not allowed index statements (not containing 'where' or 'field')
 
     - name: Create allowed indexes
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -61,13 +67,11 @@
       register: index_creation_result
       ignore_errors: true
       no_log: false
-
-    - name: Display the result of index creation
-      debug:
-        msg: "{{ index_creation_result }}"  
+      # This task creates the allowed indexes using the filtered and updated queries from previous steps
 
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
       args:
         chdir: "{{ test_script_path | dirname }}"
       register: script_output
+      # This task executes the test.sh script after the index creation
