@@ -65,7 +65,7 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries }}"
       register: index_creation_result
-      ignore_errors: true
+      ignore_errors: false
       no_log: false
       # This task creates the allowed indexes using the filtered and updated queries from previous steps
 
