@@ -20,9 +20,9 @@
       set_fact:
         updated_queries: "{{ decoded_content | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') }}"
 
-    - name: Display the updated queries for verification
-      debug:
-        msg: "{{ updated_queries }}"
+    # - name: Display the updated queries for verification
+    #   debug:
+    #     msg: "{{ updated_queries }}"
 
     - name: Write the updated queries back to the file
       ansible.builtin.copy:
