@@ -8,6 +8,7 @@
   vars:
     # index_queries will be provided by the user through the survey
     index_queries: ""
+    couchbase_bucket: "travel-sample" 
 
   tasks:
 
