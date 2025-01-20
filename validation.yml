@@ -69,6 +69,13 @@
       no_log: false
       # This task creates the allowed indexes using the filtered and updated queries from previous steps
 
+    - name: Create allowed indexes
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ allowed_indexes }}"
+      register: index_creation_result
+      ignore_errors: ftrue
+      no_log: true
+
     - name: Execute test.sh script
       command: "{{ test_script_path }}"
       args:
