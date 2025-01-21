@@ -23,7 +23,6 @@
     #   ignore_errors: true
     #   no_log: false
 
-
     - name: Parse and filter index statements
       set_fact:
         allowed_indexes: >
@@ -36,7 +35,7 @@
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
-      Filters allowed index queries based on conditions
+      # Filters allowed index queries based on conditions
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
@@ -52,7 +51,7 @@
     - name: Display the updated queries for verification
       debug:
         msg: "{{ updated_queries }}"
-      Displays the updated index creation queries for verification
+      # Displays the updated index creation queries for verification
 
     - name: Create allowed indexes using cbq
       shell: >
