@@ -19,7 +19,7 @@
           {%- for line in index_queries.splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
-            {%- elif 'scope' in line.lower() and 'num' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
+            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
