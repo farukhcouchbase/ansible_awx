@@ -1,22 +1,17 @@
 ---
-- name: Manage Couchbase Index Creation
+- name: Ansible playbook to create filtered index queries
   hosts: all
-  become: yes
-  become_user: ubuntu
-  gather_facts: false
-
+  gather_facts: no
   vars:
     # index_queries will be provided by the user through the survey
     index_queries: ""
-    couchbase_bucket: "travel-sample" 
+
+    couchbase_bucket: "travel-sample"
 
   tasks:
-
     - name: Use the user input from the survey
       debug:
-        msg: "{{ index_queries }}"
-        
-  
+        msg: "Original index queries: {{ index_queries }}"
 
     - name: Parse and filter index statements
       set_fact:
@@ -30,40 +25,14 @@
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
-      # Filters allowed index queries based on conditions
 
-    - name: Update defer_build and num_replica properties in allowed indexes
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}
-      # Updates the defer_build and num_replica properties for allowed index queries
-
-    - name: Display the updated queries for verification
+    - name: Display allowed index queries after parsing
       debug:
-        msg: "{{ updated_queries }}"
-      # Displays the updated index creation queries for verification
+        msg: "Filtered index queries: {{ allowed_indexes }}"
 
-    - name: Create allowed indexes
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ index_queries }}"
-      register: index_creation_result
-      ignore_errors: true
-      no_log: false
-      # Passes each query individually to cbq for execution
-
-    - name: Show cbq command output
+    - name: Use filtered index queries to create the indexes
+      # Replace this task with the actual implementation for creating indexes in Couchbase or your target system
       debug:
-        msg: "{{ index_creation_result }}"
-      # Shows the result of the cbq command execution
-
-    - name: Execute deffered_index.sh script
-      command: "{{ deffered_index_path }}"
-      args:
-        chdir: "{{ deffered_index_path | dirname }}"
-      register: script_output
-      # Executes the deffered_index.sh script after index creation
+        msg: "Creating indexes: {{ allowed_indexes }}"
+        
+    # You can add additional tasks here for further processing based on allowed_indexes, such as executing Couchbase index creation.
