@@ -53,7 +53,7 @@
 
     - name: Create allowed indexes
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ index_queries }}"
+      with_items: "{{ updated_queries }}"
       register: index_creation_result
       ignore_errors: true
       no_log: false
