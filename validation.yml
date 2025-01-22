@@ -30,9 +30,20 @@
       debug:
         msg: "Filtered index queries: {{ allowed_indexes }}"
 
-    - name: Use filtered index queries to create the indexes
-      # Replace this task with the actual implementation for creating indexes in Couchbase or your target system
+     - name: Update defer_build and num_replica properties in allowed indexes
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
+
+    - name: Display updated queries
       debug:
-        msg: "Creating indexes: {{ allowed_indexes }}"
+        msg: "Updated index queries: {{ updated_queries }}"
+   
+   
         
     # You can add additional tasks here for further processing based on allowed_indexes, such as executing Couchbase index creation.
