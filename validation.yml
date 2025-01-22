@@ -40,17 +40,10 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Update defer_build and num_replica properties in allowed indexes
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX .* ON [^ ]+.[^ ]+\([^ ]+\))', '\\1, \"num_replica\": 1') -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}
+    
 
-          
+   
+         
 
     - name: Display updated queries
       debug:
