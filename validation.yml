@@ -59,4 +59,17 @@
       no_log: false
       # Passes each query individually to cbq for execution
 
+    - name: Show cbq command output
+      debug:
+        msg: "{{ index_creation_result }}"
+      # Shows the result of the cbq command execution
+
+    - name: Execute deffered_index.sh script
+      command: "{{ deffered_index_path }}"
+      args:
+        chdir: "{{ deffered_index_path | dirname }}"
+      register: script_output
+      # Executes the deffered_index.sh script after index creation
+
+
     
