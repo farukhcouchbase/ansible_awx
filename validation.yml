@@ -35,20 +35,10 @@
           {%- set updated = [] -%}
           {%- for line in allowed_indexes -%}
             {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}
-
-    - name: Update defer_build and num_replica properties in allowed indexes
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
             {%- set updated_line = updated_line | regex_replace('(?i)(CREATE INDEX.*USING GSI)', '\\1 WITH {\"defer_build\": true, \"num_replica\": 1}') -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
-          {{ updated | join('\n') }}      
-
+          {{ updated | join('\n') }}
 
     - name: Display updated queries
       debug:
@@ -56,7 +46,7 @@
 
     - name: Create allowed indexes
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries }}"
+      with_items: "{{ updated_queries.splitlines() }}"
       register: index_creation_result
       ignore_errors: true
       no_log: false
@@ -65,7 +55,6 @@
     - name: Show cbq command output
       debug:
         msg: "{{ index_creation_result }}"
-      # Shows the result of the cbq command execution
 
     - name: Execute deffered_index.sh script
       command: "{{ deffered_index_path }}"
@@ -73,6 +62,3 @@
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
       # Executes the deffered_index.sh script after index creation
-      
-
-
