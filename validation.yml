@@ -6,6 +6,9 @@
     # index_queries will be provided by the user through the survey
     index_queries: ""
     couchbase_bucket: "travel-sample"
+    allowed_indexes: []
+    not_allowed_indexes: []
+
 
   tasks:
     - name: Use the user input from the survey
@@ -25,9 +28,23 @@
           {%- endfor -%}
           {{ allowed }}
 
+
+        not_allowed_indexes: >
+          {%- set not_allowed = [] -%}
+          {%- for line in index_queries.splitlines() -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
+              {{ not_allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ not_allowed }}
+
     - name: Display allowed index queries after parsing
       debug:
         msg: "Filtered index queries: {{ allowed_indexes }}"
+
+    - name: Display not allowed index queries after parsing
+      debug:
+        msg: "Filtered not allowed index queries: {{not_allowed_indexes}}"
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
