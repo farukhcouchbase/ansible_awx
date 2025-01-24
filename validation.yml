@@ -110,9 +110,9 @@
       debug:
         msg: "Updated CREATE INDEX queries: {{ updated2_queries }}"
 
-    # - name: Display updated CREATE INDEX queries
-    #   debug:
-    #     msg: "Updated CREATE INDEX queries: {{ updated3_queries }}"
+    - name: Display updated CREATE INDEX queries
+      debug:
+        msg: "Updated CREATE INDEX queries: {{ updated3_queries }}"
 
     - name: Create allowed indexes (JSON format)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
