@@ -100,7 +100,7 @@
 
     - name: Display updated JSON queries
       debug:
-        msg: "Updated JSON index queries: {{ updated_queries }}"
+        msg: "Updated JSON index queries: {{ updated3_queries }}"
 
     - name: Display updated CREATE INDEX queries
       debug:
