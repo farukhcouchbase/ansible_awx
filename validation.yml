@@ -64,6 +64,10 @@
       ignore_errors: true
       no_log: false
 
+    - name: Display index creation results
+      debug:
+        var: index_creation_result
+
     - name: Classify not allowed indexes based on creation results
       set_fact:
         not_allowed_indexes: >
