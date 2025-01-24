@@ -3,8 +3,7 @@
   hosts: all
   gather_facts: no
   vars:
-    # index_queries will be provided by the user through the survey
-    index_queries: ""
+    index_queries: ""  # Provided by the user through the survey
     couchbase_bucket: "travel-sample"
     allowed_indexes: []
     not_allowed_indexes: []
@@ -44,7 +43,7 @@
       debug:
         msg: "{{ not_allowed_indexes }}"
 
-    - name: Update defer_build and num_replica properties in allowed indexes
+    - name: Update defer_build and num_replica properties in allowed indexes (JSON format)
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
@@ -54,7 +53,7 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Update defer_build and num_replica properties in allowed indexes
+    - name: Update defer_build and num_replica properties in allowed indexes (CREATE INDEX format)
       set_fact:
         updated1_queries: >
           {%- set updated = [] -%}
@@ -68,30 +67,34 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Display updated queries
+    - name: Display updated JSON queries
       debug:
-        msg: "Updated index queries: {{ updated_queries 
+        msg: "Updated JSON index queries: {{ updated_queries }}"
 
-    - name: Display updated queries
+    - name: Display updated CREATE INDEX queries
       debug:
-        msg: "Updated index queries: {{ updated1_queries }}"
+        msg: "Updated CREATE INDEX queries: {{ updated1_queries }}"
 
-    - name: Create allowed indexes
+    - name: Create allowed indexes (JSON format)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries }}"
+      with_items: "{{ updated_queries.split('\n') }}"
       register: index_creation_result
       ignore_errors: true
       no_log: false
 
-    - name: Create allowed indexes
+    - name: Create allowed indexes (CREATE INDEX format)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated1_queries }}"
+      with_items: "{{ updated1_queries.split('\n') }}"
       register: index_creation_result
       ignore_errors: true
       no_log: false
 
-    - name: Execute deffered_index.sh script
+    - name: Execute deferred index script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
+
+    - name: Display deferred index script output
+      debug:
+        msg: "{{ script_output.stdout }}"
