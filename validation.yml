@@ -57,18 +57,18 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    # - name: Update index creation query with defer_build and num_replica properties
-    #   set_fact:
-    #     updated1_queries: >
-    #       {%- set updated = [] -%}
-    #       {%- for line in allowed_indexes -%}
-    #         {%- set updated_line = line | regex_replace(
-    #           'CREATE INDEX (.+?) ON (.+?)\\((.+?)\\) USING GSI WITH \\{(.+?)\\}',
-    #           'CREATE INDEX \1 ON \2(\3) USING GSI WITH {\4, "defer_build": true, "num_replica": 1}'
-    #         ) -%}
-    #         {{ updated.append(updated_line) }}
-    #       {%- endfor -%}
-    #       {{ updated | join('\n') }}
+    - name: Update index creation query with defer_build and num_replica properties
+      set_fact:
+        updated1_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- set updated_line = line | regex_replace(
+              'CREATE INDEX (.+?) ON (.+?)\\((.+?)\\) USING GSI WITH \\{(.+?)\\}',
+              'CREATE INDEX \1 ON \2(\3) USING GSI WITH {\4, "defer_build": true, "num_replica": 1}'
+            ) -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
 
 
     - name: Update defer_build and num_replica properties in allowed indexes (formatted query)
@@ -102,9 +102,9 @@
       debug:
         msg: "Updated JSON index queries: {{ updated_queries }}"
 
-    # - name: Display updated CREATE INDEX queries
-    #   debug:
-    #     msg: "Updated CREATE INDEX queries: {{ updated1_queries }}"
+    - name: Display updated CREATE INDEX queries
+      debug:
+        msg: "Updated CREATE INDEX queries: {{ updated1_queries }}"
         
     - name: Display updated CREATE INDEX queries
       debug:
@@ -121,12 +121,12 @@
       ignore_errors: true
       no_log: false
 
-    # - name: Create allowed indexes (CREATE INDEX format)
-    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-    #   with_items: "{{ updated1_queries.split('\n') }}"
-    #   register: index_creation_result
-    #   ignore_errors: true
-    #   no_log: false
+    - name: Create allowed indexes (CREATE INDEX format)
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated1_queries.split('\n') }}"
+      register: index_creation_result
+      ignore_errors: true
+      no_log: false
 
     - name: Create allowed indexes (CREATE INDEX format)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
