@@ -3,12 +3,10 @@
   hosts: all
   gather_facts: no
   vars:
-    # index_queries will be provided by the user through the survey
-    index_queries: ""
+    index_queries: ""  # This will be provided by the user through the survey
     couchbase_bucket: "travel-sample"
     allowed_indexes: []
     not_allowed_indexes: []
-
 
   tasks:
     - name: Use the user input from the survey
@@ -22,17 +20,16 @@
           {%- for line in index_queries.splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
-            {%- elif  'scope' in line.lower()  and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
+            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
 
-
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' not in line.lower()  and  'field' not in line.lower()  and line.strip() != '' and not line.startswith('//') -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
@@ -40,11 +37,11 @@
 
     - name: Display allowed index queries after parsing
       debug:
-        msg: "{{ allowed_indexes }}"
+        msg: "Allowed Index Queries: {{ allowed_indexes }}"
 
     - name: Display not allowed index queries after parsing
       debug:
-        msg: "{{not_allowed_indexes}}"
+        msg: "Not Allowed Index Queries: {{ not_allowed_indexes }}"
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
@@ -56,10 +53,9 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-
     - name: Display updated queries
       debug:
-        msg: "Updated index queries: {{ updated_queries }}"
+        msg: "Updated Index Queries: {{ updated_queries }}"
 
     - name: Create allowed indexes
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -67,13 +63,21 @@
       register: index_creation_result
       ignore_errors: true
       no_log: false
-      # Passes each query individually to cbq for execution
 
-  
-    - name: Execute deffered_index.sh script
+    - name: Classify not allowed indexes based on creation results
+      set_fact:
+        not_allowed_indexes: >
+          {%- set not_allowed = [] -%}
+          {%- for item in index_creation_result.results -%}
+            {%- if item.rc != 0 -%}  # Check if the return code is not zero (indicating an error)
+              {{ not_allowed.append(item.item) }}  # Append the failed query to not_allowed_indexes
+            {%- endif -%}
+          {%- endfor -%}
+          {{ not_allowed }}
+
+    - name: Display final not allowed index queries
+      debug:
+        msg: "Final Not Allowed Index Queries: {{ not_allowed_indexes }}"
+
+    - name: Execute deferred_index.sh script
       command: "{{ deffered_index_path }}"
-      args:
-        chdir: "{{ deffered_index_path | dirname }}"
-      register: script_output
-      # Executes the deffered_index.sh script after index creation
-      
