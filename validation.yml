@@ -19,9 +19,9 @@
         allowed_indexes: >
           {%- set allowed = [] -%}
           {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' in line.lower() and '()' not in line and not line.lower().strip().endswith('using gsi with {"defer_build":true};') -%}
+            {%- if 'where' in line.lower() and '()' not in line and not line.lower().strip().endswith('using gsi with {"defer_build":true};') and '._default.' not in line -%}
               {{ allowed.append(line) }}
-            {%- elif ('scope' in line.lower() or 'default' in line.lower()) and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() and '()' not in line -%}
+            {%- elif ('scope' in line.lower()) and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() and '()' not in line -%}
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
@@ -30,7 +30,7 @@
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') or '()' in line or line.lower().strip().endswith('using gsi with {"defer_build":true};') -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') or '()' in line or line.lower().strip().endswith('using gsi with {"defer_build":true};') or '._default.' in line -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
