@@ -47,19 +47,19 @@
         msg: "{{ not_allowed_indexes }}"
 
     
-    # - name: Update defer_build and num_replica properties in allowed indexes (JSON format)
-    #   set_fact:
-    #     updated_queries: >
-    #       {%- set updated = [] -%}
-    #       {%- for line in allowed_indexes -%}
-    #         {%- set updated_line = line | regex_replace('(?i)({"defer_build":\s*(false|true)})', '{"defer_build": true, "num_replica": 1}') -%}
-    #         {{ updated.append(updated_line) }}
-    #       {%- endfor -%}
-    #       {{ updated | join('\n') }}
+    - name: Update defer_build and num_replica properties in allowed indexes (JSON format)
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- set updated_line = line | regex_replace('(?i)({"defer_build":\s*(false|true)})', '{"defer_build": true, "num_replica": 1}') -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
 
     - name: Update index creation query with defer_build and num_replica properties
       set_fact:
-        updated3_queries: >
+        updated1_queries: >
           {%- set updated = [] -%}
           {%- for line in allowed_indexes -%}
             {%- set updated_line = line | regex_replace(
@@ -73,7 +73,7 @@
 
     - name: Update defer_build and num_replica properties in allowed indexes (formatted query)
       set_fact:
-        updated1_queries: >
+        updated2_queries: >
           {%- set updated = [] -%}
           {%- for line in allowed_indexes -%}
             {%- set updated_line = line 
@@ -88,7 +88,7 @@
 
     - name: Update defer_build property in index creation queries (JSON format)
       set_fact:
-        updated2_queries: >
+        updated3_queries: >
           {%- set updated = [] -%}
           {%- for line in index_queries -%}
             {%- set updated_line = line | regex_replace('(?i)(WITH\s*\{)', 'WITH {"defer_build": true, ') -%}
@@ -100,11 +100,19 @@
 
     - name: Display updated JSON queries
       debug:
-        msg: "Updated JSON index queries: {{ updated3_queries }}"
+        msg: "Updated JSON index queries: {{ updated_queries }}"
 
     - name: Display updated CREATE INDEX queries
       debug:
         msg: "Updated CREATE INDEX queries: {{ updated1_queries }}"
+        
+    - name: Display updated CREATE INDEX queries
+      debug:
+        msg: "Updated CREATE INDEX queries: {{ updated2_queries }}"
+
+    - name: Display updated CREATE INDEX queries
+      debug:
+        msg: "Updated CREATE INDEX queries: {{ updated3_queries }}"
 
     - name: Create allowed indexes (JSON format)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -122,7 +130,14 @@
 
     - name: Create allowed indexes (CREATE INDEX format)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated3_queries.split('\n') }}"
+      with_items: "{{ updated2_queries.split('\n') }}"
+      register: index_creation_result
+      ignore_errors: true
+      no_log: false
+
+    - name: Create allowed indexes (CREATE INDEX format)
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated2_queries.split('\n') }}"
       register: index_creation_result
       ignore_errors: true
       no_log: false
