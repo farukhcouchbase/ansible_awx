@@ -97,6 +97,4 @@
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
 
-    - name: Display deferred index script output
-      debug:
-        msg: "{{ script_output.stdout }}"
+  
