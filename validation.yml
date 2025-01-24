@@ -72,16 +72,12 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Ensure defer_build and num_replica properties in allowed indexes (JSON format)
+    - name: Update defer_build property in index creation queries (JSON format)
       set_fact:
         updated2_queries: >
           {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
-            {%- if 'using gsi' in line.lower() and 'with' in line.lower() -%}
-              {%- set updated_line = line | regex_replace('(?i)(WITH\s*{.*?)(})', 'WITH {"defer_build": true, "num_replica": 1}') -%}
-            {%- else -%}
-              {%- set updated_line = line | regex_replace('(?i)(using gsi;)', 'USING GSI WITH {"defer_build": true, "num_replica": 1};') -%}
-            {%- endif -%}
+          {%- for line in index_queries -%}
+            {%- set updated_line = line | regex_replace('(?i)(WITH\s*\{)', 'WITH {"defer_build": true, ') -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
           {{ updated | join('\n') }}
