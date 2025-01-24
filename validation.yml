@@ -59,7 +59,7 @@
 
     - name: Update index creation query with defer_build and num_replica properties
       set_fact:
-        updated_queries: >
+        updated3_queries: >
           {%- set updated = [] -%}
           {%- for line in allowed_indexes -%}
             {%- set updated_line = line | regex_replace(
@@ -122,7 +122,7 @@
 
     - name: Create allowed indexes (CREATE INDEX format)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated2_queries.split('\n') }}"
+      with_items: "{{ updated3_queries.split('\n') }}"
       register: index_creation_result
       ignore_errors: true
       no_log: false
