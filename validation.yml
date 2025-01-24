@@ -54,13 +54,38 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
+    - name: Update defer_build and num_replica properties in allowed indexes
+      set_fact:
+        updated1_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- if 'CREATE INDEX' in line and 'USING GSI' in line -%}
+              {%- set updated_line = line | regex_replace('(?i)(USING GSI;)', 'WITH {"defer_build": true, "num_replica": 1} USING GSI;') -%}
+              {{ updated.append(updated_line) }}
+            {%- else -%}
+              {{ updated.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
+
     - name: Display updated queries
       debug:
-        msg: "Updated index queries: {{ updated_queries }}"
+        msg: "Updated index queries: {{ updated_queries 
+
+    - name: Display updated queries
+      debug:
+        msg: "Updated index queries: {{ updated1_queries }}"
 
     - name: Create allowed indexes
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries }}"
+      register: index_creation_result
+      ignore_errors: true
+      no_log: false
+
+    - name: Create allowed indexes
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated1_queries }}"
       register: index_creation_result
       ignore_errors: true
       no_log: false
