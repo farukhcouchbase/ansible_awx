@@ -35,6 +35,21 @@
           {%- endfor -%}
           {{ not_allowed }}
 
+        not1_allowed_indexes: >
+          {%- set not_allowed = [] -%}
+          {%- for line in index_queries.splitlines() -%}
+            {%- if 'create index' in line.lower() and 'on' in line.lower() and 'using gsi' in line.lower() 
+                    or 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' 
+                    and not line.startswith('//') 
+                    or '()' in line 
+                    or line.lower().strip().endswith('using gsi with {"defer_build":true};') 
+                    or '._default.' in line -%}
+              {{ not_allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ not1_allowed }}       
+
+
     - name: Display allowed index queries after parsing
       debug:
         msg: "{{ allowed_indexes }}"
@@ -42,6 +57,10 @@
     - name: Display not allowed index queries after parsing
       debug:
         msg: "{{ not_allowed_indexes }}"
+
+    - name: Display not allowed index queries after parsing
+      debug:
+        msg: "{{ not1_allowed_indexes }}"
 
     - name: Update defer_build and num_replica properties in allowed indexes (JSON format)
       set_fact:
