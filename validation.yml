@@ -24,6 +24,12 @@
           {%- endfor -%}
           {{ allowed }}
 
+
+    - name: Debug allowed_indexes
+      debug:
+        var: allowed_indexes
+  
+
     - name: Debug allowed indexes after parsing
       debug:
         msg: "Allowed indexes: {{ allowed_indexes }}"
@@ -72,6 +78,10 @@
             {{ updated.append(updated_line) }}
           {%- endfor -%}
           {{ updated | join('\n') }}
+
+    - name: Update defer_build and num_replica properties in index creation queries
+      set_fact:
+        updated_queries: "{{ allowed_indexes | map('regex_replace', '(?i)(CREATE INDEX `[^`]+` ON `[^`]+`\.`[^`]+`\.`[^`]+`\([^)]*\) USING GSI;)', '\\0 {"defer_build": true, "num_replica": 1}') | list | join('\n') }}"
 
 
     - name: Debug updated JSON queries before execution
