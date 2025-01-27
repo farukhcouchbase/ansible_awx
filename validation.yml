@@ -26,6 +26,10 @@
           {%- endfor -%}
           {{ allowed }}
 
+    - name: Debug allowed indexes after parsing
+      debug:
+        msg: "Allowed indexes: {{ allowed_indexes }}"
+
     - name: Parse and filter not allowed index statements
       set_fact:
         not_allowed_indexes: >
@@ -37,13 +41,9 @@
           {%- endfor -%}
           {{ not_allowed }}
 
-    - name: Display allowed index queries after parsing
+    - name: Debug not allowed indexes after parsing
       debug:
-        msg: "Allowed index queries: {{ allowed_indexes }}"
-
-    - name: Display not allowed index queries after parsing
-      debug:
-        msg: "Not allowed index queries: {{ not_allowed_indexes }}"
+        msg: "Not allowed indexes: {{ not_allowed_indexes }}"
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
@@ -65,7 +65,7 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Display updated JSON queries
+    - name: Debug updated JSON queries before execution
       debug:
         msg: "Updated JSON index queries: {{ updated_queries }}"
 
