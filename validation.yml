@@ -26,6 +26,13 @@
           {%- endfor -%}
           {{ allowed }}
 
+        allowed_indexes: >-
+          {{ index_queries.splitlines()
+             | select("search", "where")
+             | union(index_queries.splitlines() | select("search", '{"defer_build":true}'))
+             | reject("search", "primary")
+             | list }}
+
     - name: Debug allowed indexes after parsing
       debug:
         msg: "Allowed indexes: {{ allowed_indexes }}"
