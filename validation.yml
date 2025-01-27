@@ -47,15 +47,25 @@
         msg: "{{ not_allowed_indexes }}"
 
     
-    - name: Update defer_build and num_replica properties in allowed indexes (JSON format)
+    - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
           {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace('(?i)({"defer_build":\s*(false|true)})', '{"defer_build": true, "num_replica": 1}') -%}
+            {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
           {{ updated | join('\n') }}
+
+    - name: Update defer_build and num_replica properties in allowed indexes
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- set updated_line = line | regex_replace('(?i)({USING GSI WITH)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }} 
 
     # - name: Update index creation query with defer_build and num_replica properties
     #   set_fact:
