@@ -40,7 +40,7 @@
 
     - name: Display allowed index queries which is not  after parsing
       debug:
-        msg: "Filtered index queries: {{ not_allowed }}"
+        msg: "Filtered index queries: {{ not_allowed_indexes }}"
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
