@@ -24,8 +24,6 @@
           {%- endfor -%}
           {{ allowed }}
 
-
-   
     - name: Debug allowed indexes after parsing
       debug:
         msg: "Allowed indexes: {{ allowed_indexes }}"
@@ -55,7 +53,7 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Update defer_build and num_replica properties in allowed indexes
+    - name: Update defer_build and num_replica properties in allowed indexes (GSI)
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
@@ -65,12 +63,7 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-          
-
-   
-
-   
-   - name: Update index creation query with defer_build and num_replica properties
+    - name: Update index creation query with defer_build and num_replica properties
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
@@ -83,8 +76,7 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-   
-   - name: Debug updated JSON queries before execution
+    - name: Debug updated JSON queries before execution
       debug:
         msg: "Updated JSON index queries: {{ updated_queries }}"
 
