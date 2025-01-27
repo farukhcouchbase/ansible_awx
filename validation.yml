@@ -24,6 +24,7 @@
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
+          
         not_allowed_indexes: >-
           {%- set not_allowed = [] -%}
           {%- for line in index_queries.splitlines() -%}
@@ -36,6 +37,10 @@
     - name: Display allowed index queries after parsing
       debug:
         msg: "Filtered index queries: {{ allowed_indexes }}"
+
+    - name: Display allowed index queries which is not  after parsing
+      debug:
+        msg: "Filtered index queries: {{ not_allowed }}"
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
