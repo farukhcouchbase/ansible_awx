@@ -13,7 +13,7 @@
       debug:
         msg: "Original index queries: {{ index_queries }}"
 
-    - name: Parse and filter index statements
+    - name: Parse and filter allowed index statements
       set_fact:
         allowed_indexes: >
           {%- set allowed = [] -%}
@@ -36,14 +36,14 @@
             {%- endif -%}
           {%- endfor -%}
           {{ not_allowed }}
-          
+
     - name: Display allowed index queries after parsing
       debug:
-        msg: "{{ allowed_indexes }}"
+        msg: "Allowed index queries: {{ allowed_indexes }}"
 
     - name: Display not allowed index queries after parsing
       debug:
-        msg: "{{ not_allowed_indexes }}"
+        msg: "Not allowed index queries: {{ not_allowed_indexes }}"
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
