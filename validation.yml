@@ -17,7 +17,7 @@
       set_fact:
         allowed_indexes: >
           {%- set allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+          {%- for line in index_queries.splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
             {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
@@ -30,7 +30,7 @@
       set_fact:
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+          {%- for line in index_queries.splitlines() -%}
             {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
