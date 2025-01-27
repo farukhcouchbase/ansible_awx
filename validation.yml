@@ -13,12 +13,14 @@
       debug:
         msg: "Original index queries: {{ index_queries }}"
 
-    - name: Parse and filter allowed index statements
+    - name: Parse and filter index statements
       set_fact:
         allowed_indexes: >
           {%- set allowed = [] -%}
-          {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' in line.lower() or 'scope' in line.lower() -%}
+          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+            {%- if 'where' in line.lower() -%}
+              {{ allowed.append(line) }}
+            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
