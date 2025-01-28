@@ -41,6 +41,8 @@
           {%- endfor -%}
           {{ not_allowed }}
 
+          
+
     - name: Debug not allowed indexes after parsing
       debug:
         msg: "Not allowed indexes: {{ not_allowed_indexes }}"
