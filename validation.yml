@@ -63,18 +63,7 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Update index creation query with defer_build and num_replica properties
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace(
-              'CREATE INDEX (.+?) ON (.+?)\\((.+?)\\) USING GSI WITH \\{(.+?)\\}',
-              'CREATE INDEX \1 ON \2(\3) USING GSI WITH {\4, "defer_build": true, "num_replica": 1}'
-            ) -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}
+  
 
     - name: Update defer_build and num_replica properties in allowed indexes (formatted query)
       set_fact:
