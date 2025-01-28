@@ -9,9 +9,9 @@
     not_allowed_indexes: []
 
   tasks:
-    - name: Use the user input from the survey
-      debug:
-        msg: "Original index queries: {{ index_queries }}"
+  - name: Use the user input from the survey
+    debug:
+      msg: "Original index queries: {{ index_queries }}"
 
 
     # - name: Parse and filter index statements
