@@ -15,6 +15,18 @@
 
     - name: Parse and filter index statements
       set_fact:
+
+        allowed_indexes: >
+          {%- set allowed = [] -%}
+          {%- for line in index_queries.splitlines() -%}
+            {%- if 'where' in line.lower() and '()' not in line and not line.lower().strip().endswith('using gsi with {"defer_build":true};') and '._default.' not in line -%}
+              {{ allowed.append(line) }}
+            {%- elif ('scope' in line.lower()) and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() and '()' not in line -%}
+              {{ allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ allowed }}
+          
         allowed_indexes: >-
           {{ index_queries.splitlines()
              | select("search", "where")
