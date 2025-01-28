@@ -15,7 +15,7 @@
 
     - name: Parse and filter index statements
       set_fact:
-         allowed_indexes: >-
+        allowed_indexes: >-
           {{ index_queries.splitlines()
              | select("search", "where")
              | union(index_queries.splitlines() | select("search", '{"defer_build":true}'))
