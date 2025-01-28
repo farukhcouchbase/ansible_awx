@@ -59,10 +59,10 @@
         updated_queries: >
           {%- set updated = [] -%}
           {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace('(?i)({USING GSI WITH)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
+            {%- set updated_line = line | regex_replace('(?i)(USING GSI WITH)', 'USING GSI WITH {"defer_build": true, "num_replica": 1}') -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
-          {{ updated | join('\n') }}      
+          {{ updated | join('\n') }}
 
     - name: Display updated queries
       debug:
