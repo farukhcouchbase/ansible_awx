@@ -1,4 +1,3 @@
-
 ---
 - name: Ansible playbook to create filtered index queries
   hosts: all
@@ -80,12 +79,13 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Update defer_build and num_replica properties in index creation queries
-      set_fact:
-        updated_queries: "{{ allowed_indexes | map('regex_replace', '(?i)(CREATE INDEX `[^`]+` ON `[^`]+`\.`[^`]+`\.`[^`]+`\([^)]*\) USING GSI;)', '\\0 {"defer_build": true, "num_replica": 1}') | list | join('\n') }}"
+   
+   - name: Update defer_build and num_replica properties in index creation queries
+     set_fact:
+       updated_queries: "{{ allowed_indexes | map('regex_replace', '(?i)(CREATE INDEX `[^`]+` ON `[^`]+`\.`[^`]+`\.`[^`]+`\([^)]*\) USING GSI;)', '\\0 {\"defer_build\": true, \"num_replica\": 1}') | list | join('\\n') }}"
 
 
-    - name: Debug updated JSON queries before execution
+   - name: Debug updated JSON queries before execution
       debug:
         msg: "Updated JSON index queries: {{ updated_queries }}"
 
