@@ -1,3 +1,4 @@
+
 ---
 - name: Ansible playbook to create filtered index queries
   hosts: all
@@ -67,7 +68,7 @@
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
-          {%- for line in index_creation_queries -%}
+          {%- for line in allowed_indexes -%}
             {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX [^ ]+ ON [^ ]+.[^ ]+\\([^)]*\\) USING GSI;)', '\\1 {"defer_build": true, "num_replica": 1}') -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
