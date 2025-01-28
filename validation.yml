@@ -13,25 +13,25 @@
       debug:
         msg: " index queries: {{ index_queries }}"
 
-    - name: Parse and filter index statements
-      set_fact:
-        allowed_indexes: >
-          {%- set allowed = [] -%}
-          {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' in line.lower() -%}
-              {{ allowed.append(line) }}
-            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
-              {{ allowed.append(line) }}
-            {%- endif -%}
-          {%- endfor -%}
-          {{ allowed }}
+    # - name: Parse and filter index statements
+    #   set_fact:
+    #     allowed_indexes: >
+    #       {%- set allowed = [] -%}
+    #       {%- for line in index_queries.splitlines() -%}
+    #         {%- if 'where' in line.lower() -%}
+    #           {{ allowed.append(line) }}
+    #         {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
+    #           {{ allowed.append(line) }}
+    #         {%- endif -%}
+    #       {%- endfor -%}
+    #       {{ allowed }}
 
-        # allowed_indexes: >-
-        #   {{ index_queries.splitlines()
-        #      | select("search", "where")
-        #      | union(index_queries.splitlines() | select("search", '{"defer_build":true}'))
-        #      | reject("search", "primary")
-        #      | list }}
+        allowed_indexes: >-
+          {{ index_queries.splitlines()
+             | select("search", "where")
+             | union(index_queries.splitlines() | select("search", '{"defer_build":true}'))
+             | reject("search", "primary")
+             | list }}
 
     - name: Debug allowed indexes after parsing
       debug:
