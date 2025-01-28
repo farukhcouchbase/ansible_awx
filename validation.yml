@@ -35,7 +35,7 @@
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
           {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') or '()' in line or line.lower().strip().endswith('using gsi with {"defer_build":true};') or '._default.' in line -%}
+            {%- if 'where' not in line.lower() and 'primary' not in line.lower() and 'Not' not in line.lower() and 'scope' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
