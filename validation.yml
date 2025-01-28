@@ -15,23 +15,16 @@
 
     - name: Parse and filter index statements
       set_fact:
-
         allowed_indexes: >
           {%- set allowed = [] -%}
           {%- for line in index_queries.splitlines() -%}
-            {%- elif ('scope' in line.lower()) and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() and '()' not in line -%}
+            {%- if 'where' in line.lower() and '()' not in line and not line.lower().strip().endswith('using gsi with {"defer_build":true};') and '._default.' not in line -%}
               {{ allowed.append(line) }}
+            # {%- elif ('scope' in line.lower()) and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() and '()' not in line -%}
+            #   {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
-          
-        allowed_indexes: >-
-          {{ index_queries.splitlines()
-             | select("search", "where")
-             | union(index_queries.splitlines() | select("search", '{"defer_build":true}'))
-             | reject("search", "primary")
-             | list }}
-        
 
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
@@ -42,6 +35,9 @@
           {%- endfor -%}
           {{ not_allowed }}
 
+          
+
+
     - name: Display allowed index queries after parsing
       debug:
         msg: "{{ allowed_indexes }}"
@@ -50,6 +46,7 @@
       debug:
         msg: "{{ not_allowed_indexes }}"
 
+    
     - name: Update defer_build and num_replica properties in allowed indexes (JSON format)
       set_fact:
         updated_queries: >
@@ -59,6 +56,20 @@
             {{ updated.append(updated_line) }}
           {%- endfor -%}
           {{ updated | join('\n') }}
+
+    - name: Update index creation query with defer_build and num_replica properties
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- set updated_line = line | regex_replace(
+              'CREATE INDEX (.+?) ON (.+?)\\((.+?)\\) USING GSI WITH \\{(.+?)\\}',
+              'CREATE INDEX \1 ON \2(\3) USING GSI WITH {\4, "defer_build": true, "num_replica": 1}'
+            ) -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
+
 
     - name: Update defer_build and num_replica properties in allowed indexes (formatted query)
       set_fact:
@@ -85,16 +96,22 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
+
+
     - name: Display updated JSON queries
       debug:
         msg: "Updated JSON index queries: {{ updated_queries }}"
 
+  
+ 
     - name: Create allowed indexes (JSON format)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries.split('\n') }}"
       register: index_creation_result
       ignore_errors: true
       no_log: false
+
+
 
     - name: Execute deferred index script
       command: "{{ deffered_index_path }}"
