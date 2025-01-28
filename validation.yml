@@ -15,17 +15,12 @@
 
     - name: Parse and filter index statements
       set_fact:
-        allowed_indexes: >
-          {%- set allowed = [] -%}
-          {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' in line.lower() -%}
-              {{ allowed.append(line) }}
-              {%- if 'where' not in line.lower() and 'scope' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
-                {{ allowed.append(line) }}
-              {%- endif -%}
-            {%- endif -%}
-          {%- endfor -%}
-          {{ allowed }}
+         allowed_indexes: >-
+          {{ index_queries.splitlines()
+             | select("search", "where")
+             | union(index_queries.splitlines() | select("search", '{"defer_build":true}'))
+             | reject("search", "primary")
+             | list }}
 
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
