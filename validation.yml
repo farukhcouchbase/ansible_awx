@@ -5,8 +5,8 @@
   vars:
     index_queries: ""  # Provided by the user through the survey
     couchbase_bucket: "travel-sample"
-    # allowed_indexes: []
-    # not_allowed_indexes: []
+    allowed_indexes: []
+    not_allowed_indexes: []
 
   tasks:
     - name: Use the user input from the survey
