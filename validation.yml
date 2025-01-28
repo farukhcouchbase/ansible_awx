@@ -20,7 +20,7 @@
           {%- for line in index_queries.splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
-              {%- if 'scope' in line.lower() and '()' not in line and not line.lower().strip().endswith('using gsi with {"defer_build":true};') and '._default.' not in line -%}
+              {%- if 'where' not in line.lower() and 'scope' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
                 {{ allowed.append(line) }}
               {%- endif -%}
             {%- endif -%}
