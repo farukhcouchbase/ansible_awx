@@ -13,6 +13,7 @@
       debug:
         msg: "Original index queries: {{ index_queries }}"
 
+
     # - name: Parse and filter index statements
     #   set_fact:
     #     allowed_indexes: >
