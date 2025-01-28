@@ -1,4 +1,3 @@
----
 - name: Ansible playbook to create filtered index queries
   hosts: all
   gather_facts: no
@@ -13,26 +12,27 @@
       debug:
         msg: "Original index queries: {{ index_queries }}"
 
+    - name: Parse and filter index statements
+      set_fact:
+        allowed_indexes: >
+          {%- set allowed = [] -%}
+          {%- for line in index_queries.splitlines() -%}
+            {%- if 'where' in line.lower() and '()' not in line and not line.lower().strip().endswith('using gsi with {"defer_build":true};') and '._default.' not in line -%}
+              {{ allowed.append(line) }}
+            {%- elif ('scope' in line.lower()) and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() and '()' not in line -%}
+              {{ allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ allowed }}
 
-    # - name: Parse and filter index statements
-    #   set_fact:
-    #     allowed_indexes: >
-    #       {%- set allowed = [] -%}
-    #       {%- for line in index_queries.splitlines() -%}
-    #         {%- if 'where' in line.lower() -%}
-    #           {{ allowed.append(line) }}
-    #         {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
-    #           {{ allowed.append(line) }}
-    #         {%- endif -%}
-    #       {%- endfor -%}
-    #       {{ allowed }}
-
-        allowed_indexes: >-
-          {{ index_queries.splitlines()
-             | select("search", "where")
-             | union(index_queries.splitlines() | select("search", '{"defer_build":true}'))
-             | reject("search", "primary")
-             | list }}
+        not_allowed_indexes: >
+          {%- set not_allowed = [] -%}
+          {%- for line in index_queries.splitlines() -%}
+            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') or '()' in line or line.lower().strip().endswith('using gsi with {"defer_build":true};') or '._default.' in line -%}
+              {{ not_allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ not_allowed }}
 
     - name: Debug allowed indexes after parsing
       debug:
@@ -48,8 +48,6 @@
             {%- endif -%}
           {%- endfor -%}
           {{ not_allowed }}
-
-          
 
     - name: Debug not allowed indexes after parsing
       debug:
@@ -75,8 +73,6 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-  
-
     - name: Update defer_build and num_replica properties in allowed indexes (formatted query)
       set_fact:
         updated_queries: >
@@ -90,7 +86,7 @@
             -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
-          {{ updated | join('\n') }}      
+          {{ updated | join('\n') }}
 
     - name: Debug updated JSON queries before execution
       debug:
