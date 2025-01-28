@@ -13,37 +13,35 @@
       debug:
         msg: "Original index queries: {{ index_queries }}"
 
-    - name: Parse and filter index statements
+    - name: Parse and filter allowed index statements
       set_fact:
         allowed_indexes: >
           {%- set allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' in line.lower() -%}
-              {{ allowed.append(line) }}
-            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
+          {%- for line in index_queries.splitlines() -%}
+            {%- if 'where' in line.lower() or 'scope' in line.lower() -%}
               {{ allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
           {{ allowed }}
 
+    - name: Debug allowed indexes after parsing
+      debug:
+        msg: "Allowed indexes: {{ allowed_indexes }}"
+
     - name: Parse and filter not allowed index statements
       set_fact:
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
-            {%- if 'where' not in line.lower() and 'field' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
+          {%- for line in index_queries.splitlines() -%}
+            {%- if 'where' not in line.lower() and 'scope' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
           {{ not_allowed }}
-          
-    - name: Display allowed index queries after parsing
-      debug:
-        msg: "{{ allowed_indexes }}"
 
-    - name: Display not allowed index queries after parsing
+    - name: Debug not allowed indexes after parsing
       debug:
-        msg: "{{ not_allowed_indexes }}"
+        msg: "Not allowed indexes: {{ not_allowed_indexes }}"
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
@@ -60,12 +58,22 @@
         updated_queries: >
           {%- set updated = [] -%}
           {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace('(?i)({USING GSI WITH)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
+            {%- set updated_line = line | regex_replace('(?i)(USING GSI WITH\\s*\\{)', 'USING GSI WITH {\"defer_build\": true, \"num_replica\": 1,') -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Display updated JSON queries
+    - name: Update defer_build and num_replica properties in index creation queries
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX [^ ]+ ON [^ ]+.[^ ]+\\([^)]*\\) USING GSI;)', '\\1 {"defer_build": true, "num_replica": 1}') -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
+
+    - name: Debug updated JSON queries before execution
       debug:
         msg: "Updated JSON index queries: {{ updated_queries }}"
 
