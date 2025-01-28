@@ -57,44 +57,36 @@
           {%- endfor -%}
           {{ updated | join('\n') }}
 
-    - name: Update index creation query with defer_build and num_replica properties
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace(
-              'CREATE INDEX (.+?) ON (.+?)\\((.+?)\\) USING GSI WITH \\{(.+?)\\}',
-              'CREATE INDEX \1 ON \2(\3) USING GSI WITH {\4, "defer_build": true, "num_replica": 1}'
-            ) -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}
-
-
-    # - name: Update defer_build and num_replica properties in allowed indexes (formatted query)
+    # - name: Update index creation query with defer_build and num_replica properties
     #   set_fact:
     #     updated_queries: >
     #       {%- set updated = [] -%}
     #       {%- for line in allowed_indexes -%}
-    #         {%- set updated_line = line 
-    #           | regex_replace('(?i)CREATE INDEX', 'CREATE INDEX') 
-    #           | regex_replace('(?i)ON\\s+([a-zA-Z0-9_-]+)', 'ON `\g<1>`') 
-    #           | regex_replace('(?i)WHERE\\s+([^"]+)\\s*=\\s*"([^"]+)"', 'WHERE \g<1> = \'\\2\'') 
-    #           | regex_replace('(?i)USING GSI;', 'USING GSI WITH {"defer_build": true, "num_replica": 1};') 
-    #         -%}
+    #         {%- set updated_line = line | regex_replace(
+    #           'CREATE INDEX (.+?) ON (.+?)\\((.+?)\\) USING GSI WITH \\{(.+?)\\}',
+    #           'CREATE INDEX \1 ON \2(\3) USING GSI WITH {\4, "defer_build": true, "num_replica": 1}'
+    #         ) -%}
     #         {{ updated.append(updated_line) }}
     #       {%- endfor -%}
     #       {{ updated | join('\n') }}
 
-    - name: Update defer_build property in index creation queries (JSON format)
+
+    - name: Update defer_build and num_replica properties in allowed indexes (formatted query)
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
-          {%- for line in index_queries -%}
-            {%- set updated_line = line | regex_replace('(?i)(WITH\s*\{)', 'WITH {"defer_build": true, ') -%}
+          {%- for line in allowed_indexes -%}
+            {%- set updated_line = line 
+              | regex_replace('(?i)CREATE INDEX', 'CREATE INDEX') 
+              | regex_replace('(?i)ON\\s+([a-zA-Z0-9_-]+)', 'ON `\g<1>`') 
+              | regex_replace('(?i)WHERE\\s+([^"]+)\\s*=\\s*"([^"]+)"', 'WHERE \g<1> = \'\\2\'') 
+              | regex_replace('(?i)USING GSI;', 'USING GSI WITH {"defer_build": true, "num_replica": 1};') 
+            -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
           {{ updated | join('\n') }}
+
+   
 
 
 
