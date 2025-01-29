@@ -16,18 +16,16 @@
         not_allowed_queries: []
         invalid_queries: []
        
-
-    - name: Validate index queries - Identify syntax errors
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      register: query_validation
-      with_items: "{{ index_queries }}"
-      failed_when: false  # Prevent playbook failure, store errors instead
-
-    - name: Categorize queries based on validation
+    - name: Validate index queries
       set_fact:
-        invalid_queries: "{{ invalid_queries + [item.item] }}"
-      when: "'syntax error' in item.stderr or 'error' in item.stderr"
-      with_items: "{{ query_validation.results }}"
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when: 
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "not item | regex_search('WHERE.*[^)]*$', ignorecase=True)"  # Rejects queries with WHERE clauses
+        - "not item | regex_search('\\bON\\s+[^()]+\\(\\s*\\)', ignorecase=True)"  # Detects missing fields inside ()
+      with_items: "{{ index_queries }}"
+ 
 
     - name: Validate index queries
       set_fact:
@@ -56,10 +54,7 @@
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
 
-    - name: Debug - Invalid Queries (Syntax Errors)
-      debug:
-        msg: "Invalid Syntax in Query: {{ item }}"
-      with_items: "{{ invalid_queries }}"  
+    
 
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
