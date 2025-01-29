@@ -18,7 +18,7 @@
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
-      when: 
+      when:
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
@@ -27,7 +27,7 @@
     - name: Identify not allowed queries
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-      when: 
+      when:
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
@@ -55,9 +55,7 @@
               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
               '"defer_build":true, "num_replica":1,')
             | list
-          }} 
-
-
+          }}
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
@@ -65,19 +63,18 @@
           {%- set updated = [] -%}
           {%- for line in allowed_queries -%}
             {%- if 'CREATE INDEX' in line or 'Create index' in line -%}
-              {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX|Create index)\\s+(`[^`]+`)\\s+ON\\s+(`[^`]+`.`[^`]+`.`[^`]+`)\\s*\\(([^)]+)\\)\\s*(WHERE\\s+[^ ]+\\s+IS\\s+NOT\\s+NULL)?\\s*USING\\s+GSI\\s*;', 'CREATE INDEX \\2 ON \\3(\\4) \\5 USING GSI WITH {"defer_build":true, "num_replica":1};') -%}
+              {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX|Create index)\\s+(`[^`]+`)\\s+ON\\s+(`[^`]+`.`[^`]+`.`[^`]+`)\\s*\\(([^)]+)\\)\\s*(WHERE\\s+[^ ]+\\s+IS\\s+NOT\\s+NULL)?\\s*USING\\s+GSI\\s*;', 'CREATE INDEX \2 ON \3(\4) \5 USING GSI WITH {"defer_build":true, "num_replica":1};') -%}
             {%- else -%}
-              {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
+              {%- set updated_line = line | regex_replace('(?i)({"defer_build":\\s*(false|true)})', '{"defer_build": true, "num_replica": 1}') -%}
             {%- endif -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
-          {{ updated | join('\n') }} 
+          {{ updated | join('\n') }}
 
-     
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"      
+      with_items: "{{ updated_queries }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -90,6 +87,3 @@
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-      # Executes the deffered_index.sh script after index creation  
-
-  
