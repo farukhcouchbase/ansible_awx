@@ -19,14 +19,14 @@
     - name: Fail if query is creating a primary index
       fail:
         msg: "Primary index creation is not allowed."
-      when: "'CREATE PRIMARY INDEX' in index_query | upper"
+      when: "'CREATE PRIMARY INDEX' in index_queries | upper"
 
     - name: Fail if query does not contain a WHERE clause
       fail:
         msg: "Indexes must have a WHERE clause."
       when: 
-        - "'CREATE INDEX' in index_query | upper"
-        - "'WHERE' not in index_query | upper"
+        - "'CREATE INDEX' in index_queries | upper"
+        - "'WHERE' not in index_queries | upper"
 
     - name: Execute valid index query
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_queries }}'"
