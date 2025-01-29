@@ -68,4 +68,11 @@
       when: allowed_queries | length > 0
       register: query_result
 
+    - name: Execute deffered_index.sh script
+      command: "{{ deffered_index_path }}"
+      args:
+        chdir: "{{ deffered_index_path | dirname }}"
+      register: script_output
+      # Executes the deffered_index.sh script after index creation  
+
   
