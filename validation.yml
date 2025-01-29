@@ -20,28 +20,23 @@
 
 
 
+      
+
     - name: Check each query for validity
       command: "cbq -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ item }}'"
       register: query_output
-      failed_when: "'syntax error' in query_output.stderr or 'ERROR' in query_output.stderr"
+      failed_when: 
+        - query_output.rc != 0  # Fail if command returns a non-zero exit code
+        - "'syntax error' in query_output.stdout or 'ERROR' in query_output.stdout"
       changed_when: false
       with_items: "{{ index_queries }}"
       when: 
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        - "item | regex_search('WHERE', ignorecase=True)"  
-
-    - name: Add valid queries to the allowed list
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      with_items: "{{ index_queries }}"
-      when: 
-        - "item in query_output.results"  
-
-        
-    - name: Capture exact syntax errors
-      set_fact:
-        syntax_errors: "{{ query_output.results | selectattr('stderr', 'defined') | selectattr('stderr', 'search', 'syntax error|ERROR') | map(attribute='stderr') | list }}"
+        - "item | regex_search('WHERE', ignorecase=True)"
+        - name: Capture exact syntax errors
+          set_fact:
+            syntax_errors: "{{ query_output.results | selectattr('stderr', 'defined') | selectattr('stderr', 'search', 'syntax error|ERROR') | map(attribute='stderr') | list }}"
 
     - name: Fail playbook if there were any errors
       fail:
