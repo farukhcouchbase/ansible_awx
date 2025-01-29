@@ -21,7 +21,7 @@
 
 
     - name: Check each query for validity
-      command: "cbq -u {{ couchbase_username }} -p {{ couchbase_password }} --script '{{ item }}'"
+      command: "cbq -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ item }}'"
       register: query_output
       failed_when: "'syntax error' in query_output.stderr or 'ERROR' in query_output.stderr"
       changed_when: false
