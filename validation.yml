@@ -22,6 +22,14 @@
       with_items: "{{ index_queries }}"
       ignore_errors: yes
 
+    - name: Debug - index_queries
+      debug:
+        var: index_queries  
+
+    - name: Debug - query validation results
+      debug:
+        var: query_validation    
+
     - name: Categorize queries based on validation
       set_fact:
         allowed_queries: "{{ allowed_queries + [item.item] }}"
