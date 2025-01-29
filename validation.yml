@@ -64,11 +64,11 @@
       set_fact:
         updated_queries: >-
           {{
-            allowed_queries | map('regex_replace', 
-              'CREATE INDEX (`?\w+`?) ON (`?\w+`?\.`?\w+`?\.`?\w+`?)\((.*?)\)(.*?USING GSI)', 
-              'CREATE INDEX \1 ON \2(\3)\4 WITH {"defer_build":true, "num_replica":1}') 
-            | list
-          }}
+        allowed_queries | map('regex_replace', 
+          '(CREATE INDEX `?\w+`? ON `?\w+`?\.`?\w+`?\.`?\w+`?\(.*?\) WHERE .*? USING GSI)(\s*;)?', 
+          '\1 WITH {"defer_build":true, "num_replica":1}\2') 
+        | list
+      }}
 
     - name: Debug - Updated Index Queries
       debug:
