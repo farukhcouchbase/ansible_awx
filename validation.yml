@@ -90,7 +90,7 @@
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
+          {%- for line in allowed_queries -%}
             {%- if 'CREATE INDEX' in line or 'Create index' in line -%}
               {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX|Create index)\\s+(`[^`]+`)\\s+ON\\s+(`[^`]+`.`[^`]+`.`[^`]+`)\\s*\\(([^)]+)\\)\\s*(WHERE\\s+[^ ]+\\s+IS\\s+NOT\\s+NULL)?\\s*USING\\s+GSI\\s*;', 'CREATE INDEX \\2 ON \\3(\\4) \\5 USING GSI WITH {"defer_build":true, "num_replica":1};') -%}
             {%- else -%}
