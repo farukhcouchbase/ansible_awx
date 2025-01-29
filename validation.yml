@@ -10,62 +10,38 @@
     index_queries: []  # This comes from the Ansible survey
 
   tasks:
-    - name: Initialize Query Lists
+    - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
         not_allowed_queries: []
 
-    - name: Identify Allowed Queries (Basic Keyword Filtering)
+    - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when: 
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "item | regex_search('ON\\s+[^()]+\\([^)]*\\)', ignorecase=True)"  # Ensures valid ON syntax
       with_items: "{{ index_queries }}"
 
-    - name: Identify Not Allowed Queries
+    - name: Identify not allowed queries
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when: 
-        - "item not in allowed_queries"
+        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Debug - Allowed Queries After Initial Filtering
+    - name: Debug - Allowed Queries
       debug:
-        msg: "Allowed Query: {{ item }}"
+        msg: "Allowed Index Query: {{ item }}"
       with_items: "{{ allowed_queries }}"
 
-    - name: Debug - Not Allowed Queries After Initial Filtering
+    - name: Debug - Not Allowed Queries
       debug:
-        msg: "Not Allowed Query: {{ item }}"
+        msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
 
-    - name: Validate Allowed Queries Syntax Using cbq
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ allowed_queries }}"
-      register: syntax_check
-      ignore_errors: yes
-
-    - name: Reclassify Queries Based on Syntax Validation
-      set_fact:
-        allowed_queries: "{{ allowed_queries | difference([item.item]) }}"
-        not_allowed_queries: "{{ not_allowed_queries + [item.item] }}"
-      when: item.rc != 0
-      with_items: "{{ syntax_check.results }}"
-
-    - name: Debug - Allowed Queries After Syntax Check
-      debug:
-        msg: "Allowed Query (Final): {{ item }}"
-      with_items: "{{ allowed_queries }}"
-
-    - name: Debug - Not Allowed Queries After Syntax Check
-      debug:
-        msg: "Not Allowed Query (Final): {{ item }}"
-      with_items: "{{ not_allowed_queries }}"
-
-    - name: Ensure defer_build and num_replica in Allowed Queries
+    - name: Ensure defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
           {{
@@ -81,20 +57,22 @@
             | list
           }} 
 
-    - name: Debug - Updated Queries
+    - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"
+      with_items: "{{ updated_queries }}"      
 
-    - name: Execute Allowed Index Queries
+    - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries }}"
       when: allowed_queries | length > 0
       register: query_result
 
-    - name: Execute Deferred Index Script
+    - name: Execute deffered_index.sh script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-      when: deffered_index_path is defined
+      # Executes the deffered_index.sh script after index creation  
+
+  
