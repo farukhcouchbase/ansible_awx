@@ -22,6 +22,7 @@
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
+        - "item | regex_search('', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
     - name: Identify not allowed queries
@@ -56,6 +57,22 @@
               '"defer_build":true, "num_replica":1,')
             | list
           }} 
+
+    - name: Ensure defer_build and num_replica options in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?i)(CREATE INDEX .*? USING GSI)(?!.*WITH\s*\{)', 
+              '\\1 WITH {"defer_build": true, "num_replica": 1}') 
+            | map('regex_replace', 
+              '(?i)(WITH\s*\{)(?!.*"defer_build"\s*:\s*true)', 
+              '\\1"defer_build": true, ') 
+            | map('regex_replace', 
+              '(?i)(WITH\s*\{)(?!.*"num_replica"\s*:\s*1)', 
+              '\\1"num_replica": 1, ') 
+            | list
+          }}       
 
     - name: Debug - Updated Index Queries
       debug:
