@@ -57,7 +57,18 @@
             | list
           }} 
 
-
+          
+     
+     
+    - name: Update index creation queries to include defer_build and num_replica
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              'CREATE INDEX (`?\w+`?) ON (`?\w+`?\.`?\w+`?\.`?\w+`?)\((.*?)\)(.*?USING GSI)', 
+              'CREATE INDEX \1 ON \2(\3)\4 WITH {"defer_build":true, "num_replica":1}') 
+            | list
+          }}
 
     - name: Debug - Updated Index Queries
       debug:
