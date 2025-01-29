@@ -1,102 +1,33 @@
 ---
-- name: Ansible playbook to create filtered index queries
+- name: Validate and Create Couchbase Indexes
   hosts: all
   gather_facts: no
   vars:
-    index_queries: ""  # Provided by the user through the survey
-    couchbase_bucket: "travel-sample"
-    allowed_indexes: []
-    not_allowed_indexes: []
-
+    couchbase_host: "127.0.0.1"
+    couchbase_bin_path: "/opt/couchbase/bin/cbq"
+    couchbase_admin_username: "Admin"
+    couchbase_admin_password: "redhat"
+    index_query: "{{ survey_index_query }}"  # This comes from the Ansible survey
   tasks:
-    - name: Use the user input from the survey
-      debug:
-        msg: " index queries: {{ index_queries }}"
 
-    - name: Parse and filter index statements
-      set_fact:
-        allowed_indexes: >
-          {%- set allowed = [] -%}
-          {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' in line.lower() -%}
-              {{ allowed.append(line) }}
-            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
-              {{ allowed.append(line) }}
-            {%- endif -%}
-          {%- endfor -%}
-          {{ allowed }}
+    - name: Validate query syntax
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_query }}'"
+      register: query_result
+      failed_when: query_result.rc != 0
+      changed_when: false
 
-    - name: Debug allowed indexes after parsing
-      debug:
-        msg: "Allowed indexes: {{ allowed_indexes }}"
+    - name: Fail if query is creating a primary index
+      fail:
+        msg: "Primary index creation is not allowed."
+      when: "'CREATE PRIMARY INDEX' in index_query | upper"
 
-    - name: Parse and filter not allowed index statements
-      set_fact:
-        not_allowed_indexes: >
-          {%- set not_allowed = [] -%}
-          {%- for line in index_queries.splitlines() -%}
-            {%- if 'where' not in line.lower() and 'scope' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
-              {{ not_allowed.append(line) }}
-            {%- endif -%}
-          {%- endfor -%}
-          {{ not_allowed }}
+    - name: Fail if query does not contain a WHERE clause
+      fail:
+        msg: "Indexes must have a WHERE clause."
+      when: 
+        - "'CREATE INDEX' in index_query | upper"
+        - "'WHERE' not in index_query | upper"
 
-          
-
-    - name: Debug not allowed indexes after parsing
-      debug:
-        msg: "Not allowed indexes: {{ not_allowed_indexes }}"
-
-    - name: Update defer_build and num_replica properties in allowed indexes
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}
-
-    - name: Update defer_build and num_replica properties in allowed indexes (GSI)
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
-            {%- set updated_line = line | regex_replace('(?i)(USING GSI WITH\\s*\\{)', 'USING GSI WITH {\"defer_build\": true, \"num_replica\": 1,') -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}
-
-  
-
-    - name: Update defer_build and num_replica properties in allowed indexes (formatted query)
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
-            {%- set updated_line = line 
-              | regex_replace('(?i)CREATE INDEX', 'CREATE INDEX') 
-              | regex_replace('(?i)ON\\s+([a-zA-Z0-9_-]+)', 'ON `\g<1>`') 
-              | regex_replace('(?i)WHERE\\s+([^"]+)\\s*=\\s*"([^"]+)"', 'WHERE \g<1> = \'\\2\'') 
-              | regex_replace('(?i)USING GSI;', 'USING GSI WITH {"defer_build": true, "num_replica": 1};') 
-            -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}      
-
-    - name: Debug updated JSON queries before execution
-      debug:
-        msg: "Updated JSON index queries: {{ updated_queries }}"
-
-    - name: Create allowed indexes (JSON format)
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries.split('\n') }}"
-      register: index_creation_result
-      ignore_errors: true
-      no_log: false
-
-    - name: Execute deferred index script
-      command: "{{ deffered_index_path }}"
-      args:
-        chdir: "{{ deffered_index_path | dirname }}"
-      register: script_output
+    - name: Execute valid index query
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_query }}'"
+      changed_when: true
