@@ -15,12 +15,19 @@
         allowed_queries: []
         not_allowed_queries: []
         invalid_queries: []
+       
 
     - name: Validate index queries - Identify syntax errors
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       register: query_validation
       with_items: "{{ index_queries }}"
-      failed_when: false  # Prevent playbook failure, store errors instead    
+      failed_when: false  # Prevent playbook failure, store errors instead
+
+    - name: Categorize queries based on validation
+      set_fact:
+        invalid_queries: "{{ invalid_queries + [item.item] }}"
+      when: "'syntax error' in item.stderr or 'error' in item.stderr"
+      with_items: "{{ query_validation.results }}"
 
     - name: Validate index queries
       set_fact:
@@ -31,12 +38,7 @@
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Categorize queries based on validation
-      set_fact:
-        invalid_queries: "{{ invalid_queries + [item.item] }}"
-      when: "'syntax error' in item.stderr or 'error' in item.stderr"
-      with_items: "{{ query_validation.results }}"  
-
+  
     - name: Identify not allowed queries
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
