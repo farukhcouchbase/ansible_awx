@@ -47,7 +47,4 @@
       when: allowed_queries | length > 0
       register: query_result
 
-    - name: Debug - Query execution results
-      debug:
-        var: query_result
-      when: allowed_queries | length > 0
+  
