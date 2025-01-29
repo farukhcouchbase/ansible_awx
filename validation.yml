@@ -10,26 +10,36 @@
     index_queries: []  # This comes from the Ansible survey
 
   tasks:
-    - name: Identify and categorize index queries
+    - name: Initialize query categories
       set_fact:
         allowed_queries: []
         not_allowed_queries: []
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when: 
-        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        - "item | regex_search('WHERE', ignorecase=True)"
+    - name: Validate index queries for syntax errors
+      shell: |
+        echo "{{ item }}" | {{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --quiet
+      register: query_validation
       with_items: "{{ index_queries }}"
+      ignore_errors: yes
 
-    - name: Identify not allowed queries
+    - name: Categorize queries based on validation
       set_fact:
-        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-      when: 
-        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
+        allowed_queries: "{{ allowed_queries + [item.item] }}"
+      when:
+        - query_validation.results[ansible_loop.index0].rc == 0  # No syntax error
+        - "not item.item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"  # No Primary Index
+        - "item.item | regex_search('CREATE INDEX', ignorecase=True)"  # Must be CREATE INDEX
+        - "item.item | regex_search('WHERE', ignorecase=True)"  # Must have WHERE clause
+      with_items: "{{ query_validation.results }}"
+
+    - name: Categorize invalid queries
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item.item] }}"
+      when:
+        - query_validation.results[ansible_loop.index0].rc != 0  # Syntax error exists
+          or "item.item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+          or "not item.item | regex_search('WHERE', ignorecase=True)"
+      with_items: "{{ query_validation.results }}"
 
     - name: Debug - Allowed Queries
       debug:
@@ -55,12 +65,12 @@
               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
               '"defer_build":true, "num_replica":1,')
             | list
-          }} 
+          }}
 
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"      
+      with_items: "{{ updated_queries }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -73,6 +83,3 @@
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-      # Executes the deffered_index.sh script after index creation  
-
-  
