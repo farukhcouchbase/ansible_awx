@@ -11,7 +11,7 @@
   tasks:
 
     - name: Validate query syntax
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_query }}'"
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_queries }}'"
       register: query_result
       failed_when: query_result.rc != 0
       changed_when: false
@@ -29,5 +29,5 @@
         - "'WHERE' not in index_query | upper"
 
     - name: Execute valid index query
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_query }}'"
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_queries }}'"
       changed_when: true
