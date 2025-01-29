@@ -16,15 +16,7 @@
         not_allowed_queries: []
         invalid_queries: []
        
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when: 
-        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        - "not item | regex_search('WHERE.*[^)]*$', ignorecase=True)"  # Rejects queries with WHERE clauses
-        - "not item | regex_search('\\bON\\s+[^()]+\\(\\s*\\)', ignorecase=True)"  # Detects missing fields inside ()
-      with_items: "{{ index_queries }}"
+   
  
 
     - name: Validate index queries
