@@ -20,13 +20,23 @@
     - name: Check each query for validity
       command: "cbq -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ item }}'"
       register: query_output
-      failed_when: "'syntax error' in query_output.stderr or 'ERROR' in query_output.stderr"
       changed_when: false
       with_items: "{{ index_queries }}"
       when: 
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"  
+
+    - name: Display errors if any
+      debug:
+        msg: "{{ item.stderr }}"
+      with_items: "{{ query_output.results }}"
+      when: "item.stderr is defined and item.stderr | length > 0"
+
+    - name: Fail playbook if there were any errors
+      fail:
+        msg: "Syntax errors or invalid queries found. Check the output above."
+      when: "query_output.results | selectattr('stderr', 'defined') | selectattr('stderr', 'search', 'syntax error|ERROR') | list | length > 0"
 
     - name: Add valid queries to the allowed list
       set_fact:
