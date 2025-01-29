@@ -27,9 +27,9 @@
         allowed_queries: "{{ allowed_queries + [item.item] }}"
       when:
         - query_validation.results[ansible_loop.index0].rc == 0  # No syntax error
-        - "not item.item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"  # No Primary Index
-        - "item.item | regex_search('CREATE INDEX', ignorecase=True)"  # Must be CREATE INDEX
-        - "item.item | regex_search('WHERE', ignorecase=True)"  # Must have WHERE clause
+        - not item.item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)  # No Primary Index
+        - item.item | regex_search('CREATE INDEX', ignorecase=True)  # Must be CREATE INDEX
+        - item.item | regex_search('WHERE', ignorecase=True)  # Must have WHERE clause
       with_items: "{{ query_validation.results }}"
 
     - name: Categorize invalid queries
@@ -37,8 +37,8 @@
         not_allowed_queries: "{{ not_allowed_queries + [item.item] }}"
       when:
         - query_validation.results[ansible_loop.index0].rc != 0  # Syntax error exists
-          or "item.item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-          or "not item.item | regex_search('WHERE', ignorecase=True)"
+        - item.item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)  # Contains CREATE PRIMARY INDEX
+        - not item.item | regex_search('WHERE', ignorecase=True)  # Does not have WHERE clause
       with_items: "{{ query_validation.results }}"
 
     - name: Debug - Allowed Queries
