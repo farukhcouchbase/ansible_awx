@@ -8,7 +8,6 @@
     couchbase_admin_username: "Admin"
     couchbase_admin_password: "redhat"
     index_queries: ""  # This comes from the Ansible survey
-
   tasks:
 
     - name: Validate query syntax
@@ -17,35 +16,19 @@
       failed_when: query_result.rc != 0
       changed_when: false
 
-    - name: Check if query is creating a primary index
-      set_fact:
-        is_primary_index: "{{ 'CREATE PRIMARY INDEX' in index_queries | upper }}"
-
-    - name: Check if query does not contain a WHERE clause
-      set_fact:
-        missing_where_clause: "{{ 'CREATE INDEX' in index_queries | upper and 'WHERE' not in index_queries | upper }}"
-
-    - name: Debug - Not Allowed Queries
-      debug:
-        msg: "Query will NOT be executed: {{ index_queries }}"
-      when: is_primary_index or missing_where_clause
-
     - name: Fail if query is creating a primary index
       fail:
         msg: "Primary index creation is not allowed."
-      when: is_primary_index
+      when: "'CREATE PRIMARY INDEX' in index_queries | upper"
 
     - name: Fail if query does not contain a WHERE clause
       fail:
         msg: "Indexes must have a WHERE clause."
-      when: missing_where_clause
-
-    - name: Debug - Allowed Queries
-      debug:
-        msg: "Query will be executed: {{ index_queries }}"
-      when: not is_primary_index and not missing_where_clause
+      when: 
+        - "'CREATE INDEX' in index_queries | upper"
+        - "'WHERE' not in index_queries | upper"
 
     - name: Execute valid index query
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_queries }}'"
       changed_when: true
-      when: not is_primary_index and not missing_where_clause
+      when: query_result.rc == 0 
