@@ -46,11 +46,12 @@
     - name: Fail playbook if there were any errors
       fail:
         msg: "Syntax errors or invalid queries found:\n{{ syntax_errors | join('\n') }}"
-      when: syntax_errors | length > 0    
-        - name: Fail playbook if there were any errors
-          fail:
-            msg: "Syntax errors or invalid queries found. Check the output above."
-          when: "query_output.results | selectattr('stderr', 'defined') | selectattr('stderr', 'search', 'syntax error|ERROR') | list | length > 0"
+      when: syntax_errors | length > 0   
+ 
+    - name: Fail playbook if there were any errors
+      fail:
+        msg: "Syntax errors or invalid queries found. Check the output above."
+      when: "query_output.results | selectattr('stderr', 'defined') | selectattr('stderr', 'search', 'syntax error|ERROR') | list | length > 0"
 
     - name: Add valid queries to the allowed list
       set_fact:
