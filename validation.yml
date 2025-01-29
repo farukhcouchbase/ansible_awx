@@ -7,28 +7,48 @@
     couchbase_bin_path: "/opt/couchbase/bin/cbq"
     couchbase_admin_username: "Admin"
     couchbase_admin_password: "redhat"
-    index_queries: ""  # This comes from the Ansible survey
+    index_queries: []  # This comes from the Ansible survey
+
   tasks:
+    - name: Identify and categorize index queries
+      set_fact:
+        allowed_queries: []
+        not_allowed_queries: []
 
-    - name: Validate query syntax
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_queries }}'"
-      register: query_result
-      failed_when: query_result.rc != 0
-      changed_when: false
-
-    - name: Fail if query is creating a primary index
-      fail:
-        msg: "Primary index creation is not allowed."
-      when: "'CREATE PRIMARY INDEX' in index_queries | upper"
-
-    - name: Fail if query does not contain a WHERE clause
-      fail:
-        msg: "Indexes must have a WHERE clause."
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
       when: 
-        - "'CREATE INDEX' in index_queries | upper"
-        - "'WHERE' not in index_queries | upper"
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+      with_items: "{{ index_queries }}"
 
-    - name: Execute valid index query
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script '{{ index_queries }}'"
-      changed_when: true
-      when: query_result.rc == 0 
+    - name: Identify not allowed queries
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+      when: 
+        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
+      with_items: "{{ index_queries }}"
+
+    - name: Debug - Allowed Queries
+      debug:
+        msg: "Allowed Index Query: {{ item }}"
+      with_items: "{{ allowed_queries }}"
+
+    - name: Debug - Not Allowed Queries
+      debug:
+        msg: "Not Allowed Index Query: {{ item }}"
+      with_items: "{{ not_allowed_queries }}"
+
+    - name: Execute allowed index queries
+      command: >
+        {{ couchbase_bin_path }} -e="{{ item }}" -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }}
+      with_items: "{{ allowed_queries }}"
+      when: allowed_queries | length > 0
+      register: query_result
+
+    - name: Debug - Query execution results
+      debug:
+        var: query_result
+      when: allowed_queries | length > 0
