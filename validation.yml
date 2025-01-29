@@ -8,17 +8,12 @@
     couchbase_admin_username: "Admin"
     couchbase_admin_password: "redhat"
     index_queries: []  # This comes from the Ansible survey
-    valid_queries: []
 
   tasks:
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
         not_allowed_queries: []
-        invalid_queries: []
-       
-    
- 
 
     - name: Validate index queries
       set_fact:
@@ -29,7 +24,6 @@
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-  
     - name: Identify not allowed queries
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
@@ -46,8 +40,6 @@
       debug:
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
-
-    
 
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
