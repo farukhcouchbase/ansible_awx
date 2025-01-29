@@ -16,8 +16,7 @@
         not_allowed_queries: []
 
     - name: Validate index queries for syntax errors
-      shell: |
-        echo "{{ item }}" | {{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --quiet
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password } --quiet
       register: query_validation
       with_items: "{{ index_queries }}"
       ignore_errors: yes
