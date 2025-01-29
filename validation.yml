@@ -62,7 +62,7 @@
           {{
             allowed_queries | map('regex_replace', 
               '(CREATE INDEX `?\w+`? ON `?\w+`?\.`?\w+`?\.`?\w+`?\(.*?\) WHERE .*? USING GSI)(\s*;)?', 
-              '\1 WITH {"defer_build":true, "num_replica":1}\2') 
+              '\1 WITH ("defer_build":true, "num_replica":1) 
             | list
           }}
 
