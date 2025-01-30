@@ -87,7 +87,7 @@
           
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
-        updated_queries: >
+        updated_queries2: >
           {%- set updated = [] -%}
           {%- for line in allowed_queries -%}
             {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX.*?ON.*?WHERE.*?USING GSI)', '\\1 WITH { "defer_build": true, "num_replica": 1 }') -%}
@@ -99,7 +99,7 @@
 
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
-        updated_queries: >
+        updated_queries3: >
           {%- set updated = [] -%}
           {%- for line in allowed_queries -%}
             {%- if 'WITH {' in line -%}
@@ -114,11 +114,35 @@
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"      
+      with_items: "{{ updated_queries }}"
+      
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "Updated Query: {{ item }}"
+      with_items: "{{ updated_queries2 }}"       
 
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "Updated Query: {{ item }}"
+      with_items: "{{ updated_queries3 }}"
+      
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries }}"
+      when: allowed_queries | length > 0
+      register: query_result
+
+      
+    - name: Execute allowed index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated_queries2 }}"
+      when: allowed_queries | length > 0
+      register: query_result
+
+      
+    - name: Execute allowed index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated_queries3 }}"
       when: allowed_queries | length > 0
       register: query_result
 
