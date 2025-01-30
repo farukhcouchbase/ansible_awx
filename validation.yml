@@ -57,8 +57,18 @@
 
           
 
+          
+
    
-    
+    - name: Ensure defer_build and num_replica options in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace',
+              '^(CREATE INDEX .*? ON .*?\))\s*(?:WITH\s*\{.*?\})?;$',
+              '\1 WITH {"defer_build": true, "num_replica": 1};')
+            | list
+          }}
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
