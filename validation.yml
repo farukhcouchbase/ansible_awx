@@ -75,7 +75,17 @@
 
           
 
-  
+          
+
+    - name: Ensure defer_build and num_replica options in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              'USING GSI\s*;$', 
+              'WITH {"defer_build":true, "num_replica":1} USING GSI;') 
+            | list
+          }}
 
     - name: Debug - Updated Index Queries
       debug:
