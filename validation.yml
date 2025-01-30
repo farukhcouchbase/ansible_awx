@@ -75,12 +75,7 @@
 
           
 
-    - name: Ensure defer_build and num_replica options in index queries
-      set_fact:
-        updated_queries: >-
-          regexp: '(CREATE INDEX `[^`]+` ON `[^`]+`\.`[^`]+`\.`[^`]+`\([^)]*\) WHERE .*? USING GSI);'
-          replace: '\1 WITH {"defer_build":true, "num_replica":1};' 
-
+  
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
