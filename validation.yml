@@ -89,7 +89,7 @@
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
+          {%- for line in allowed_queries -%}
             {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
