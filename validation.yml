@@ -61,7 +61,7 @@
       set_fact:
         updated_queries: >
           {%- set updated = [] -%}
-          {%- for line in allowed_indexes -%}
+          {%- for line in allowed_queries -%}
             {%- if 'WHERE' in line | upper -%}
               {%- set updated_line = line | regex_replace('(?i)(WHERE\\s+[^;]+)', '(\\1) WITH { "defer_build": true, "num_replica": 1 }') -%}
             {%- else -%}
