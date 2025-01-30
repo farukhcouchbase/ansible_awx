@@ -1,96 +1,15 @@
 ---
-- name: Validate and Create Couchbase Indexes
+- name: Add defer_build and num_replica to Couchbase index queries
   hosts: all
-  gather_facts: no
-  vars:
-    couchbase_host: "127.0.0.1"
-    couchbase_bin_path: "/opt/couchbase/bin/cbq"
-    couchbase_admin_username: "Admin"
-    couchbase_admin_password: "redhat"
-    index_queries: []  # This comes from the Ansible survey
-
   tasks:
-    - name: Identify and categorize index queries
+    - name: Define Couchbase index query
       set_fact:
-        allowed_queries: []
-        not_allowed_queries: []
-
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when: 
-        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        - "item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
-
-    - name: Identify not allowed queries
-      set_fact:
-        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-      when: 
-        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
-
-    - name: Debug - Allowed Queries
-      debug:
-        msg: "Allowed Index Query: {{ item }}"
-      with_items: "{{ allowed_queries }}"
-
-    - name: Debug - Not Allowed Queries
-      debug:
-        msg: "Not Allowed Index Query: {{ item }}"
-      with_items: "{{ not_allowed_queries }}"
-
-    - name: Update defer_build and num_replica properties in allowed indexes
-      set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_queries -%}
-            {%- if 'CREATE INDEX' in line or 'Create index' in line -%}
-              {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX|Create index)\\s+(`[^`]+`)\\s+ON\\s+(`[^`]+`.`[^`]+`.`[^`]+`)\\s*\\(([^)]+)\\)\\s*(WHERE\\s+[^ ]+\\s+IS\\s+NOT\\s+NULL)?\\s*USING\\s+GSI\\s*;', 'CREATE INDEX \\2 ON \\3(\\4) \\5 USING GSI WITH {"defer_build":true, "num_replica":1};') -%}
-            {%- else -%}
-              {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
-            {%- endif -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }} 
-
+        index_query: 'Create index Secondary_index_01 ON travel-sample.scopeB.collection3(field2) WHERE field2 = "value2" USING GSI;'
     
-    - name: Ensure defer_build and num_replica options in index queries
+    - name: Check and add defer_build and num_replica if missing
       set_fact:
-        updated_queries: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
-              '"defer_build":true,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
-              '"num_replica":1,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
-              '"defer_build":true, "num_replica":1,')
-            | list
-          }} 
-
-          
-
+        modified_index_query: "{{ index_query | regex_replace('(USING GSI;)', '{ \"defer_build\": true, \"num_replica\": 1 } \\1') }}"
     
-    - name: Debug - Updated Index Queries
+    - name: Display the modified query
       debug:
-        msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"      
-
-    - name: Execute allowed index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries }}"
-      when: allowed_queries | length > 0
-      register: query_result
-
-    - name: Execute deffered_index.sh script
-      command: "{{ deffered_index_path }}"
-      args:
-        chdir: "{{ deffered_index_path | dirname }}"
-      register: script_output
-      # Executes the deffered_index.sh script after index creation  
-
-  
+        msg: "{{ modified_index_query }}"
