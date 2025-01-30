@@ -55,8 +55,22 @@
           {%- endfor -%}
           {{ updated | join('\n') }} 
 
-  
+          
 
+    - name: Update index queries to include defer_build and num_replica properties
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_indexes -%}
+            {%- if 'WHERE' in line | upper -%}
+              {%- set updated_line = line | regex_replace('(?i)(WHERE\\s+[^;]+)', '(\\1) WITH { "defer_build": true, "num_replica": 1 }') -%}
+            {%- else -%}
+              {%- set updated_line = line | regex_replace('(?i)(USING\\s+GSI)', 'WITH { "defer_build": true, "num_replica": 1 } \\1') -%}
+            {%- endif -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
+    
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
