@@ -25,6 +25,27 @@
         - "item | regex_search('WHERE', ignorecase=True)"
       loop: "{{ index_queries }}"
 
+      
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when: 
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+      with_items: "{{ index_queries }}"
+
+      
+    - name: Ensure defer_build and num_replica in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?i)(USING GSI)(?!.*WITH)', 
+              'USING GSI WITH {"defer_build": true, "num_replica": 1}') 
+            | list
+          }}
+
     - name: Identify not allowed queries
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
