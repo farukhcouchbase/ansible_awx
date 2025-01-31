@@ -14,33 +14,13 @@
       set_fact:
         allowed_queries: []
         not_allowed_queries: []
-    - name: Validate syntax of index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-      register: syntax_check
-      with_items: "{{ index_queries }}"
-      ignore_errors: yes  # Capture syntax errors without failing the playbook
 
-    - name: Categorize index queries based on syntax validation
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item.item] }}"
-      when: syntax_check.results[index].rc == 0
-      with_items: "{{ syntax_check.results }}"
-      loop_control:
-        index_var: index
 
-    - name: Identify syntax errors and add them to not_allowed_queries
-      set_fact:
-        not_allowed_queries: "{{ not_allowed_queries + [item.item] }}"
-      when: syntax_check.results[index].rc != 0
-      with_items: "{{ syntax_check.results }}"
-      loop_control:
-        index_var: index
+ 
+
+  
     
-    - name: Validate syntax of index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-      register: syntax_check
-      with_items: "{{ index_queries }}"
-      ignore_errors: yes  # Capture syntax errors without failing the playbook
+
 
 
     - name: Validate index queries
@@ -48,6 +28,7 @@
         allowed_queries: "{{ allowed_queries + [item] }}"
       when: 
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "not item | regex_search(' (`)', ignorecase=True )"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
