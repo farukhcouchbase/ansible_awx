@@ -49,7 +49,7 @@
       set_fact:
         updated_queries: >-
           {{
-            allowed_queries | map('replace_regex',
+            allowed_queries | map('regex_replace',
               'CREATE INDEX `([^`]+)` ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\(([^)]+)\\) WHERE `([^`]+)` = "([^"]+)" USING GSI;',
               'CREATE INDEX `\\1` ON `\\2`.`\\3`.`\\4`(\\5) WHERE \\6 = "\\7" USING GSI WITH { "defer_build": true, "num_replica": 1 };')
             | list
