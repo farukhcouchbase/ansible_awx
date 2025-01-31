@@ -15,14 +15,6 @@
         allowed_queries: []
         not_allowed_queries: []
 
-
- 
-
-  
-    
-
-
-
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
@@ -49,19 +41,16 @@
       debug:
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
-
-   
-
+ 
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
           {{
             allowed_queries | map('regex_replace',
-              '((CREATE INDEX\s+`[^`]+`\s+ON\s+`[^`]+`\.`[^`]+`\.`[^`]+`\([^)]+\)\s+WHERE\s+\([^)]+\)\s+USING\s+GSI;))',
-              '\1 WITH { "defer_build": true, "num_replica": 1 };')
+              '(CREATE\\s+INDEX\\s+`[^`]+`\\s+ON\\s+`[^`]+`\\.`[^`]+`\\.`[^`]+`\\([^)]+\\)\\s+WHERE\\s+\\([^)]+\\)\\s+USING\\s+GSI;)',
+              '\\1 WITH { "defer_build": true, "num_replica": 1 };')
             | list
-          }} 
-
+          }}      
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
         updated_queries: >
