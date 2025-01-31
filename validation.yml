@@ -27,15 +27,7 @@
       with_items: "{{ index_queries }}"
 
       
-    - name: Ensure defer_build and num_replica in index queries
-      set_fact:
-        updated_queries: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              '(?i)(USING GSI)(?!.*WITH)', 
-              'USING GSI WITH {"defer_build": true, "num_replica": 1}') 
-            | list
-          }}
+    
 
     - name: Identify not allowed queries
       set_fact:
@@ -67,6 +59,17 @@
             | map('regex_replace', 
               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
               '"defer_build":true, "num_replica":1,')
+            | list
+          }}
+
+          
+    - name: Ensure defer_build and num_replica in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?i)(USING GSI)(?!.*WITH)', 
+              'USING GSI WITH {"defer_build": true, "num_replica": 1}') 
             | list
           }}
 
