@@ -7,8 +7,7 @@
     couchbase_bin_path: "/opt/couchbase/bin/cbq"
     couchbase_admin_username: "Admin"
     couchbase_admin_password: "redhat"
-    index_queries: []  # This comes from the Ansible survey
-
+  
   tasks:
     - name: Identify and categorize index queries
       set_fact:
@@ -46,10 +45,16 @@
         updated_queries: >-
           {{
             allowed_queries | map('regex_replace', 
-              '(CREATE INDEX.*?)( USING GSI)', 
-              '\\1 USING GSI WITH {"defer_build": true, "num_replica": 1}') 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
+              '"num_replica":1,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true, "num_replica":1,')
             | list
-          }} 
+          }}
 
     - name: Debug - Updated Index Queries
       debug:
@@ -62,8 +67,12 @@
       when: allowed_queries | length > 0
       register: query_result
 
-    - name: Execute deffered_index.sh script
-      command: "{{ deffered_index_path }}"
+    - name: Debug - Query Execution Result
+      debug:
+        var: query_result
+
+    - name: Execute deferred_index.sh script
+      command: "{{ deferred_index_path }}"
       args:
-        chdir: "{{ deffered_index_path | dirname }}"
+        chdir: "{{ deferred_index_path | dirname }}"
       register: script_output
