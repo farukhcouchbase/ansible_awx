@@ -1,3 +1,4 @@
+---
 - name: Validate and Create Couchbase Indexes
   hosts: all
   gather_facts: no
@@ -6,11 +7,10 @@
     couchbase_bin_path: "/opt/couchbase/bin/cbq"
     couchbase_admin_username: "Admin"
     couchbase_admin_password: "redhat"
-    index_queries: []  # Input queries from Ansible survey or external source
+    index_queries: []  # This comes from the Ansible survey
 
   tasks:
-
-    - name: Initialize query categories
+    - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
         not_allowed_queries: []
@@ -19,30 +19,29 @@
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
-        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"  # Ignore primary indexes
-        - "item | regex_search('CREATE INDEX', ignorecase=True)"  # Ensure it's an index creation
-        - "item | regex_search('WHERE', ignorecase=True)"  # Ensure it has a WHERE clause
-        - "item | regex_search('USING GSI', ignorecase=True)"  # Ensure it's using GSI
-      with_items: "{{ index_queries }}"
+        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) == False"
+        - "item | regex_search('(`)', ignorecase=True) == False"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+      loop: "{{ index_queries }}"
 
     - name: Identify not allowed queries
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when:
-        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
+        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or item | regex_search('WHERE', ignorecase=True) == False"
+      loop: "{{ index_queries }}"
 
     - name: Debug - Allowed Queries
       debug:
         msg: "Allowed Index Query: {{ item }}"
-      with_items: "{{ allowed_queries }}"
+      loop: "{{ allowed_queries }}"
 
     - name: Debug - Not Allowed Queries
       debug:
         msg: "Not Allowed Index Query: {{ item }}"
-      with_items: "{{ not_allowed_queries }}"
+      loop: "{{ not_allowed_queries }}"
 
-      
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
@@ -59,36 +58,20 @@
             | list
           }}
 
-          
-    - name: Ensure defer_build and num_replica in index queries
-      set_fact:
-        updated_queries: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              '(?i)(USING GSI)(?!.*WITH)', 
-              'USING GSI WITH {"defer_build": true, "num_replica": 1}') 
-            | list
-          }}
-
-    # - name: Debug - Updated Index Queries
-    #   debug:
-    #     msg: "Updated Query: {{ item }}"
-    #   with_items: "{{ updated_queries }}"
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "Updated Query: {{ item }}"
+      loop: "{{ updated_queries }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries }}"
-      when: updated_queries | length > 0
+      loop: "{{ updated_queries }}"
+      when: allowed_queries | length > 0
       register: query_result
-      ignore_errors: yes  # Avoid playbook failure if some queries fail
 
-    # - name: Debug - Query Execution Results
-    #   debug:
-    #     var: query_result
-
-    - name: Execute deffered_index.sh script
-      command: "{{ deffered_index_path }}"
+    - name: Execute deferred_index.sh script
+      command: "{{ deferred_index_path }}"
       args:
-        chdir: "{{ deffered_index_path | dirname }}"
+        chdir: "{{ deferred_index_path | dirname }}"
       register: script_output
-      # Executes the deffered_index.sh script after index creation      
+      # Executes the deferred_index.sh script after index creation
