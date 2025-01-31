@@ -41,7 +41,6 @@
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
 
-   
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
@@ -57,10 +56,6 @@
               '"defer_build":true, "num_replica":1,')
             | list
           }} 
-
-          
-   
-
 
     - name: Debug - Updated Index Queries
       debug:
@@ -78,6 +73,3 @@
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-      # Executes the deffered_index.sh script after index creation  
-
-  
