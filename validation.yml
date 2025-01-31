@@ -14,7 +14,15 @@
       set_fact:
         allowed_queries: []
         not_allowed_queries: []
-        
+
+    - name: Identify syntax errors and add them to not_allowed_queries
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item.item] }}"
+      when: syntax_check.results[index].rc != 0
+      with_items: "{{ syntax_check.results }}"
+      loop_control:
+        index_var: index
+    
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
