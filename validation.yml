@@ -56,7 +56,13 @@
               '(?i)(USING GSI)(?!.*WITH)', 
               'USING GSI WITH {"defer_build": true, "num_replica": 1}') 
             | list
-          }}  
+          }} 
+          
+          
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "Updated Query: {{ item }}"
+      with_items: "{{ updated_queries }}"
     
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
