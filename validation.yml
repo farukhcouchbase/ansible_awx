@@ -8,6 +8,7 @@
     couchbase_admin_username: "Admin"
     couchbase_admin_password: "redhat"
     index_queries: []  # This comes from the Ansible survey
+    deffered_index_path: "/path/to/deferred_index.sh"  # Example path for the deferred index script
 
   tasks:
     - name: Identify and categorize index queries
@@ -20,7 +21,6 @@
         allowed_queries: "{{ allowed_queries + [item] }}"
       when: 
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-      
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
@@ -41,15 +41,7 @@
       debug:
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
- 
-         
-    
-    
-    
 
-    
- 
-    
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
@@ -66,10 +58,6 @@
             | list
           }} 
 
-          
-    
-
-
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
@@ -81,11 +69,9 @@
       when: allowed_queries | length > 0
       register: query_result
 
-    - name: Execute deffered_index.sh script
+    - name: Execute deferred_index.sh script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-      # Executes the deffered_index.sh script after index creation  
-
-  
+      # Executes the deferred_index.sh script after index creation
