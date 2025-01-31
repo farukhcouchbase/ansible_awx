@@ -7,7 +7,8 @@
     couchbase_bin_path: "/opt/couchbase/bin/cbq"
     couchbase_admin_username: "Admin"
     couchbase_admin_password: "redhat"
-    index_queries: []  # This comes from the Ansible survey
+    index_queries:
+      - 'CREATE INDEX Secondary_index_01 ON travel-sample.scopeA.collection4(field2) WHERE status = "active" USING GSI WITH {"defer_build": true, "num_replica": 1};'
 
   tasks:
     - name: Identify and categorize index queries
