@@ -48,21 +48,21 @@
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
 
-    - name: Ensure defer_build and num_replica in index queries
-      set_fact:
-        updated_queries: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              '(?i)(USING GSI)(?!.*WITH)', 
-              'USING GSI WITH {"defer_build": true, "num_replica": 1}') 
-            | list
-          }} 
+    # - name: Ensure defer_build and num_replica in index queries
+    #   set_fact:
+    #     updated_queries: >-
+    #       {{
+    #         allowed_queries | map('regex_replace', 
+    #           '(?i)(USING GSI)(?!.*WITH)', 
+    #           'USING GSI WITH {"defer_build": true, "num_replica": 1}') 
+    #         | list
+    #       }} 
           
           
-    - name: Debug - Updated Index Queries
-      debug:
-        msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"
+    # - name: Debug - Updated Index Queries
+    #   debug:
+    #     msg: "Updated Query: {{ item }}"
+    #   with_items: "{{ updated_queries }}"
     
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
@@ -100,23 +100,23 @@
     
 
 
-    - name: Debug - Updated Index Queries
-      debug:
-        msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"   
-
-    # - name: Execute allowed index queries
-    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-    #   with_items: "{{ updated_queries }}"
-    #   when: updated_queries | length > 0
-    #   register: query_result
-    #   ignore_errors: yes  
+    # - name: Debug - Updated Index Queries
+    #   debug:
+    #     msg: "Updated Query: {{ item }}"
+    #   with_items: "{{ updated_queries }}"   
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries }}"
-      when: allowed_queries | length > 0
+      when: updated_queries | length > 0
       register: query_result
+      ignore_errors: yes  
+
+    # - name: Execute allowed index queries
+    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+    #   with_items: "{{ updated_queries }}"
+    #   when: allowed_queries | length > 0
+    #   register: query_result
 
     - name: Execute deffered_index.sh script
       command: "{{ deffered_index_path }}"
