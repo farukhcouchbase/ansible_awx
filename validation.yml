@@ -15,16 +15,7 @@
         allowed_queries: []
         not_allowed_queries: []
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) == False"
-        - "item | regex_search('(`)', ignorecase=True) == False"
-        - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        - "item | regex_search('WHERE', ignorecase=True)"
-      loop: "{{ index_queries }}"
-
+ 
       
     - name: Validate index queries
       set_fact:
