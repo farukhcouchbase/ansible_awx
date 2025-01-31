@@ -52,15 +52,16 @@
 
    
 
-  - name: Ensure defer_build and num_replica options in index queries
-    set_fact:
-      updated_queries: >-
-        {{
-          allowed_queries | map('regex_replace',
-            '((CREATE INDEX\s+`[^`]+`\s+ON\s+`[^`]+`\.`[^`]+`\.`[^`]+`\([^)]+\)\s+WHERE\s+\([^)]+\)\s+USING\s+GSI;))',
-            '\1 WITH { "defer_build": true, "num_replica": 1 };')
-          | list
-        }} 
+    - name: Ensure defer_build and num_replica options in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace',
+              '((CREATE INDEX\s+`[^`]+`\s+ON\s+`[^`]+`\.`[^`]+`\.`[^`]+`\([^)]+\)\s+WHERE\s+\([^)]+\)\s+USING\s+GSI;))',
+              '\1 WITH { "defer_build": true, "num_replica": 1 };')
+            | list
+          }} 
+
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
         updated_queries: >
