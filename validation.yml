@@ -52,9 +52,9 @@
 
    
 
-   - name: Ensure defer_build and num_replica options in index queries
-     set_fact:
-       updated_queries: >-
+  - name: Ensure defer_build and num_replica options in index queries
+    set_fact:
+      updated_queries: >-
         {{
           allowed_queries | map('regex_replace',
             '((CREATE INDEX\s+`[^`]+`\s+ON\s+`[^`]+`\.`[^`]+`\.`[^`]+`\([^)]+\)\s+WHERE\s+\([^)]+\)\s+USING\s+GSI;))',
