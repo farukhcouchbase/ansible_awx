@@ -7,7 +7,9 @@
     couchbase_bin_path: "/opt/couchbase/bin/cbq"
     couchbase_admin_username: "Admin"
     couchbase_admin_password: "redhat"
-    index_queries: []  # This comes from the Ansible survey
+    index_queries:  # This should be populated with actual queries from your input
+      - 'CREATE INDEX Secondary_index_01 ON `travel-sample`.`scopeA`.`collection4`(field2) WHERE status = "active" USING GSI;'
+      # Add more queries if needed
     deffered_index_path: "/path/to/deferred_index.sh"  # Example path for the deferred index script
 
   tasks:
@@ -16,7 +18,7 @@
         allowed_queries: []
         not_allowed_queries: []
 
-    - name: Validate index queries
+    - name: Validate index queries (Allowed)
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when: 
@@ -29,7 +31,8 @@
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when: 
-        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
+        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
     - name: Debug - Allowed Queries
@@ -56,12 +59,12 @@
               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
               '"defer_build":true, "num_replica":1,')
             | list
-          }} 
+          }}
 
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"      
+      with_items: "{{ updated_queries }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -69,9 +72,17 @@
       when: allowed_queries | length > 0
       register: query_result
 
+    - name: Display query results
+      debug:
+        msg: "Query result: {{ query_result }}"
+
     - name: Execute deferred_index.sh script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
       # Executes the deferred_index.sh script after index creation
+
+    - name: Display script output
+      debug:
+        msg: "Script output: {{ script_output.stdout }}"
