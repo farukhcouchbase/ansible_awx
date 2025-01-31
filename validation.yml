@@ -56,15 +56,7 @@
           {{ updated | join('\n') }}  
 
           
-    - name: Modify index queries to include defer_build and num_replica
-      set_fact:
-        modified_queries: >-
-          {{
-            updated_queries | map('regex_replace', 
-              'CREATE INDEX `(.*?)` ON `(.*?)`.`(.*?)`.`(.*?)`\((.*?)\) WHERE (.*?) USING GSI;', 
-              'CREATE INDEX `\\1` ON `\\2`.`\\3`.`\\4`(\\5) WHERE \\6 USING GSI WITH {"defer_build":true, "num_replica":1};')
-            | list
-          }}
+    
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
