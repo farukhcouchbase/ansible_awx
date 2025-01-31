@@ -58,6 +58,8 @@
               '"defer_build":true, "num_replica":1,')
             | list
           }}
+
+          
     - name: Ensure defer_build and num_replica in index queries
       set_fact:
         updated_queries: >-
@@ -68,10 +70,10 @@
             | list
           }}
 
-    - name: Debug - Updated Index Queries
-      debug:
-        msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"
+    # - name: Debug - Updated Index Queries
+    #   debug:
+    #     msg: "Updated Query: {{ item }}"
+    #   with_items: "{{ updated_queries }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -80,9 +82,9 @@
       register: query_result
       ignore_errors: yes  # Avoid playbook failure if some queries fail
 
-    - name: Debug - Query Execution Results
-      debug:
-        var: query_result
+    # - name: Debug - Query Execution Results
+    #   debug:
+    #     var: query_result
 
     - name: Execute deffered_index.sh script
       command: "{{ deffered_index_path }}"
