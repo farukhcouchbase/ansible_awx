@@ -38,7 +38,7 @@
       set_fact:
         allowed_indexes: >-
           {%- set allowed = [] -%}
-          {%- for line in (allowed_queries.content | b64decode).splitlines() -%}
+          {%- for line in (allowed_queries | map('b64decode') | map('splitlines') | list | sum(start=[])) -%}
             {%- if 'where' in line.lower() -%}
               {%- set allowed = allowed + [line] -%}
             {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
