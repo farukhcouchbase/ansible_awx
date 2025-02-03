@@ -14,6 +14,9 @@
       set_fact:
         allowed_queries: []
         not_allowed_queries: []
+        allowed_indexes: []
+        not_allowed_indexes: []
+
         
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
@@ -30,6 +33,72 @@
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
+
+    - name: Parse and filter index statements for allowed indexes
+      set_fact:
+        allowed_indexes: >
+          {%- set allowed = [] -%}
+          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+            {%- if 'where' in line.lower() -%}
+              {{ allowed.append(line) }}
+            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
+              {{ allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ allowed }}  
+
+    - name: Parse and filter index statements for not-allowed indexes
+      set_fact:
+        not_allowed_indexes: >
+          {%- set not_allowed = [] -%}
+          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+            {%- if 'where' not in line.lower() and 'scope' not in line.lower() and '{"defer_build":true}' not in line.lower() and 'primary' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
+              {{ not_allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ not_allowed }}  
+
+    - name: Parse and filter index statements for allowed indexes (with modifications)
+      set_fact:
+        allowed_indexes_modified: >
+          {%- set allowed = [] -%}
+          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+            {%- if 'where' in line.lower() and
+                  '{"defer_build": true}' not in line.lower() and
+                  '"num_replica": 1' not in line.lower() -%}
+              
+              {%- set modified_line = line + ' WITH {"defer_build": true, "num_replica": 1}' -%}
+              {{ allowed.append(modified_line) }}
+
+            {%- elif 'scope' in line.lower() and
+                  '{"defer_build": true}' in line.lower() and
+                  'where' not in line.lower() and
+                  'primary' not in line.lower() -%}
+              {{ allowed.append(line) }}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ allowed }}  
+
+    - name: Debug modified allowed indexes
+      debug:
+        msg: "{{ item }}"
+      loop: "{{ allowed_indexes_modified }}"
+      loop_control:
+        loop_var: item  
+    
+    - name: Debug allowed index statements
+      debug:
+        msg: "{{ item }}"
+      loop: "{{ allowed_indexes }}"
+      loop_control:
+        loop_var: item
+
+    - name: Debug not-allowed index statements
+      debug:
+        msg: "{{ item }}"
+      loop: "{{ not_allowed_indexes }}"
+      loop_control:
+        loop_var: item
 
     - name: Identify not allowed queries
       set_fact:
@@ -157,7 +226,14 @@
       with_items: "{{ updated_queries }}"
       when: updated_queries | length > 0
       register: query_result
-      ignore_errors: yes  
+      ignore_errors: yes 
+
+    # - name: Execute allowed index queries
+    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+    #   with_items: "{{ allowed_indexes }}"
+    #   when: updated_queries | length > 0
+    #   register: query_result
+    #   ignore_errors: yes  
 
     # - name: Execute allowed index queries
     #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
