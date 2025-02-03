@@ -89,8 +89,8 @@
                   '{"defer_build": true}' not in line.lower() and
                   '"num_replica": 1' not in line.lower() -%}
               
-              {%- set modified_line = line + ' WITH {"defer_build": true, "num_replica": 1}' -%}
-              {{ updated.append(modified_line) }}
+              {%- set updated_line = line + ' WITH {"defer_build": true, "num_replica": 1}' -%}
+              {{ updated.append(updated_line) }}
 
             {%- elif 'scope' in line.lower() and
                   '{"defer_build": true}' in line.lower() and
