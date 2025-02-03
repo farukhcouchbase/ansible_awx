@@ -34,18 +34,17 @@
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
+    - name: Decode allowed queries
+      set_fact:
+        decoded_queries: "{{ allowed_queries | map('b64decode') | map('splitlines') | list | sum(start=[]) }}"
+
     - name: Parse and filter index statements for allowed indexes
       set_fact:
-        allowed_indexes: >-
-          {%- set allowed = [] -%}
-          {%- for line in (allowed_queries | map('b64decode') | map('splitlines') | list | sum(start=[])) -%}
-            {%- if 'where' in line.lower() -%}
-              {%- set allowed = allowed + [line] -%}
-            {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
-              {%- set allowed = allowed + [line] -%}
-            {%- endif -%}
-          {%- endfor -%}
-          {{ allowed }}
+        allowed_indexes: "{{ decoded_queries | select('search', 'where') | list
+                             + decoded_queries | select('search', 'scope') 
+                                              | select('search', '{\"defer_build\":true}') 
+                                              | reject('search', 'where') 
+                                              | reject('search', 'primary') | list }}"
 
     - name: Parse and filter index statements for not-allowed indexes
       set_fact:
