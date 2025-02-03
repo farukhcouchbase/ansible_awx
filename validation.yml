@@ -63,6 +63,25 @@
     #   debug:
     #     msg: "Updated Query: {{ item }}"
     #   with_items: "{{ updated_queries }}"
+
+    - name: Update defer_build and num_replica properties in allowed indexes
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_queries -%}
+            {%- if 'CREATE INDEX' in line -%}
+              {%- if 'USING GSI' in line and 'WHERE' in line and '"defer_build"' not in line and '"num_replica"' not in line -%}
+                {%- set updated_line = line | regex_replace('(?i)USING GSI', 'USING GSI WITH {"defer_build": true, "num_replica": 1}') -%}
+              {%- else -%}
+                {%- set updated_line = line -%}
+              {%- endif -%}
+            {%- else -%}
+              {%- set updated_line = line -%}
+            {%- endif -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
+ 
     
     - name: Update defer_build and num_replica properties in allowed indexes
       set_fact:
