@@ -34,29 +34,20 @@
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Decode allowed queries
-      set_fact:
-        decoded_queries: "{{ allowed_queries | map('b64decode') | map('splitlines') | list | sum(start=[]) }}"
+  
+    
 
-    - name: Parse and filter index statements for allowed indexes
-      set_fact:
-        allowed_indexes: "{{ decoded_queries | select('search', 'where') | list
-                             + decoded_queries | select('search', 'scope') 
-                                              | select('search', '{\"defer_build\":true}') 
-                                              | reject('search', 'where') 
-                                              | reject('search', 'primary') | list }}"
 
     - name: Parse and filter index statements for not-allowed indexes
       set_fact:
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
-          # {%- for line in (allowed_queries.content | b64decode).splitlines() -%}
-            {%- for line in allowed_queries -%}
+          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
             {%- if 'where' not in line.lower() and 'scope' not in line.lower() and '{"defer_build":true}' not in line.lower() and 'primary' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
           {%- endfor -%}
-          {{ not_allowed }}  
+          {{ not_allowed }}
 
     - name: Parse and filter index statements for allowed indexes (with modifications)
       set_fact:
@@ -134,39 +125,36 @@
     #     msg: "Updated Query: {{ item }}"
     #   with_items: "{{ updated_queries }}"
 
-    # - name: Update defer_build and num_replica properties in allowed indexes
-    #   set_fact:
-    #     updated_queries: >
-    #       {%- set updated = [] -%}
-    #       {%- for line in allowed_queries -%}
-    #         {%- if 'CREATE INDEX' in line -%}
-    #            {%- if 'USING GSI' in line and 'WHERE' in line and ('WITH {' not in line) -%}
-    #              {%- set updated_line = line | regex_replace('(?i)(USING GSI)', 'USING GSI WITH {"defer_build": true, "num_replica": 1}') -%} 
-    #           {%- else -%}
-    #             {%- set updated_line = line -%}
-    #           {%- endif -%}
-    #         {%- else -%}
-    #           {%- set updated_line = line -%}
-    #         {%- endif -%}
-    #         {{ updated.append(updated_line) }}
-    #       {%- endfor -%}
-    #       {{ updated | join('\n') }}
+    - name: Update defer_build and num_replica properties in allowed indexes
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_queries -%}
+            {%- if 'CREATE INDEX' in line -%}
+               {%- if 'USING GSI' in line and 'WHERE' in line and ('WITH {' not in line) -%}
+                 {%- set updated_line = line | regex_replace('(?i)(USING GSI)', 'USING GSI WITH {"defer_build": true, "num_replica": 1}') -%} 
+              {%- else -%}
+                {%- set updated_line = line -%}
+              {%- endif -%}
+            {%- else -%}
+              {%- set updated_line = line -%}
+            {%- endif -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
 
  
     
-    # - name: Update defer_build and num_replica properties in allowed indexes
-    #   set_fact:
-    #     updated_queries: >
-    #       {%- set updated = [] -%}
-    #       {%- for line in allowed_queries -%}
-    #         {%- if 'CREATE INDEX' in line or 'Create index' in line -%}
-    #           {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX|Create index)\\s+(`[^`]+`)\\s+ON\\s+(`[^`]+`.`[^`]+`.`[^`]+`)\\s*\\(([^)]+)\\)\\s*(WHERE\\s+[^ ]+\\s+IS\\s+NOT\\s+NULL)?\\s*USING\\s+GSI\\s*;', 'CREATE INDEX \\2 ON \\3(\\4) \\5 USING GSI WITH {"defer_build":true, "num_replica":1};') -%}
-    #         {%- else -%}
-    #           {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
-    #         {%- endif -%}
-    #         {{ updated.append(updated_line) }}
-    #       {%- endfor -%}
-    #       {{ updated | join('\n') }}  
+    - name: Update defer_build and num_replica properties in allowed indexes
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_queries -%}
+            {%- if 'CREATE INDEX' in line or 'Create index' in line -%}
+              {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}    
 
       # set_fact:
       #   updated_queries: >
