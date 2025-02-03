@@ -40,12 +40,12 @@
           {%- set allowed = [] -%}
           {%- for line in (allowed_queries.content | b64decode).splitlines() -%}
             {%- if 'where' in line.lower() -%}
-              {%- do allowed.append(line) -%}
+              {%- set allowed = allowed + [line] -%}
             {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
-              {%- do allowed.append(line) -%}
+              {%- set allowed = allowed + [line] -%}
             {%- endif -%}
           {%- endfor -%}
-          {{ allowed }} 
+          {{ allowed }}
 
     - name: Parse and filter index statements for not-allowed indexes
       set_fact:
