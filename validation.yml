@@ -78,7 +78,31 @@
           {%- endfor -%}
           {{ updated | join('\n') }}  
 
-          
+
+#===============================================================================================================================
+    - name: Parse and filter index statements for allowed indexes (with modifications)
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_queries -%}
+            {%- if 'where' in line.lower() and
+                  '{"defer_build": true}' not in line.lower() and
+                  '"num_replica": 1' not in line.lower() -%}
+              
+              {%- set modified_line = line + ' WITH {"defer_build": true, "num_replica": 1}' -%}
+              {{ allowed.append(modified_line) }}
+
+            {%- elif 'scope' in line.lower() and
+                  '{"defer_build": true}' in line.lower() and
+                  'where' not in line.lower() and
+                  'primary' not in line.lower() -%}
+              {{ allowed.append(line) }}
+            {%- endif -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}   
+
+#===========================================================================================================================   
     
     - name: Ensure defer_build and num_replica options in index queries
       set_fact:
