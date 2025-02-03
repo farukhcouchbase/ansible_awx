@@ -38,7 +38,7 @@
       set_fact:
         allowed_indexes: >
           {%- set allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+          {%- for line in (allowed_queries.content | b64decode).splitlines() -%}
             {%- if 'where' in line.lower() -%}
               {{ allowed.append(line) }}
             {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
@@ -51,7 +51,7 @@
       set_fact:
         not_allowed_indexes: >
           {%- set not_allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+          {%- for line in (allowed_queries.content | b64decode).splitlines() -%}
             {%- if 'where' not in line.lower() and 'scope' not in line.lower() and '{"defer_build":true}' not in line.lower() and 'primary' not in line.lower() and line.strip() != '' and not line.startswith('//') -%}
               {{ not_allowed.append(line) }}
             {%- endif -%}
@@ -62,7 +62,7 @@
       set_fact:
         allowed_indexes_modified: >
           {%- set allowed = [] -%}
-          {%- for line in (index_file_content.content | b64decode).splitlines() -%}
+          {%- for line in (allowed_queries.content | b64decode).splitlines() -%}
             {%- if 'where' in line.lower() and
                   '{"defer_build": true}' not in line.lower() and
                   '"num_replica": 1' not in line.lower() -%}
