@@ -78,6 +78,23 @@
           {%- endfor -%}
           {{ updated | join('\n') }}  
 
+      set_fact:
+        updated_queries: >
+          {%- set updated = [] -%}
+          {%- for line in allowed_queries -%}
+            {%- if 'CREATE INDEX' in line -%}
+              {%- if 'WHERE' in line and '"defer_build"' not in line and '"num_replica"' not in line -%}
+                {%- set updated_line = line | regex_replace('(?i)(USING GSI)', 'USING GSI WITH {"defer_build":true, "num_replica":1}') -%}
+              {%- else -%}
+                {%- set updated_line = line -%}
+              {%- endif -%}
+            {%- else -%}
+              {%- set updated_line = line -%}
+            {%- endif -%}
+            {{ updated.append(updated_line) }}
+          {%- endfor -%}
+          {{ updated | join('\n') }}
+
           
     
     - name: Ensure defer_build and num_replica options in index queries
