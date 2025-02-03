@@ -70,8 +70,8 @@
           {%- set updated = [] -%}
           {%- for line in allowed_queries -%}
             {%- if 'CREATE INDEX' in line -%}
-              {%- if 'USING GSI' in line and 'WHERE' in line and ('WITH {' not in line) -%}
-                {%- set updated_line = line | regex_replace('(?i)(USING GSI)', '\\1 WITH {"defer_build": true, "num_replica": 1}') -%}
+               {%- if 'USING GSI' in line and 'WHERE' in line and ('WITH {' not in line) -%}
+                 {%- set updated_line = line | regex_replace('(?i)(USING GSI)', 'USING GSI WITH {"defer_build": true, "num_replica": 1}') -%} 
               {%- else -%}
                 {%- set updated_line = line -%}
               {%- endif -%}
