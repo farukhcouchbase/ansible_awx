@@ -90,13 +90,13 @@
                   '"num_replica": 1' not in line.lower() -%}
               
               {%- set modified_line = line + ' WITH {"defer_build": true, "num_replica": 1}' -%}
-              {{ allowed.append(modified_line) }}
+              {{ updated.append(modified_line) }}
 
             {%- elif 'scope' in line.lower() and
                   '{"defer_build": true}' in line.lower() and
                   'where' not in line.lower() and
                   'primary' not in line.lower() -%}
-              {{ allowed.append(line) }}
+              {{ updated.append(line) }}
             {%- endif -%}
             {{ updated.append(updated_line) }}
           {%- endfor -%}
