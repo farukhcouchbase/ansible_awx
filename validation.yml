@@ -36,17 +36,16 @@
 
     - name: Parse and filter index statements for allowed indexes
       set_fact:
-        allowed_indexes: >
+        allowed_indexes: >-
           {%- set allowed = [] -%}
-          # {%- for line in (allowed_queries.content | b64decode).splitlines() -%}
-          {%- for line in allowed_queries -%}
+          {%- for line in (allowed_queries.content | b64decode).splitlines() -%}
             {%- if 'where' in line.lower() -%}
-              {{ allowed.append(line) }}
+              {%- do allowed.append(line) -%}
             {%- elif 'scope' in line.lower() and '{"defer_build":true}' in line.lower() and 'where' not in line.lower() and 'primary' not in line.lower() -%}
-              {{ allowed.append(line) }}
+              {%- do allowed.append(line) -%}
             {%- endif -%}
           {%- endfor -%}
-          {{ allowed }}  
+          {{ allowed }} 
 
     - name: Parse and filter index statements for not-allowed indexes
       set_fact:
