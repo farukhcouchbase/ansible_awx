@@ -3,11 +3,7 @@
   hosts: all
   gather_facts: no
   vars:
-    couchbase_host: "127.0.0.1"
-    couchbase_bin_path: "/opt/couchbase/bin/cbq"
-    couchbase_admin_username: "Admin"
-    couchbase_admin_password: "redhat"
-    index_queries: []  # This comes from the Ansible survey
+   
 
   tasks:
     - name: Identify and categorize index queries
