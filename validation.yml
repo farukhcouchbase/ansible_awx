@@ -1,7 +1,7 @@
 ---
 - name: Validate and Create Couchbase Indexes
   hosts: all
-  gather_facts: no
+  gather_facts: n0
   vars:
     couchbase_host: "127.0.0.1"
     couchbase_bin_path: "/opt/couchbase/bin/cbq"
