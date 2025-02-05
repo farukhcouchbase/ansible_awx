@@ -1,7 +1,7 @@
 ---
 - name: Validate and Create Couchbase Indexes
   hosts: all
-  gather_facts: n0
+  gather_facts: no
   vars:
     couchbase_host: "127.0.0.1"
     couchbase_bin_path: "/opt/couchbase/bin/cbq"
@@ -14,18 +14,17 @@
       set_fact:
         allowed_queries: []
         not_allowed_queries: []
-        
+
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
       ignore_errors: yes  # Capture syntax errors without failing the playbook
 
-
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
-      when: 
+      when:
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
@@ -34,7 +33,7 @@
     - name: Identify not allowed queries
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-      when: 
+      when:
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
@@ -48,86 +47,26 @@
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
 
-    # - name: Ensure defer_build and num_replica in index queries
-    #   set_fact:
-    #     updated_queries: >-
-    #       {{
-    #         allowed_queries | map('regex_replace', 
-    #           '(?i)(USING GSI)(?!.*WITH)', 
-    #           'USING GSI WITH {"defer_build": true, "num_replica": 1}') 
-    #         | list
-    #       }} 
-          
-          
-    # - name: Debug - Updated Index Queries
-    #   debug:
-    #     msg: "Updated Query: {{ item }}"
-    #   with_items: "{{ updated_queries }}"
-    
-    # - name: Update defer_build and num_replica properties in allowed indexes
-    #   set_fact:
-    #     updated_queries: >
-    #       {%- set updated = [] -%}
-    #       {%- for line in allowed_queries -%}
-    #         {%- if 'CREATE INDEX' in line or 'Create index' in line -%}
-    #           {%- set updated_line = line | regex_replace('(?i)(CREATE INDEX|Create index)\\s+(`[^`]+`)\\s+ON\\s+(`[^`]+`.`[^`]+`.`[^`]+`)\\s*\\(([^)]+)\\)\\s*(WHERE\\s+[^ ]+\\s+IS\\s+NOT\\s+NULL)?\\s*USING\\s+GSI\\s*;', 'CREATE INDEX \\2 ON \\3(\\4) \\5 USING GSI WITH {"defer_build":true, "num_replica":1};') -%}
-    #         {%- else -%}
-    #           {%- set updated_line = line | regex_replace('(?i)({\"defer_build\":\\s*(false|true)})', '{\"defer_build\": true, \"num_replica\": 1}') -%}
-    #         {%- endif -%}
-    #         {{ updated.append(updated_line) }}
-    #       {%- endfor -%}
-    #       {{ updated | join('\n') }}  
-
-
-#===============================================================================================================================
-    - name: Parse and filter index statements for allowed indexes (with modifications)
+    - name: Ensure defer_build and num_replica options in index queries
       set_fact:
-        updated_queries: >
-          {%- set updated = [] -%}
-          {%- for line in allowed_queries -%}
-            {%- if 'where' in line.lower() and
-                  '{"defer_build": true}' not in line.lower() and
-                  '"num_replica": 1' not in line.lower() -%}
-              
-              {%- set updated_line = line + ' WITH {"defer_build": true, "num_replica": 1}' -%}
-              {{ updated.append(updated_line) }}
-
-            {%- elif 'scope' in line.lower() and
-                  '{"defer_build": true}' in line.lower() and
-                  'where' not in line.lower() and
-                  'primary' not in line.lower() -%}
-              {{ updated.append(line) }}
-            {%- endif -%}
-            {{ updated.append(updated_line) }}
-          {%- endfor -%}
-          {{ updated | join('\n') }}   
-
-#===========================================================================================================================   
-    
-    # - name: Ensure defer_build and num_replica options in index queries
-    #   set_fact:
-    #     updated_queries: >-
-    #       {{
-    #         allowed_queries | map('regex_replace', 
-    #           '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
-    #           '"defer_build":true,') 
-    #         | map('regex_replace', 
-    #           '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
-    #           '"num_replica":1,') 
-    #         | map('regex_replace', 
-    #           '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
-    #           '"defer_build":true, "num_replica":1,')
-    #         | list
-    #       }} 
-
-          
-    
-
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
+              '"num_replica":1,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true, "num_replica":1,')
+            | list
+          }}
 
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"   
+      with_items: "{{ updated_queries }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -136,17 +75,9 @@
       register: query_result
       ignore_errors: no
 
-    # - name: Execute allowed index queries
-    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-    #   with_items: "{{ updated_queries }}"
-    #   when: allowed_queries | length > 0
-    #   register: query_result
-
     - name: Execute deffered_index.sh script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-      # Executes the deffered_index.sh script after index creation  
-
-  
+      # Executes the deffered_index.sh script after index creation
