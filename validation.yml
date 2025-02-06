@@ -62,7 +62,19 @@
               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
               '"defer_build":true, "num_replica":1,')
             | list
-          }}
+           }}
+
+     - name: Ensure defer_build and num_replica options in index queries
+       set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?i)(CREATE\s+INDEX\s+\S+\s+ON\s+\S+\s*\([^)]+\))(\s+USING\s+GSI\s*;)?$', 
+              '\\1 WITH {"defer_build": true, "num_replica": 1}\\2'
+            )
+            | list
+           }}
+
 
 
     # - name: Update defer_build and num_replica properties in allowed indexes
