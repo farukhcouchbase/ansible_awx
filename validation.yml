@@ -49,10 +49,10 @@
             allowed_queries 
             | map('regex_replace', 
               '(?i)(WITH\s*\{[^}]*?)("defer_build"\s*:\s*(true|false))?([^}]*?)("num_replica"\s*:\s*\d+)?([^}]*?)\}', 
-              'WITH {\2"defer_build": true,\4"num_replica": 1\6};') 
+              'WITH {\2"defer_build": true,\4"num_replica": 1\6}') 
             | map('regex_replace', 
               '(?i)(CREATE\s+INDEX\s+.*?\s+USING\s+GSI)(?!\s+WITH\s*\{)', 
-              '\1 WITH {"defer_build": true, "num_replica": 1};') 
+              '\1 WITH {"defer_build": true, "num_replica": 1}') 
             | list
           }}
 
