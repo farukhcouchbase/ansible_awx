@@ -45,7 +45,7 @@
 
     - name: Remove semicolon using regex
       set_fact:
-        allowed_queries: "{{ allowed_queries | regex_replace(';$','') }}"
+        allowed_queries: "{{ index_queries | regex_replace(';$','') }}"
       
     - name: Show the modified query
       debug:
@@ -117,16 +117,16 @@
 
 
 #=========================================================================
-- name: Remove semicolon from Couchbase index query
-  hosts: all
-  vars:
-    index_query: 'CREATE INDEX `Secondary_index_01` ON `travel-sample`.`scopeB`.`collection3`(`field2`) WHERE `field2` = "value2"  USING GSI;'
-  tasks:
-    - name: Remove semicolon using regex
-      set_fact:
-        index_query_without_semicolon: "{{ index_query | regex_replace(';$','') }}"
+# - name: Remove semicolon from Couchbase index query
+#   hosts: all
+#   vars:
+#     index_query: 'CREATE INDEX `Secondary_index_01` ON `travel-sample`.`scopeB`.`collection3`(`field2`) WHERE `field2` = "value2"  USING GSI;'
+#   tasks:
+#     - name: Remove semicolon using regex
+#       set_fact:
+#         index_query_without_semicolon: "{{ index_query | regex_replace(';$','') }}"
       
-    - name: Show the modified query
-      debug:
-        msg: "{{ index_query_without_semicolon }}"
+#     - name: Show the modified query
+#       debug:
+#         msg: "{{ index_query_without_semicolon }}"
 
