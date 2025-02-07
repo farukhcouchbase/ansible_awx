@@ -2,26 +2,22 @@
 - name: Validate and Create Couchbase Indexes
   hosts: all
   gather_facts: no
-
   vars:
-    couchbase_bin_path: "/opt/couchbase/bin/cbq"
-    couchbase_admin_username: "admin"
-    couchbase_admin_password: "password"
-    deffered_index_path: "/path/to/deffered_index.sh"
 
   tasks:
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
+        allowed_queries1: []
         not_allowed_queries: []
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
-      ignore_errors: yes
+      ignore_errors: yes  # Capture syntax errors without failing the playbook    
 
-    - name: Categorize index queries
+    - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
@@ -37,22 +33,10 @@
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Remove semicolon from allowed queries
+    - name: Remove semicolon using regex
       set_fact:
-        allowed_queries: "{{ allowed_queries | map('regex_replace', ';$', '') | list }}"
-
-    - name: Ensure WITH clause in index queries
-      set_fact:
-        updated_queries: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              'WITH\s*\{[^}]*\}', 
-              'WITH {"defer_build": true, "num_replica": 1}') 
-            | map('regex_replace', 
-              '(?i)(?!.*WITH\s*\{.*\})$', 
-              ' WITH {"defer_build": true, "num_replica": 1}') 
-            | list
-          }}
+        allowed_queries1: "{{ allowed_queries | map('regex_replace', ';$', '') | list }}"
+        
 
     - name: Debug - Allowed Queries
       debug:
@@ -64,6 +48,48 @@
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
 
+
+    
+    - name: Show the modified query
+      debug:
+        msg: "{{ allowed_queries1 }}"  
+
+
+
+    
+
+  
+#     - name: add WITH defer_build and num_replica options in index queries
+#       set_fact:
+#         updated_queries: >-
+#           {{
+#             allowed_queries | map('regex_replace', 
+#               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
+#               '"defer_build":true,') 
+#             | map('regex_replace', 
+#               '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
+#               '"num_replica":1,') 
+#             | map('regex_replace', 
+#               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
+#               '"defer_build":true, "num_replica":1,')
+#             | list
+#           }}
+
+ 
+
+    - name: Ensure WITH clause in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries1 | map('regex_replace', 
+              'WITH\s*\{[^}]*\}', 
+              'WITH {"defer_build": true, "num_replica": 1}') 
+            | map('regex_replace', 
+              '(?i)(?!.*WITH\s*\{.*\})$', 
+              ' WITH {"defer_build": true, "num_replica": 1}') 
+            | list
+          }}
+
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
@@ -72,8 +98,9 @@
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries }}"
+      when: updated_queries | length > 0
       register: query_result
-      failed_when: query_result.rc != 0 and "already exists" not in query_result.stderr
+      ignore_errors: no
 
     - name: Execute deffered_index.sh script
       command: "{{ deffered_index_path }}"
@@ -81,6 +108,5 @@
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
 
-    - name: Debug - Deferred Index Script Output
-      debug:
-        msg: "{{ script_output.stdout_lines }}"
+
+
