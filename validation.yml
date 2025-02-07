@@ -9,6 +9,7 @@
       set_fact:
         allowed_queries: []
         allowed_queries1: []
+        allowed_queries2: []
         not_allowed_queries: []
 
     - name: Validate syntax of index queries
@@ -36,7 +37,7 @@
     - name: Remove semicolon using regex
       set_fact:
         # allowed_queries1: "{{ allowed_queries | map('regex_replace', ';$', '') | list }}"
-        allowed_queries1: "{{ allowed_queries | map('regex_replace', '(?i)(USING\\s+GSI);$', '\\1') | list }}"
+        allowed_queries2: "{{ allowed_queries | map('regex_replace', '(?i)(USING\\s+GSI);$', '\\1') | list }}"
 
   
         
@@ -51,40 +52,38 @@
         msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
 
-
-    
     - name: Show the modified query
       debug:
-        msg: "{{ allowed_queries1 }}"  
+        msg: "{{ allowed_queries2 }}"  
 
 
 
     
 
   
-#     - name: add WITH defer_build and num_replica options in index queries
-#       set_fact:
-#         updated_queries: >-
-#           {{
-#             allowed_queries | map('regex_replace', 
-#               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
-#               '"defer_build":true,') 
-#             | map('regex_replace', 
-#               '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
-#               '"num_replica":1,') 
-#             | map('regex_replace', 
-#               '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
-#               '"defer_build":true, "num_replica":1,')
-#             | list
-#           }}
+    - name: add WITH defer_build and num_replica options in index queries
+      set_fact:
+        updated_queries1: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
+              '"num_replica":1,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true, "num_replica":1,')
+            | list
+          }}
 
  
 
     - name: Ensure WITH clause in index queries
       set_fact:
-        updated_queries: >-
+        updated_queries2: >-
           {{
-            allowed_queries1 | map('regex_replace', 
+            allowed_queries2 | map('regex_replace', 
               'WITH\s*\{[^}]*\}', 
               'WITH {"defer_build": true, "num_replica": 1}') 
             | map('regex_replace', 
@@ -96,14 +95,26 @@
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries }}"
+      with_items: "{{ updated_queries1 }}"
+
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "Updated Query: {{ item }}"
+      with_items: "{{ updated_queries2 }}"  
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries }}"
-      when: updated_queries | length > 0
+      with_items: "{{ updated_queries1 }}"
+      when: updated_queries1 | length > 0
       register: query_result
       ignore_errors: no
+
+    - name: Execute allowed index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated_queries2 }}"
+      when: updated_queries2 | length > 0
+      register: query_result
+      ignore_errors: no  
 
     - name: Execute deffered_index.sh script
       command: "{{ deffered_index_path }}"
