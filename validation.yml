@@ -46,13 +46,15 @@
       set_fact:
         updated_queries: >-
           {{
-            allowed_queries 
+            allowed_queries | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true,') 
             | map('regex_replace', 
-              '(?i)(WITH\s*\{[^}]*?)("defer_build"\s*:\s*(true|false))?([^}]*?)("num_replica"\s*:\s*\d+)?([^}]*?)\}', 
-              'WITH {\2"defer_build": true,\4"num_replica": 1\6}') 
+              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
+              '"num_replica":1,') 
             | map('regex_replace', 
-              '(?i)(CREATE\s+INDEX\s+.*?\s+USING\s+GSI)(?!\s+WITH\s*\{)', 
-              '\1 WITH {"defer_build": true, "num_replica": 1}') 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true, "num_replica":1,')
             | list
           }}
 
