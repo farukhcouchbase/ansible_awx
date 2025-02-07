@@ -8,7 +8,7 @@
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
-        allowed_queries1: []
+        allowed_queries1: [] 
         allowed_queries2: []
         not_allowed_queries: []
 
