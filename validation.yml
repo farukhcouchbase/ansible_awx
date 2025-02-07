@@ -71,7 +71,18 @@
             | list
           }}
 
-  
+
+
+    - name: Ensure WITH clause in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?i)(CREATE\s+INDEX\s+[^\s]+\s+ON\s+[^\s]+\s*\(.*?\)(?:\s+WHERE\s+.*?)*\s+USING\s+GSI)(?!.*\bWITH\b)', 
+              '\\1 WITH {"defer_build": true, "num_replica": 1}') 
+            | list
+          }}
+
     - name: Debug - Updated Index Queries
       debug:
         msg: "Updated Query: {{ item }}"
