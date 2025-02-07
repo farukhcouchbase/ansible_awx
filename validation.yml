@@ -32,6 +32,11 @@
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
+    - name: Remove semicolon using regex
+      set_fact:
+        allowed_queries: "{{ index_queries | regex_replace(';$','') }}"
+        
+
     - name: Debug - Allowed Queries
       debug:
         msg: "Allowed Index Query: {{ item }}"
@@ -43,10 +48,7 @@
       with_items: "{{ not_allowed_queries }}"
 
 
-    - name: Remove semicolon using regex
-      set_fact:
-        allowed_queries: "{{ index_queries | regex_replace(';$','') }}"
-      
+    
     - name: Show the modified query
       debug:
         msg: "{{ allowed_queries }}"  
