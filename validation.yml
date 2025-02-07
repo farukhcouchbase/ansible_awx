@@ -43,6 +43,11 @@
       with_items: "{{ not_allowed_queries }}"
 
 
+    - name: Debug - Allowed Queries Before Processing
+      debug:
+        msg: "{{ allowed_queries }}"  
+
+
     - name: Ensure WITH clause in index queries
       set_fact:
         updated_queries: >-
