@@ -33,9 +33,13 @@
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
+    # - name: Remove semicolon using regex
+    #   set_fact:
+    #     allowed_queries1: "{{ allowed_queries | map('regex_replace', ';$', '') | list }}"
+
     - name: Remove semicolon using regex
       set_fact:
-        allowed_queries1: "{{ allowed_queries | map('regex_replace', ';$', '') | list }}"
+        allowed_queries1: "{{ allowed_queries | map('regex_replace', '^(.+GSI)(?!.*WITH).+;$', '\\1') | list }}"
         
 
     - name: Debug - Allowed Queries
