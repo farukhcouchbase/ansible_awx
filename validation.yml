@@ -8,6 +8,7 @@
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
+        allowed_queries1: []
         not_allowed_queries: []
 
     - name: Validate syntax of index queries
@@ -34,7 +35,7 @@
 
     - name: Remove semicolon using regex
       set_fact:
-        allowed_queries: "{{ index_queries | regex_replace(';$','') }}"
+        allowed_queries1: "{{ allowed_queries | regex_replace(';$','') }}"
         
 
     - name: Debug - Allowed Queries
@@ -51,7 +52,7 @@
     
     - name: Show the modified query
       debug:
-        msg: "{{ allowed_queries }}"  
+        msg: "{{ allowed_queries1 }}"  
 
 
 
@@ -80,7 +81,7 @@
       set_fact:
         updated_queries: >-
           {{
-            allowed_queries | map('regex_replace', 
+            allowed_queries1 | map('regex_replace', 
               'WITH\s*\{[^}]*\}', 
               'WITH {"defer_build": true, "num_replica": 1}') 
             | map('regex_replace', 
