@@ -1,47 +1,59 @@
-# ---
-# - name: Validate and Create Couchbase Indexes
-#   hosts: all
-#   gather_facts: no
-#   vars:
+---
+- name: Validate and Create Couchbase Indexes
+  hosts: all
+  gather_facts: no
+  vars:
 
-#   tasks:
-#     - name: Identify and categorize index queries
-#       set_fact:
-#         allowed_queries: []
-#         not_allowed_queries: []
+  tasks:
+    - name: Identify and categorize index queries
+      set_fact:
+        allowed_queries: []
+        not_allowed_queries: []
 
-#     - name: Validate syntax of index queries
-#       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-#       register: syntax_check
-#       with_items: "{{ index_queries }}"
-#       ignore_errors: yes  # Capture syntax errors without failing the playbook    
+    - name: Validate syntax of index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
+      register: syntax_check
+      with_items: "{{ index_queries }}"
+      ignore_errors: yes  # Capture syntax errors without failing the playbook    
 
-#     - name: Validate index queries
-#       set_fact:
-#         allowed_queries: "{{ allowed_queries + [item] }}"
-#       when:
-#         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-#         - "item | regex_search('CREATE INDEX', ignorecase=True)"
-#         - "item | regex_search('WHERE', ignorecase=True)"
-#       with_items: "{{ index_queries }}"
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+      with_items: "{{ index_queries }}"
 
-#     - name: Identify not allowed queries
-#       set_fact:
-#         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-#       when:
-#         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-#       with_items: "{{ index_queries }}"
+    - name: Identify not allowed queries
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+      when:
+        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
+      with_items: "{{ index_queries }}"
 
-#     - name: Debug - Allowed Queries
-#       debug:
-#         msg: "Allowed Index Query: {{ item }}"
-#       with_items: "{{ allowed_queries }}"
+    - name: Debug - Allowed Queries
+      debug:
+        msg: "Allowed Index Query: {{ item }}"
+      with_items: "{{ allowed_queries }}"
 
-#     - name: Debug - Not Allowed Queries
-#       debug:
-#         msg: "Not Allowed Index Query: {{ item }}"
-#       with_items: "{{ not_allowed_queries }}"
+    - name: Debug - Not Allowed Queries
+      debug:
+        msg: "Not Allowed Index Query: {{ item }}"
+      with_items: "{{ not_allowed_queries }}"
 
+
+    - name: Remove semicolon using regex
+      set_fact:
+        allowed_queries: "{{ allowed_queries | regex_replace(';$','') }}"
+      
+    - name: Show the modified query
+      debug:
+        msg: "{{ allowed_queries }}"  
+
+
+
+    
 
   
 #     - name: add WITH defer_build and num_replica options in index queries
@@ -62,18 +74,18 @@
 
  
 
-#     # - name: Ensure WITH clause in index queries
-#     #   set_fact:
-#     #     updated_queries: >-
-#     #       {{
-#     #         allowed_queries | map('regex_replace', 
-#     #           'WITH\s*\{[^}]*\}', 
-#     #           'WITH {"defer_build": true, "num_replica": 1}') 
-#     #         | map('regex_replace', 
-#     #           '(?i)(?!.*WITH\s*\{.*\})$', 
-#     #           ' WITH {"defer_build": true, "num_replica": 1}') 
-#     #         | list
-#     #       }}
+    - name: Ensure WITH clause in index queries
+      set_fact:
+        updated_queries: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              'WITH\s*\{[^}]*\}', 
+              'WITH {"defer_build": true, "num_replica": 1}') 
+            | map('regex_replace', 
+              '(?i)(?!.*WITH\s*\{.*\})$', 
+              ' WITH {"defer_build": true, "num_replica": 1}') 
+            | list
+          }}
 
   
 
@@ -85,26 +97,26 @@
 
 
 
-#     - name: Debug - Updated Index Queries
-#       debug:
-#         msg: "Updated Query: {{ item }}"
-#       with_items: "{{ updated_queries }}"
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "Updated Query: {{ item }}"
+      with_items: "{{ updated_queries }}"
 
-#     - name: Execute allowed index queries
-#       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-#       with_items: "{{ updated_queries }}"
-#       when: updated_queries | length > 0
-#       register: query_result
-#       ignore_errors: no
+    - name: Execute allowed index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated_queries }}"
+      when: updated_queries | length > 0
+      register: query_result
+      ignore_errors: no
 
-#     - name: Execute deffered_index.sh script
-#       command: "{{ deffered_index_path }}"
-#       args:
-#         chdir: "{{ deffered_index_path | dirname }}"
-#       register: script_output
+    - name: Execute deffered_index.sh script
+      command: "{{ deffered_index_path }}"
+      args:
+        chdir: "{{ deffered_index_path | dirname }}"
+      register: script_output
 
 
-
+#=========================================================================
 - name: Remove semicolon from Couchbase index query
   hosts: all
   vars:
