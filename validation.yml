@@ -44,7 +44,7 @@
 
 
   
-    - name: Ensure defer_build and num_replica options in index queries
+    - name: add WITH defer_build and num_replica options in index queries
       set_fact:
         updated_queries: >-
           {{
