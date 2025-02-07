@@ -58,6 +58,19 @@
     #         | list
     #       }}
 
+    # - name: Ensure WITH clause in index queries
+    #   set_fact:
+    #     updated_queries: >-
+    #       {{
+    #         allowed_queries | map('regex_replace', 
+    #           'WITH\s*\{[^}]*\}', 
+    #           'WITH {"defer_build": true, "num_replica": 1}') 
+    #         | map('regex_replace', 
+    #           '(?i)(?!.*WITH\s*\{.*\})$', 
+    #           ' WITH {"defer_build": true, "num_replica": 1}') 
+    #         | list
+    #       }}
+
     - name: Ensure WITH clause in index queries
       set_fact:
         updated_queries: >-
@@ -65,6 +78,9 @@
             allowed_queries | map('regex_replace', 
               'WITH\s*\{[^}]*\}', 
               'WITH {"defer_build": true, "num_replica": 1}') 
+            | map('regex_replace', 
+              '(?i)(?!.*WITH\s*\{.*\})\s*;$', 
+              ' WITH {"defer_build": true, "num_replica": 1};') 
             | map('regex_replace', 
               '(?i)(?!.*WITH\s*\{.*\})$', 
               ' WITH {"defer_build": true, "num_replica": 1}') 
