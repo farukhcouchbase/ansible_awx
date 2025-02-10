@@ -23,8 +23,8 @@
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        - "item | regex_search('CREATE INDEX', ignorecase=False)"
-        - "item | regex_search('WHERE', ignorecase=False)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
     - name: Identify not allowed queries
