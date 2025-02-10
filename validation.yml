@@ -3,7 +3,7 @@
   hosts: all
   gather_facts: no
   vars:
-    your_variable: ""
+    your_variable: "Ritik"
 
   tasks:
     - name: Identify and categorize index queries
