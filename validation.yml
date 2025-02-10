@@ -37,10 +37,12 @@
 
     - name: Remove semicolon using regex
       set_fact:
-        allowed_queries2: "{{ allowed_queries | map('regex_replace', '(?i)(USING\\s+' + your_variable + ');$', '\\1') | list }}"
-        # allowed_queries1: "{{ allowed_queries | map('regex_replace', ';$', '') | list }}"
+        allowed_queries2: "{{ allowed_queries | map('regex_replace', '(?i)(USING\\s+{{ your_variable }});$', '\\1') | list }}"
+
+        #allowed_queries2: "{{ allowed_queries | map('regex_replace', '(?i)(USING\\s+' + your_variable + ');$', '\\1') | list }}"
+        
         # allowed_queries2: "{{ allowed_queries | map('regex_replace', '(?i)(USING\\s+GSI);$', '\\1') | list }}"
-        # allowed_queries2: "{{ allowed_queries | map('regex_replace', '(?i);$', '\\1') | list }}"
+        
   
         
 
