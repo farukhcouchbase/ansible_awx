@@ -3,7 +3,11 @@
   hosts: all
   gather_facts: no
   vars:
-  
+    couchbase_bin_path: "/opt/couchbase/bin/cbq"
+    couchbase_admin_username: "admin"
+    couchbase_admin_password: "password"
+    index_queries: []
+    deffered_index_path: "/home/ubuntu/Couchbase_dataase/Couchbase_UPS/deffered_index.sh"
 
   tasks:
     - name: Identify and categorize index queries
@@ -35,7 +39,6 @@
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-
     - name: Display not allowed queries in red
       debug:
         msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
@@ -45,28 +48,22 @@
     - name: Remove semicolon using regex
       set_fact:
         allowed_queries2: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"
-      
 
     - name: Debug - Allowed Queries
       debug:
-        msg: "Allowed Index Query: {{ item }}"
+        msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
       with_items: "{{ allowed_queries }}"
 
     - name: Debug - Not Allowed Queries
       debug:
-        msg: "Not Allowed Index Query: {{ item }}"
+        msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
       with_items: "{{ not_allowed_queries }}"
 
     - name: Show the modified query
       debug:
-        msg: "{{ allowed_queries2 }}"  
+        msg: "\033[34m{{ allowed_queries2 }}\033[0m"
 
-
-
-    
-
-  
-    - name: add WITH defer_build and num_replica options in index queries
+    - name: Add WITH defer_build and num_replica options in index queries
       set_fact:
         updated_queries1: >-
           {{
@@ -81,8 +78,6 @@
               '"defer_build":true, "num_replica":1,')
             | list
           }}
-
- 
 
     - name: Ensure WITH clause in index queries
       set_fact:
@@ -99,13 +94,13 @@
 
     - name: Debug - Updated Index Queries
       debug:
-        msg: "Updated Query: {{ item }}"
+        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries1 }}"
 
     - name: Debug - Updated Index Queries
       debug:
-        msg: "Updated Query: {{ item }}"
-      with_items: "{{ updated_queries2 }}"  
+        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
+      with_items: "{{ updated_queries2 }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
@@ -121,13 +116,8 @@
       register: query_result
       ignore_errors: no
 
-     
-
-    - name: Execute deffered_index.sh script
+    - name: Execute deferred_index.sh script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-
-
-
