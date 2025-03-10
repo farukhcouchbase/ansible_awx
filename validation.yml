@@ -38,6 +38,17 @@
     - name: Remove semicolon using regex
       set_fact:
         allowed_queries2: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"
+
+
+    - name: Display not allowed queries in red
+      debug:
+        msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
+      with_items: "{{ not_allowed_queries }}"
+      when: not_allowed_queries | length > 0
+
+    - name: Remove semicolon using regex
+      set_fact:
+        allowed_queries2: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"    
       
 
     - name: Debug - Allowed Queries
