@@ -1,0 +1,29 @@
+---
+- name: Install Couchbase Server on Ubuntu 22.04
+  hosts: couchbase
+  become: yes
+  tasks:
+
+    - name: Download Couchbase release package
+      get_url:
+        url: https://packages.couchbase.com/releases/couchbase-release/couchbase-release-1.0-noarch.deb
+        dest: /tmp/couchbase-release-1.0-noarch.deb
+
+    - name: Install Couchbase release package
+      apt:
+        deb: /tmp/couchbase-release-1.0-noarch.deb
+
+    - name: Update apt repository cache
+      apt:
+        update_cache: yes
+
+    - name: Install Couchbase Server
+      apt:
+        name: couchbase-server
+        state: present
+
+    - name: Start Couchbase Server
+      systemd:
+        name: couchbase-server
+        state: started
+        enabled: yes
