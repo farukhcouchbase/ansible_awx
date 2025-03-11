@@ -1,6 +1,6 @@
 ---
 - name: Install Couchbase Server on Ubuntu 22.04
-  hosts: couchbase
+  hosts: all
   become: yes
   tasks:
 
