@@ -1,6 +1,6 @@
 ---
 - name: Create EC2 Instances
-  hosts: all
+  hosts:  localhost
   gather_facts: no
 
   vars:
