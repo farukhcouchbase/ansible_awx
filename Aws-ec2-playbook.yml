@@ -5,13 +5,13 @@
   gather_facts: no
 
   vars:
-    region: []
-    key_name: []
-    instance_type: []
-    ami_id: []
-    security_groups: []
-    instance_count: []
-    tag_name: []
+    region: "us-east-1"
+    key_name: "Couchbase-cluster"
+    instance_type: "t2.medium"
+    ami_id: "ami-0e1bed4f06a3b463d"
+    security_groups: "default"
+    #nstance_count: []
+    tag_name: "Instance"
 
   tasks:
     - name: Create EC2 instances
