@@ -24,8 +24,8 @@
           assign_public_ip: true
         state: present
         tags:
-          Name: "{{ tag_name }}-{{ item }}"
-      loop: "{{ range(1, instance_count + 1) | list }}"
+          Name: "{{ tag_name }}"
+      #loop: "{{ range(1, instance_count + 1) | list }}"
       register: ec2
 
     - name: Print instance details
