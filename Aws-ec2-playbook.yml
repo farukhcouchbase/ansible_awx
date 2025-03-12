@@ -5,33 +5,33 @@
   #gather_facts: no
 
   vars_prompt:
-    - name: "instance_count"
-      prompt: "Enter the number of instances to create"
-      private: no
+    # - name: "instance_count"
+    #   prompt: "Enter the number of instances to create"
+    #   private: no
 
-    - name: "instance_type"
-      prompt: "Enter the instance type (e.g., t2.micro)"
-      private: no
+    # - name: "instance_type"
+    #   prompt: "Enter the instance type (e.g., t2.micro)"
+    #   private: no
 
-    - name: "ami_id"
-      prompt: "Enter the AMI ID (e.g., ami-0abcdef1234567890)"
-      private: no
+    # - name: "ami_id"
+    #   prompt: "Enter the AMI ID (e.g., ami-0abcdef1234567890)"
+    #   private: no
 
-    - name: "key_name"
-      prompt: "Enter the key pair name for SSH access"
-      private: no
+    # - name: "key_name"
+    #   prompt: "Enter the key pair name for SSH access"
+    #   private: no
 
-    - name: "security_group"
-      prompt: "Enter the security group name"
-      private: no
+    # - name: "security_group"
+    #   prompt: "Enter the security group name"
+    #   private: no
 
-    - name: "region"
-      prompt: "Enter the AWS region (e.g., ap-south-1)"
-      private: no
+    # - name: "region"
+    #   prompt: "Enter the AWS region (e.g., ap-south-1)"
+    #   private: no
 
-    - name: "tag_name"
-      prompt: "Enter the tag name for the instance"
-      private: no
+    # - name: "tag_name"
+    #   prompt: "Enter the tag name for the instance"
+    #   private: no
 
   tasks:
     - name: Create EC2 instances
