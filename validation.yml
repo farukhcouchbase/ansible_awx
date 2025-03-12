@@ -1,123 +1,39 @@
 ---
-- name: Validate and Create Couchbase Indexes
-  hosts: all
+- name: Create EC2 Instances
+  hosts: localhost
   gather_facts: no
+
   vars:
-    couchbase_bin_path: "/path/to/couchbase_bin"
-    couchbase_admin_username: "admin"
-    couchbase_admin_password: "password"
-    index_queries: []
-    deffered_index_path: "/path/to/deffered_index.sh"
+    region: []
+    key_name: []
+    instance_type: []
+    ami_id: []
+    security_groups: []
+    instance_count: []
+    tag_name: []
 
   tasks:
-    - name: Identify and categorize index queries
-      set_fact:
-        allowed_queries: []
-        allowed_queries1: [] 
-        allowed_queries2: []
-        not_allowed_queries: []
+    - name: Create EC2 instances
+      amazon.aws.ec2_instance:
+        region: "{{ region }}"
+        key_name: "{{ key_name }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ ami_id }}"
+        security_groups: "{{ security_groups }}"
+        count: "{{ instance_count | int }}"
+        network:
+          assign_public_ip: true
+        state: present
+        tags:
+          Name: "{{ tag_name }}"
+      register: ec2
 
-    - name: Validate syntax of index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-      register: syntax_check
-      with_items: "{{ index_queries }}"
-      ignore_errors: yes  # Capture syntax errors without failing the playbook    
-
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        - "item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
-
-    - name: Identify not allowed queries
-      set_fact:
-        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-      when:
-        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
-
-    - name: Display not allowed queries in red
+    - name: Print instance details
       debug:
-        msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
-      with_items: "{{ not_allowed_queries }}"
-      when: not_allowed_queries | length > 0  
+        msg: "Instance ID: {{ item.instance_id }}, Public IP: {{ item.public_ip_address | default('N/A') }}"
+      loop: "{{ ec2.instances }}"
+      when: ec2.instances is defined
 
-    - name: Remove semicolon using regex
-      set_fact:
-        allowed_queries2: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"
-
-    - name: Debug - Allowed Queries
+    - name: Debug ec2 structure (if troubleshooting is required)
       debug:
-        msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
-      with_items: "{{ allowed_queries }}"
-
-    - name: Debug - Not Allowed Queries
-      debug:
-        msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
-      with_items: "{{ not_allowed_queries }}"
-
-    - name: Show the modified query
-      debug:
-        msg: "\033[34m{{ allowed_queries2 }}\033[0m"
-
-    - name: Add WITH defer_build and num_replica options in index queries
-      set_fact:
-        updated_queries1: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
-              '"defer_build":true,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
-              '"num_replica":1,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
-              '"defer_build":true, "num_replica":1,')
-            | list
-          }}
-
-    - name: Ensure WITH clause in index queries
-      set_fact:
-        updated_queries2: >-
-          {{
-            allowed_queries2 | map('regex_replace', 
-              'WITH\s*\{[^}]*\}', 
-              'WITH {"defer_build": true, "num_replica": 1}') 
-            | map('regex_replace', 
-              '(?i)(?!.*WITH\s*\{.*\})$', 
-              ' WITH {"defer_build": true, "num_replica": 1}') 
-            | list
-          }}
-
-    - name: Debug - Updated Index Queries
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries1 }}"
-
-    - name: Debug - Updated Index Queries
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries2 }}"
-
-    - name: Execute allowed index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries2 }}"
-      when: updated_queries2 | length > 0
-      register: query_result
-      ignore_errors: no   
-
-    - name: Execute allowed index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries1 }}"
-      when: updated_queries1 | length > 0
-      register: query_result
-      ignore_errors: no
-
-    - name: Execute deferred_index.sh script
-      command: "{{ deffered_index_path }}"
-      args:
-        chdir: "{{ deffered_index_path | dirname }}"
-      register: script_output
+        var: ec2
