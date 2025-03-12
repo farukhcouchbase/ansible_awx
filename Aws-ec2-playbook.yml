@@ -16,7 +16,7 @@
   tasks:
     - name: Create EC2 instances
       ec2_instance:
-        region: "{{ region }}"
+        region: "us-east-1"
         key_name: "{{ key_name }}"
         instance_type: "{{ instance_type }}"
         image_id: "{{ ami_id }}"
