@@ -1,6 +1,6 @@
 ---
 - name: Create EC2 Instances
-  hosts: localhost
+  hosts: all
   gather_facts: no
 
   vars:
@@ -20,20 +20,16 @@
         instance_type: "{{ instance_type }}"
         image_id: "{{ ami_id }}"
         security_groups: "{{ security_groups }}"
-        count: "{{ instance_count | int }}"
         network:
           assign_public_ip: true
         state: present
         tags:
-          Name: "{{ tag_name }}"
+          Name: "{{ tag_name }}-{{ item }}"
+      loop: "{{ range(1, instance_count + 1) | list }}"
       register: ec2
 
     - name: Print instance details
       debug:
         msg: "Instance ID: {{ item.instance_id }}, Public IP: {{ item.public_ip_address | default('N/A') }}"
-      loop: "{{ ec2.instances }}"
-      when: ec2.instances is defined
-
-    - name: Debug ec2 structure (if troubleshooting is required)
-      debug:
-        var: ec2
+      loop: "{{ ec2.results | map(attribute='instances') | list | flatten }}"
+      when: ec2.results is defined
