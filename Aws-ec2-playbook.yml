@@ -26,6 +26,8 @@
             ports:
               - 22  # SSH
               - 80  # HTTP
+              - 443 # HTTPS
+              - 8091 # Couchbase
             cidr_ip: 0.0.0.0/0
       register: security_group
 
@@ -33,9 +35,9 @@
       amazon.aws.ec2_instance:
         name: my-ec2-instance
         key_name: my-key-pair
-        instance_type: t2.micro
+        instance_type: t2.medium
         security_groups: ["my-security-group"]
-        image_id: ami-0c55b159cbfafe1f0  # Example AMI ID (Amazon Linux 2)
+        image_id: ami-08b5b3a93ed654d19  # Example AMI ID (Amazon Linux 2)
         region: us-east-1
         wait: yes
         count: 1
