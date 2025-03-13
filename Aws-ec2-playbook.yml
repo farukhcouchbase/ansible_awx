@@ -4,7 +4,7 @@
   gather_facts: false
   tasks:
     - name: Create an EC2 key pair
-      amazon.aws.ec2_key:
+      ec2_key:
         name: my-key-pair
         region: us-east-1
       register: key_pair
@@ -17,7 +17,7 @@
       when: key_pair.changed
 
     - name: Create a security group
-      amazon.aws.ec2_security_group:
+      ec2_security_group:
         name: my-security-group
         description: Allow SSH and HTTP
         region: us-east-1
@@ -32,7 +32,7 @@
       register: security_group
 
     - name: Launch an EC2 instance
-      amazon.aws.ec2_instance:
+      ec2_instance:
         name: my-ec2-instance
         key_name: my-key-pair
         instance_type: t2.medium
@@ -46,7 +46,7 @@
       register: ec2_instance
 
     - name: Tag the EC2 instance
-      amazon.aws.ec2_tag:
+      ec2_tag:
         region: us-east-1
         resource: "{{ ec2_instance.instances[0].instance_id }}"
         tags:
