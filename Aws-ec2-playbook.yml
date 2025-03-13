@@ -1,42 +1,52 @@
 ---
-- name: Create EC2 Instances
-  hosts:  localhost
-  connection: local
-  gather_facts: no
-
-  vars:
-    region: "us-east-1"
-    key_name: "Couchbase-cluster"
-    instance_type: "t2.medium"
-    ami_id: "ami-0e1bed4f06a3b463d"
-    security_groups: "default"
-    #nstance_count: []
-    tag_name: "Instance"
-
+- name: Launch an EC2 instance on AWS
+  hosts: localhost
+  gather_facts: false
   tasks:
-    - name: Create EC2 instances
-      ec2_instance:
-        region: "us-east-1"
-        key_name: "{{ key_name }}"
-        instance_type: "{{ instance_type }}"
-        image_id: "{{ ami_id }}"
-        security_groups: "{{ security_groups }}"
+    - name: Create an EC2 key pair
+      amazon.aws.ec2_key:
+        name: my-key-pair
+        region: us-east-1
+      register: key_pair
+
+    - name: Save private key
+      copy:
+        content: "{{ key_pair.key.private_key }}"
+        dest: "./my-key-pair.pem"
+        mode: '0600'
+      when: key_pair.changed
+
+    - name: Create a security group
+      amazon.aws.ec2_security_group:
+        name: my-security-group
+        description: Allow SSH and HTTP
+        region: us-east-1
+        rules:
+          - proto: tcp
+            ports:
+              - 22  # SSH
+              - 80  # HTTP
+            cidr_ip: 0.0.0.0/0
+      register: security_group
+
+    - name: Launch an EC2 instance
+      amazon.aws.ec2_instance:
+        name: my-ec2-instance
+        key_name: my-key-pair
+        instance_type: t2.micro
+        security_groups: ["my-security-group"]
+        image_id: ami-0c55b159cbfafe1f0  # Example AMI ID (Amazon Linux 2)
+        region: us-east-1
+        wait: yes
+        count: 1
         network:
-          assign_public_ip: true
-        state: present
+          assign_public_ip: yes
+      register: ec2_instance
+
+    - name: Tag the EC2 instance
+      amazon.aws.ec2_tag:
+        region: us-east-1
+        resource: "{{ ec2_instance.instances[0].instance_id }}"
         tags:
-          Name: "{{ tag_name }}"
-      #loop: "{{ range(1, instance_count + 1) | list }}"
-      register: ec2
-
-    - name: Print instance details
-      debug:
-        msg: "Instance ID: {{ item.instance_id }}, Public IP: {{ item.public_ip_address | default('N/A') }}"
-      loop: "{{ ec2.instances }}"
-      when: ec2.instances is defined  
-
-    # - name: Print instance details
-    #   debug:
-    #     msg: "Instance ID: {{ item.instance_id }}, Public IP: {{ item.public_ip_address | default('N/A') }}"
-    #   loop: "{{ ec2.results | map(attribute='instances') | list | flatten }}"
-    #   when: ec2.results is defined
+          Name: my-ec2-instance
+          Environment: Dev
