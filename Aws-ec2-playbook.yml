@@ -19,7 +19,7 @@
       delegate_to: localhost
 
     - name: Create a security group
-      amazon.aws.ec2_group:
+      ec2_group:
         name: my-security-group
         description: Allow SSH and HTTP
         region: us-east-1
