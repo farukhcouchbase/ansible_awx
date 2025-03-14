@@ -1,61 +1,71 @@
+---
 - name: Launch an EC2 instance on AWS
   hosts: localhost
   connection: local
   gather_facts: false
+  vars:
+    region: us-east-1
+    key_pair_name: my-key-pair
+    security_group_name: my-security-group
+    instance_name: my-ec2-instance
+    instance_type: t2.medium
+    ami_id: ami-08b5b3a93ed654d19
+    instance_count: 2
+    security_group_rules:
+      - proto: tcp
+        ports:
+          - 22
+          - 80
+          - 443
+          - 8091
+        cidr_ip: 0.0.0.0/0
+    environment: Dev
   tasks:
     - name: Create an EC2 key pair
       ec2_key:
-        name: my-key-pair
-        region: us-east-1
+        name: "{{ key_pair_name }}"
+        region: "{{ region }}"
       register: key_pair
       delegate_to: localhost
 
     - name: Save private key
       copy:
         content: "{{ key_pair.key.private_key }}"
-        dest: "./my-key-pair.pem"
+        dest: "./{{ key_pair_name }}.pem"
         mode: '0600'
       when: key_pair.changed
       delegate_to: localhost
 
     - name: Create a security group
       ec2_group:
-        name: my-security-group
+        name: "{{ security_group_name }}"
         description: Allow SSH and HTTP
-        region: us-east-1
-        rules:
-          - proto: tcp
-            ports:
-              - 22
-              - 80
-              - 443
-              - 8091
-            cidr_ip: 0.0.0.0/0
+        region: "{{ region }}"
+        rules: "{{ security_group_rules }}"
       register: security_group
       delegate_to: localhost
 
-    - name: Launch an EC2 instance
+    - name: Launch EC2 instances
       ec2_instance:
-        name: my-ec2-instance
-        key_name: my-key-pair
-        instance_type: t2.medium
-        security_groups: ["my-security-group"]
-        image_id: ami-08b5b3a93ed654d19
-        region: us-east-1
+        name: "{{ instance_name }}"
+        key_name: "{{ key_pair_name }}"
+        instance_type: "{{ instance_type }}"
+        security_groups: ["{{ security_group_name }}"]
+        image_id: "{{ ami_id }}"
+        region: "{{ region }}"
         wait: yes
-       # count: 1
         network:
           assign_public_ip: yes
-      loop: "{{ range(0, 2) | list }}"    
+      loop: "{{ range(0, instance_count) | list }}"
       register: ec2_instance
       delegate_to: localhost
 
     - name: Tag the EC2 instances
       ec2_tag:
-        region: us-east-1
+        region: "{{ region }}"
         resource: "{{ item.instances[0].instance_id }}"
         tags:
-          Name: my-ec2-instance
-          Environment: Dev 
+          Name: "{{ instance_name }}"
+          Environment: "{{ environment }}"
       loop: "{{ ec2_instance.results }}"
       delegate_to: localhost
