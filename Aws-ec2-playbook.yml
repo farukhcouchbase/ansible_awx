@@ -50,12 +50,12 @@
       register: ec2_instance
       delegate_to: localhost
 
-    - name: Tag the EC2 instance
+    - name: Tag the EC2 instances
       ec2_tag:
         region: us-east-1
-        resource: "{{ ec2_instance.instances[0].instance_id }}"
+        resource: "{{ item.instances[0].instance_id }}"
         tags:
           Name: my-ec2-instance
           Environment: Dev
-      loop: "{{ ec2_instance.results }}"    
+      loop: "{{ ec2_instance.results }}"
       delegate_to: localhost
