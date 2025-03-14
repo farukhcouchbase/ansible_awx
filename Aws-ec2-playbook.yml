@@ -50,7 +50,7 @@
       delegate_to: localhost
 
     - name: Tag the EC2 instance
-      amazon.aws.ec2_tag:
+      ec2_tag:
         region: us-east-1
         resource: "{{ ec2_instance.instances[0].instance_id }}"
         tags:
