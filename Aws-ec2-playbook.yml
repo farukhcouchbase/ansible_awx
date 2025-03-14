@@ -4,7 +4,7 @@
   gather_facts: false
   tasks:
     - name: Create an EC2 key pair
-      amazon.aws.ec2_key:
+      ec2_key:
         name: my-key-pair
         region: us-east-1
       register: key_pair
