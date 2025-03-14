@@ -17,7 +17,7 @@
       when: key_pair.changed
 
     - name: Create a security group
-      ec2_security_group:
+      amazon.aws.ec2_group:
         name: my-security-group
         description: Allow SSH and HTTP
         region: us-east-1
