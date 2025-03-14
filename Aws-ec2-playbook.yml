@@ -46,6 +46,7 @@
        # count: 1
         network:
           assign_public_ip: yes
+      loop: "{{ range(0, 2) | list }}"    
       register: ec2_instance
       delegate_to: localhost
 
