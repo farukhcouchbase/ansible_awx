@@ -56,6 +56,6 @@
         resource: "{{ item.instances[0].instance_id }}"
         tags:
           Name: my-ec2-instance
-          Environment: Dev
+          Environment: Dev 
       loop: "{{ ec2_instance.results }}"
       delegate_to: localhost
