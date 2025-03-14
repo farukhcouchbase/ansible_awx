@@ -35,7 +35,7 @@
       delegate_to: localhost
 
     - name: Launch an EC2 instance
-      amazon.aws.ec2_instance:
+      ec2_instance:
         name: my-ec2-instance
         key_name: my-key-pair
         instance_type: t2.medium
