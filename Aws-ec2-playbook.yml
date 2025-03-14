@@ -57,4 +57,5 @@
         tags:
           Name: my-ec2-instance
           Environment: Dev
+      loop: "{{ ec2_instance.results }}"    
       delegate_to: localhost
