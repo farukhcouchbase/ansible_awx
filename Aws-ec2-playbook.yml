@@ -1,5 +1,5 @@
 ---
-- name: Launch an EC2 instance on AWS
+- name: Launch multiple EC2 instances on AWS
   hosts: localhost
   connection: local
   gather_facts: false
@@ -45,7 +45,7 @@
       register: security_group
       delegate_to: localhost
 
-    - name: Launch EC2 instances
+    - name: Launch multiple EC2 instances
       ec2_instance:
         name: "{{ instance_name }}"
         key_name: "{{ key_pair_name }}"
@@ -53,19 +53,19 @@
         security_groups: ["{{ security_group_name }}"]
         image_id: "{{ ami_id }}"
         region: "{{ region }}"
+        count: "{{ instance_count }}"
         wait: yes
         network:
           assign_public_ip: yes
-      loop: "{{ range(0, instance_count) | list }}"
-      register: ec2_instance
+      register: ec2_instances
       delegate_to: localhost
 
     - name: Tag the EC2 instances
       ec2_tag:
         region: "{{ region }}"
-        resource: "{{ item.instances[0].instance_id }}"
+        resource: "{{ item.instance_id }}"
         tags:
           Name: "{{ instance_name }}"
           Environment: "{{ environment }}"
-      loop: "{{ ec2_instance.results }}"
+      loop: "{{ ec2_instances.instances }}"
       delegate_to: localhost
