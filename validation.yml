@@ -8,6 +8,7 @@
     couchbase_admin_password: "password"
     index_queries: []
     deffered_index_path: "/path/to/deffered_index.sh"
+    default_index_path:  "/path/to/default_index.sh"
 
   tasks:
     - name: Identify and categorize index queries
@@ -121,3 +122,9 @@
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
+
+    - name: Execute default_index_path.sh script
+      command: "{{ default_index_path }}"
+      args:
+        chdir: "{{ default_index_path | dirname }}"
+      register: script_output  
