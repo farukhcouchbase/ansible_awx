@@ -9,13 +9,13 @@
     index_queries: []
     INDEX_NAME: []
     deffered_index_path: "/path/to/deffered_index.sh"
-    default_index_path: "/path/to/default_index.sh"
+    default_index_path:  "/path/to/default_index.sh"
 
   tasks:
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
-        allowed_queries1: []
+        allowed_queries1: [] 
         allowed_queries2: []
         not_allowed_queries: []
 
@@ -43,10 +43,17 @@
           }}
       with_items: "{{ index_queries }}"
 
+    - name: Debug index field map
+      debug:
+        var: index_field_map
+
     - name: Identify duplicate indexes on the same fields
       set_fact:
         duplicate_indexes: "{{ duplicate_indexes + index_field_map[item] }}"
-      when: "index_field_map[item] | length > 1"
+      when:
+        - item is not none
+        - item in index_field_map
+        - index_field_map[item] | length > 1
       with_items: "{{ index_field_map.keys() }}"
 
     - name: Fail if multiple indexes exist on the same fields
@@ -74,7 +81,7 @@
       debug:
         msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
       with_items: "{{ not_allowed_queries }}"
-      when: not_allowed_queries | length > 0
+      when: not_allowed_queries | length > 0  
 
     - name: Remove semicolon using regex
       set_fact:
@@ -93,22 +100,6 @@
     - name: Show the modified query
       debug:
         msg: "\033[34m{{ allowed_queries2 }}\033[0m"
-
-    - name: Add WITH defer_build and num_replica options in index queries
-      set_fact:
-        updated_queries1: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
-              '"defer_build":true,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
-              '"num_replica":1,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
-              '"defer_build":true, "num_replica":1,')
-            | list
-          }}
 
     - name: Ensure WITH clause in index queries
       set_fact:
@@ -133,7 +124,7 @@
       with_items: "{{ updated_queries2 }}"
       when: updated_queries2 | length > 0
       register: query_result
-      ignore_errors: no
+      ignore_errors: no   
 
     - name: Execute deferred_index.sh script
       command: "{{ deffered_index_path }}"
