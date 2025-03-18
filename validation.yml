@@ -26,18 +26,7 @@
       #ignore_errors: yes  # Prevents failure from stopping execution
       failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
-    - name: Identify incorrect queries
-      set_fact:
-        incorrect_queries: "{{ incorrect_queries | default([]) + [item.item] }}"
-      with_items: "{{ syntax_check.results }}"
-      when: "'syntax error' in item.stderr or 'syntax error' in item.stdout"
-
-    - name: Identify correct queries
-      set_fact:
-        correct_queries: "{{ correct_queries | default([]) + [item.item] }}"
-      with_items: "{{ syntax_check.results }}"
-      when: "'syntax error' not in item.stderr and 'syntax error' not in item.stdout"
-
+   
    
 
     
