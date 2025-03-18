@@ -32,9 +32,17 @@
     
 
     
-    - name: Initialize index field map
+   
+    - name: Identify duplicate indexes on the same fields
+      set_fact:
+        duplicate_indexes: "{{ duplicate_indexes + index_field_map[item] }}"
+      when: "item in index_field_map and index_field_map[item] | length > 1"
+      with_items: "{{ index_field_map.keys() | list }}"    
+
+     - name: Initialize index field map
       set_fact:
         index_field_map: {}
+  
     
   
     # - name: Extract index names and fields from queries
