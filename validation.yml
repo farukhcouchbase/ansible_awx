@@ -55,20 +55,20 @@
         msg: "{{ corrected_queries }}"
       when: corrected_queries is defined
 
-    # - name: Validate index queries (Disallow WHERE clause with document type and Meta().id)
-    #   set_fact:
-    #     not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-    #   when:
-    #     - "item | regex_search('WHERE\\s+doc\\s*=\\s*', ignorecase=True)"
-    #     - "item | regex_search('META\\(\\)\\.id', ignorecase=True)"
-    #   with_items: "{{ index_queries }}"
+    - name: Validate index queries (Disallow WHERE clause with document type and Meta().id)
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+      when:
+        - "item | regex_search('WHERE\\s+doc\\s*=\\s*', ignorecase=True)"
+        - "item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+      with_items: "{{ index_queries }}"
 
-    # - name: Identify duplicate index fields
-    #   set_fact:
-    #     duplicate_indexes: "{{ duplicate_indexes | default([]) + [item] }}"
-    #   when:
-    #     - "index_queries | select('search', item.split('(')[1].split(')')[0]) | list | length > 1"
-    #   with_items: "{{ index_queries }}"  
+    - name: Identify duplicate index fields
+      set_fact:
+        duplicate_indexes: "{{ duplicate_indexes | default([]) + [item] }}"
+      when:
+        - "index_queries | select('search', item.split('(')[1].split(')')[0]) | list | length > 1"
+      with_items: "{{ index_queries }}"  
   
 
     - name: Validate index queries
