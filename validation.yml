@@ -38,23 +38,11 @@
       with_items: "{{ syntax_check.results }}"
       when: "'syntax error' not in item.stderr and 'syntax error' not in item.stdout"
 
-    - name: Suggest corrected queries
-      set_fact:
-        corrected_queries: "{{ corrected_queries | default([]) + [lookup('template', 'fix_couchbase_query.j2', item=item)] }}"
-      with_items: "{{ incorrect_queries }}"
-      when: incorrect_queries is defined
+   
 
-    - name: Show valid queries
-      debug:
-        msg: "Valid Query: {{ item }}"
-      with_items: "{{ correct_queries }}"
-      when: correct_queries is defined
+    
 
-    - name: Show invalid queries and suggestions
-      debug:
-        msg: "{{ corrected_queries }}"
-      when: corrected_queries is defined
-
+    
     - name: Validate index queries (Disallow WHERE clause with document type and Meta().id)
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
