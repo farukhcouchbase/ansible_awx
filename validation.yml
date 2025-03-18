@@ -32,7 +32,10 @@
     
 
     
-   
+    - name: Initialize index field map
+      set_fact:
+        index_field_map: {}
+    
   
     # - name: Extract index names and fields from queries
     #   set_fact:
