@@ -34,17 +34,17 @@
     
    
   
-    - name: Extract index names and fields from queries
-      set_fact:
-        index_field_map: >-
-          {{
-            index_field_map | default({})
-            | combine({
-              (item | regex_search('CREATE INDEX \\w+ ON \\w+\\.\\w+\\(([^)]+)\\)', '\\1') | trim):
-                (index_field_map.get(item | regex_search('CREATE INDEX \\w+ ON \\w+\\.\\w+\\(([^)]+)\\)', '\\1') | trim, []) + [item]
-            })
-          }}
-      with_items: "{{ index_queries }}"
+    # - name: Extract index names and fields from queries
+    #   set_fact:
+    #     index_field_map: >-
+    #       {{
+    #         index_field_map | default({})
+    #         | combine({
+    #           (item | regex_search('CREATE INDEX \\w+ ON \\w+\\.\\w+\\(([^)]+)\\)', '\\1') | trim):
+    #             (index_field_map.get(item | regex_search('CREATE INDEX \\w+ ON \\w+\\.\\w+\\(([^)]+)\\)', '\\1') | trim, []) + [item]
+    #         })
+    #       }}
+    #   with_items: "{{ index_queries }}"
 
     - name: Identify duplicate indexes on the same fields
       set_fact:
