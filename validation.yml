@@ -23,8 +23,8 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
-      ignore_errors: yes  # Prevents failure from stopping execution
-      #failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
+      #ignore_errors: yes  # Prevents failure from stopping execution
+      failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
     - name: Identify incorrect queries
       set_fact:
