@@ -9,13 +9,13 @@
     index_queries: []
     INDEX_NAME: []
     deffered_index_path: "/path/to/deffered_index.sh"
-    default_index_path:  "/path/to/default_index.sh"
+    default_index_path: "/path/to/default_index.sh"
 
   tasks:
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
-        allowed_queries1: [] 
+        allowed_queries1: []
         allowed_queries2: []
         not_allowed_queries: []
 
@@ -23,43 +23,29 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
-      #ignore_errors: yes  # Prevents failure from stopping execution
       failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
-   
-   
-
-    
-
-    - name: Initialize index field map
+    - name: Initialize index field map and allowed queries
       set_fact:
         index_field_map: {}
-  
-    
-   
+        allowed_queries: []
+        duplicate_indexes: []
+
+    - name: Extract index names and fields from queries
+      set_fact:
+        index_field_map: >-
+          {{
+            index_field_map | default({})
+            | combine({
+              (item | regex_search('CREATE INDEX \w+ ON \w+\.\w+\(([^)]+)\)', '\1') | trim):
+                (index_field_map.get(item | regex_search('CREATE INDEX \w+ ON \w+\.\w+\(([^)]+)\)', '\1') | trim, []) + [item])
+            })
+          }}
+      with_items: "{{ index_queries }}"
+
     - name: Identify duplicate indexes on the same fields
       set_fact:
         duplicate_indexes: "{{ duplicate_indexes + index_field_map[item] }}"
-      when: "item in index_field_map and index_field_map[item] | length > 1"
-      with_items: "{{ index_field_map.keys() | list }}"    
-
-  
-  
-    # - name: Extract index names and fields from queries
-    #   set_fact:
-    #     index_field_map: >-
-    #       {{
-    #         index_field_map | default({})
-    #         | combine({
-    #           (item | regex_search('CREATE INDEX \\w+ ON \\w+\\.\\w+\\(([^)]+)\\)', '\\1') | trim):
-    #             (index_field_map.get(item | regex_search('CREATE INDEX \\w+ ON \\w+\\.\\w+\\(([^)]+)\\)', '\\1') | trim, []) + [item]
-    #         })
-    #       }}
-    #   with_items: "{{ index_queries }}"
-
-    - name: Identify duplicate indexes on the same fields
-      set_fact:
-        duplicate_indexes: "{{ duplicate_indexes | default([]) + index_field_map[item] }}"
       when: "index_field_map[item] | length > 1"
       with_items: "{{ index_field_map.keys() }}"
 
@@ -67,6 +53,7 @@
       fail:
         msg: "❌ Multiple indexes with different names found on the same fields: {{ duplicate_indexes }}"
       when: duplicate_indexes | length > 0
+
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
@@ -87,7 +74,7 @@
       debug:
         msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
       with_items: "{{ not_allowed_queries }}"
-      when: not_allowed_queries | length > 0  
+      when: not_allowed_queries | length > 0
 
     - name: Remove semicolon using regex
       set_fact:
@@ -139,24 +126,12 @@
     - name: Debug - Updated Index Queries
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries1 }}"
-
-    - name: Debug - Updated Index Queries
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries2 }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries2 }}"
       when: updated_queries2 | length > 0
-      register: query_result
-      ignore_errors: no   
-
-    - name: Execute allowed index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries1 }}"
-      when: updated_queries1 | length > 0
       register: query_result
       ignore_errors: no
 
@@ -165,9 +140,3 @@
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-
-    # - name: Execute default_index_path.sh script
-    #   command: "{{ default_index_path }}"
-    #   args:
-    #     chdir: "{{ default_index_path | dirname }}"
-    #   register: script_output  
