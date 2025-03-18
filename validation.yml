@@ -23,7 +23,12 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
-      ignore_errors: no  # Capture syntax errors without failing the playbook    
+      failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
+      
+    - name: Stop playbook if syntax error is found
+      fail:
+        msg: "Syntax error detected in one or more index queries. Fix the queries and re-run the playbook."
+      when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
     - name: Validate index queries
       set_fact:
