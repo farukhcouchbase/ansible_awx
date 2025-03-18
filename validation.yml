@@ -24,6 +24,24 @@
       register: syntax_check
       with_items: "{{ index_queries }}"
       failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
+
+    - name: Validate syntax of index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
+      register: syntax_check
+      with_items: "{{ index_queries }}"
+      failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
+
+    - name: Suggest corrected queries for invalid ones
+      set_fact:
+        corrected_queries: "{{ corrected_queries | default([]) + [lookup('template', 'fix_couchbase_query.j2', item=item.item)] }}"
+      with_items: "{{ syntax_check.results }}"
+      when: "'syntax error' in item.stderr or 'syntax error' in item.stdout"
+
+    - name: Show suggested corrections
+      debug:
+        msg: "{{ corrected_queries }}"
+      when: corrected_queries is defined
+  
       
     # - name: Stop playbook if syntax error is found
     #   fail:
