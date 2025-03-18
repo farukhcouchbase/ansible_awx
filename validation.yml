@@ -23,7 +23,7 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
-      ignore_errors: yes  # Capture syntax errors without failing the playbook    
+      ignore_errors: no  # Capture syntax errors without failing the playbook    
 
     - name: Validate index queries
       set_fact:
