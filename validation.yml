@@ -23,43 +23,38 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
+      #ignore_errors: yes  # Prevents failure from stopping execution
       failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
-    # - name: Initialize index field map and allowed queries
-    #   set_fact:
-    #     index_field_map: {}
-    #     allowed_queries: []
-    #     duplicate_indexes: []
+    - name: Identify incorrect queries
+      set_fact:
+        incorrect_queries: "{{ incorrect_queries | default([]) + [item.item] }}"
+      with_items: "{{ syntax_check.results }}"
+      when: "'syntax error' in item.stderr or 'syntax error' in item.stdout"
 
-    # - name: Extract index names and fields from queries (case-insensitive)
-    #   set_fact:
-    #     index_field_map: >-
-    #       {{
-    #         index_field_map | default({})
-    #         | combine({
-    #           (item | lower | regex_search('create index \\w+ on \\w+\\.\\w+\\(([^)]+)\\)', '\1') | trim):
-    #             (index_field_map.get(item | lower | regex_search('create index \\w+ on \\w+\\.\\w+\\(([^)]+)\\)', '\1') | trim, []) + [item])
-    #         })
-    #       }}
-    #   with_items: "{{ index_queries }}"
+    - name: Identify correct queries
+      set_fact:
+        correct_queries: "{{ correct_queries | default([]) + [item.item] }}"
+      with_items: "{{ syntax_check.results }}"
+      when: "'syntax error' not in item.stderr and 'syntax error' not in item.stdout"
 
-    # - name: Debug index field map
-    #   debug:
-    #     var: index_field_map
+    - name: Suggest corrected queries
+      set_fact:
+        corrected_queries: "{{ corrected_queries | default([]) + [lookup('template', 'fix_couchbase_query.j2', item=item)] }}"
+      with_items: "{{ incorrect_queries }}"
+      when: incorrect_queries is defined
 
-    # - name: Identify duplicate indexes on the same fields
-    #   set_fact:
-    #     duplicate_indexes: "{{ duplicate_indexes + index_field_map[item] }}"
-    #   when:
-    #     - item is not none
-    #     - item in index_field_map
-    #     - index_field_map[item] | length > 1
-    #   with_items: "{{ index_field_map.keys() }}"
+    - name: Show valid queries
+      debug:
+        msg: "Valid Query: {{ item }}"
+      with_items: "{{ correct_queries }}"
+      when: correct_queries is defined
 
-    # - name: Fail if multiple indexes exist on the same fields
-    #   fail:
-    #     msg: "❌ Multiple indexes with different names found on the same fields: {{ duplicate_indexes }}"
-    #   when: duplicate_indexes | length > 0
+    - name: Show invalid queries and suggestions
+      debug:
+        msg: "{{ corrected_queries }}"
+      when: corrected_queries is defined
+  
 
     - name: Validate index queries
       set_fact:
@@ -101,6 +96,22 @@
       debug:
         msg: "\033[34m{{ allowed_queries2 }}\033[0m"
 
+    - name: Add WITH defer_build and num_replica options in index queries
+      set_fact:
+        updated_queries1: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
+              '"num_replica":1,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true, "num_replica":1,')
+            | list
+          }}
+
     - name: Ensure WITH clause in index queries
       set_fact:
         updated_queries2: >-
@@ -117,6 +128,11 @@
     - name: Debug - Updated Index Queries
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
+      with_items: "{{ updated_queries1 }}"
+
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries2 }}"
 
     - name: Execute allowed index queries
@@ -126,8 +142,21 @@
       register: query_result
       ignore_errors: no   
 
+    - name: Execute allowed index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated_queries1 }}"
+      when: updated_queries1 | length > 0
+      register: query_result
+      ignore_errors: no
+
     - name: Execute deferred_index.sh script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
+
+    # - name: Execute default_index_path.sh script
+    #   command: "{{ default_index_path }}"
+    #   args:
+    #     chdir: "{{ default_index_path | dirname }}"
+    #   register: script_output  
