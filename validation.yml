@@ -25,10 +25,10 @@
       with_items: "{{ index_queries }}"
       failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
       
-    - name: Stop playbook if syntax error is found
-      fail:
-        msg: "Syntax error detected in one or more index queries. Fix the queries and re-run the playbook."
-      when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
+    # - name: Stop playbook if syntax error is found
+    #   fail:
+    #     msg: "Syntax error detected in one or more index queries. Fix the queries and re-run the playbook."
+    #   when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
     - name: Validate index queries
       set_fact:
