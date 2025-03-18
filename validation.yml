@@ -32,22 +32,30 @@
     
 
     
-    - name: Validate index queries (Disallow WHERE clause with document type and Meta().id)
+   
+  
+    - name: Extract index names and fields from queries
       set_fact:
-        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-      when:
-        - "item | regex_search('WHERE\\s+doc\\s*=\\s*', ignorecase=True)"
-        - "item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+        index_field_map: >-
+          {{
+            index_field_map | default({})
+            | combine({
+              (item | regex_search('CREATE INDEX \\w+ ON \\w+\\.\\w+\\(([^)]+)\\)', '\\1') | trim):
+                (index_field_map.get(item | regex_search('CREATE INDEX \\w+ ON \\w+\\.\\w+\\(([^)]+)\\)', '\\1') | trim, []) + [item]
+            })
+          }}
       with_items: "{{ index_queries }}"
 
-    - name: Identify duplicate index fields
+    - name: Identify duplicate indexes on the same fields
       set_fact:
-        duplicate_indexes: "{{ duplicate_indexes | default([]) + [item] }}"
-      when:
-        - "index_queries | select('search', item.split('(')[1].split(')')[0]) | list | length > 1"
-      with_items: "{{ index_queries }}"  
-  
+        duplicate_indexes: "{{ duplicate_indexes | default([]) + index_field_map[item] }}"
+      when: "index_field_map[item] | length > 1"
+      with_items: "{{ index_field_map.keys() }}"
 
+    - name: Fail if multiple indexes exist on the same fields
+      fail:
+        msg: "❌ Multiple indexes with different names found on the same fields: {{ duplicate_indexes }}"
+      when: duplicate_indexes | length > 0
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
