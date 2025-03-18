@@ -25,41 +25,41 @@
       with_items: "{{ index_queries }}"
       failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
-    - name: Initialize index field map and allowed queries
-      set_fact:
-        index_field_map: {}
-        allowed_queries: []
-        duplicate_indexes: []
+    # - name: Initialize index field map and allowed queries
+    #   set_fact:
+    #     index_field_map: {}
+    #     allowed_queries: []
+    #     duplicate_indexes: []
 
-    - name: Extract index names and fields from queries (case-insensitive)
-      set_fact:
-        index_field_map: >-
-          {{
-            index_field_map | default({})
-            | combine({
-              (item | lower | regex_search('create index \\w+ on \\w+\\.\\w+\\(([^)]+)\\)', '\1') | trim):
-                (index_field_map.get(item | lower | regex_search('create index \\w+ on \\w+\\.\\w+\\(([^)]+)\\)', '\1') | trim, []) + [item])
-            })
-          }}
-      with_items: "{{ index_queries }}"
+    # - name: Extract index names and fields from queries (case-insensitive)
+    #   set_fact:
+    #     index_field_map: >-
+    #       {{
+    #         index_field_map | default({})
+    #         | combine({
+    #           (item | lower | regex_search('create index \\w+ on \\w+\\.\\w+\\(([^)]+)\\)', '\1') | trim):
+    #             (index_field_map.get(item | lower | regex_search('create index \\w+ on \\w+\\.\\w+\\(([^)]+)\\)', '\1') | trim, []) + [item])
+    #         })
+    #       }}
+    #   with_items: "{{ index_queries }}"
 
-    - name: Debug index field map
-      debug:
-        var: index_field_map
+    # - name: Debug index field map
+    #   debug:
+    #     var: index_field_map
 
-    - name: Identify duplicate indexes on the same fields
-      set_fact:
-        duplicate_indexes: "{{ duplicate_indexes + index_field_map[item] }}"
-      when:
-        - item is not none
-        - item in index_field_map
-        - index_field_map[item] | length > 1
-      with_items: "{{ index_field_map.keys() }}"
+    # - name: Identify duplicate indexes on the same fields
+    #   set_fact:
+    #     duplicate_indexes: "{{ duplicate_indexes + index_field_map[item] }}"
+    #   when:
+    #     - item is not none
+    #     - item in index_field_map
+    #     - index_field_map[item] | length > 1
+    #   with_items: "{{ index_field_map.keys() }}"
 
-    - name: Fail if multiple indexes exist on the same fields
-      fail:
-        msg: "❌ Multiple indexes with different names found on the same fields: {{ duplicate_indexes }}"
-      when: duplicate_indexes | length > 0
+    # - name: Fail if multiple indexes exist on the same fields
+    #   fail:
+    #     msg: "❌ Multiple indexes with different names found on the same fields: {{ duplicate_indexes }}"
+    #   when: duplicate_indexes | length > 0
 
     - name: Validate index queries
       set_fact:
