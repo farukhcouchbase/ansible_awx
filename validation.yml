@@ -39,7 +39,7 @@
       when: "item in index_field_map and index_field_map[item] | length > 1"
       with_items: "{{ index_field_map.keys() | list }}"    
 
-     - name: Initialize index field map
+    - name: Initialize index field map
       set_fact:
         index_field_map: {}
   
