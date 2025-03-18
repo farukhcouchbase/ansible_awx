@@ -23,30 +23,37 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
-      failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
+      ignore_errors: yes  # Prevents failure from stopping execution
 
-    - name: Validate syntax of index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-      register: syntax_check
-      with_items: "{{ index_queries }}"
-      failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
-
-    - name: Suggest corrected queries for invalid ones
+    - name: Identify incorrect queries
       set_fact:
-        corrected_queries: "{{ corrected_queries | default([]) + [lookup('template', 'fix_couchbase_query.j2', item=item.item)] }}"
+        incorrect_queries: "{{ incorrect_queries | default([]) + [item.item] }}"
       with_items: "{{ syntax_check.results }}"
       when: "'syntax error' in item.stderr or 'syntax error' in item.stdout"
 
-    - name: Show suggested corrections
+    - name: Identify correct queries
+      set_fact:
+        correct_queries: "{{ correct_queries | default([]) + [item.item] }}"
+      with_items: "{{ syntax_check.results }}"
+      when: "'syntax error' not in item.stderr and 'syntax error' not in item.stdout"
+
+    - name: Suggest corrected queries
+      set_fact:
+        corrected_queries: "{{ corrected_queries | default([]) + [lookup('template', 'fix_couchbase_query.j2', item=item)] }}"
+      with_items: "{{ incorrect_queries }}"
+      when: incorrect_queries is defined
+
+    - name: Show valid queries
+      debug:
+        msg: "Valid Query: {{ item }}"
+      with_items: "{{ correct_queries }}"
+      when: correct_queries is defined
+
+    - name: Show invalid queries and suggestions
       debug:
         msg: "{{ corrected_queries }}"
       when: corrected_queries is defined
   
-      
-    # - name: Stop playbook if syntax error is found
-    #   fail:
-    #     msg: "Syntax error detected in one or more index queries. Fix the queries and re-run the playbook."
-    #   when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
     - name: Validate index queries
       set_fact:
