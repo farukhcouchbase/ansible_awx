@@ -1,0 +1,13 @@
+{% set query = item %}
+
+{% if "PRIMARY INDEX" in query %}
+  Query Error: PRIMARY INDEX creation detected. Use "CREATE PRIMARY INDEX ON `<bucket>`" instead.
+{% elif "()" in query %}
+  Query Error: Malformed keyspace detected. Correct format: "bucket.scope.collection".
+  Suggestion: {{ query.replace("()", "") }}
+{% elif "ON" not in query %}
+  Query Error: Missing "ON" keyword. Couchbase index creation format is:
+  Suggestion: "CREATE INDEX idx_name ON bucket(scope.collection, field);"
+{% else %}
+  Query Error: Syntax issue detected. Please verify Couchbase documentation.
+{% endif %}
