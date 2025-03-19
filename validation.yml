@@ -23,8 +23,29 @@
   
 
   
-    
+    - name: Validate number of fields in index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+      when:
+        - item | regex_search('CREATE INDEX', ignorecase=True)
+        - item | regex_findall('\\((.*?)\\)', item) | first | split(',') | list | length <= 2
+      with_items: "{{ index_queries }}"
 
+    - name: Identify queries exceeding field limit
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+      when:
+        - item | regex_search('CREATE INDEX', ignorecase=True)
+        - item | regex_findall('\\((.*?)\\)', item) | first | split(',') | list | length > 2
+      with_items: "{{ index_queries }}"
+
+      
+    - name: Display Not Allowed Queries Exceeding Field Limit
+      debug:
+        msg: "\033[1;31mIndex Query Exceeds Allowed Field Limit (2): {{ item }}\033[0m"
+      with_items: "{{ not_allowed_queries }}"
+      when: not_allowed_queries | length > 0
    
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
