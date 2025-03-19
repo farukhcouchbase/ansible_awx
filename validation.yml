@@ -30,8 +30,9 @@
       when:
         - "item is search('CREATE INDEX')"
         - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"  # Extracts fields inside ON(...)
-        - "(item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1') | split(',') | length) > 2"
+        - "(item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1') | trim | replace('`', '') | split(',') | list | length) > 2"
       with_items: "{{ index_queries }}"
+
 
     - name: Identify not allowed queries
       set_fact:
