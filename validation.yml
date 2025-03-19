@@ -29,16 +29,25 @@
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
       with_items: "{{ index_queries }}"
-      when:
+      when: 
         - "item is search('CREATE INDEX')"
         - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"
 
-    - name: Convert field list to an array and filter out queries exceeding 2 fields
+    - name: Convert field list to an array
       set_fact:
-        queries_exceeding_fields: "{{ queries_exceeding_fields + [item] }}"
+        query_field_list: "{{ query_field_list | default({}) | combine({item.key: item.value | replace('`', '') | regex_replace('\\s+', '') | split(',') }) }}"
       with_dict: "{{ query_field_mapping }}"
-      when:
-        - "query_field_mapping[item] | replace('`', '') | split(',') | length > 2"
+
+    - name: Identify queries exceeding 2 fields
+      set_fact:
+        queries_exceeding_fields: "{{ queries_exceeding_fields | default([]) + [item.key] }}"
+      with_dict: "{{ query_field_list }}"
+      when: "query_field_list[item.key] | length > 2"
+
+    - name: Debug - Queries exceeding field limits
+      debug:
+        msg: "Query exceeds field limit: {{ item }}"
+      with_items: "{{ queries_exceeding_fields }}"
 
     - name: Validate index queries
       set_fact:
