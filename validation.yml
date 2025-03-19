@@ -1,4 +1,3 @@
----
 - name: Validate and Create Couchbase Indexes
   hosts: all
   gather_facts: no
@@ -30,7 +29,7 @@
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
       with_items: "{{ index_queries }}"
-      when: 
+      when:
         - "item is search('CREATE INDEX')"
         - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"
 
@@ -51,6 +50,11 @@
       debug:
         msg: "Query exceeds field limit: {{ item }}"
       with_items: "{{ queries_exceeding_fields }}"
+
+    - name: Stop execution if any query exceeds allowed field count
+      fail:
+        msg: "The following queries exceed the allowed field count (2 fields): {{ queries_exceeding_fields }}"
+      when: queries_exceeding_fields | length > 0
 
     - name: Validate index queries
       set_fact:
@@ -122,24 +126,24 @@
             | list
           }}
 
-    - name: Debug - Updated Index Queries
+    - name: Debug - Updated Index Queries (Method 1)
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries1 }}"
 
-    - name: Debug - Updated Index Queries
+    - name: Debug - Updated Index Queries (Method 2)
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries2 }}"
 
-    - name: Execute allowed index queries
+    - name: Execute allowed index queries (Method 2)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries2 }}"
       when: updated_queries2 | length > 0
       register: query_result
-      ignore_errors: no   
+      ignore_errors: no
 
-    - name: Execute allowed index queries
+    - name: Execute allowed index queries (Method 1)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries1 }}"
       when: updated_queries1 | length > 0
