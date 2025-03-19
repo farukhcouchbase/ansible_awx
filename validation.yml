@@ -27,7 +27,7 @@
       set_fact:
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when:
-        - "item | regex_findall('\\(([^)]+)\\)', ignorecase=True) | first | split(',') | length > 1"
+        - "item | regex_findall('\\(([^)]+)\\)', ignorecase=True) | first | split(',') | length > 6"
       with_items: "{{ index_queries }}"
 
    
