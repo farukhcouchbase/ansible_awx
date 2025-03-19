@@ -15,8 +15,9 @@
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
+        allowed_queries1: []
+        allowed_queries2: []
         not_allowed_queries: []
-        queries_exceeding_fields: []
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
@@ -26,13 +27,28 @@
 
     - name: Identify queries exceeding field limits
       set_fact:
-        queries_exceeding_fields: "{{ queries_exceeding_fields + [item] }}"
+        query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
+      with_items: "{{ index_queries }}"
       when:
         - "item is search('CREATE INDEX')"
-        - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"  # Extracts fields inside ON(...)
-        - "(item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1') | trim | replace('`', '') | split(',') | list | length) > 2"
-      with_items: "{{ index_queries }}"
+        - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"
 
+    - name: Convert field list to an array and filter out queries exceeding 2 fields
+      set_fact:
+        queries_exceeding_fields: "{{ queries_exceeding_fields + [item] }}"
+      with_dict: "{{ query_field_mapping }}"
+      when:
+        - "query_field_mapping[item] | replace('`', '') | split(',') | length > 2"
+
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+      with_items: "{{ index_queries }}"
 
     - name: Identify not allowed queries
       set_fact:
@@ -41,38 +57,55 @@
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Display blocked queries due to exceeding field limit
+    - name: Display not allowed queries in red
       debug:
-        msg: "\033[1;31mQuery exceeds field limit: {{ item }}\033[0m"
-      with_items: "{{ queries_exceeding_fields }}"
-      when: queries_exceeding_fields | length > 0
+        msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
+      with_items: "{{ not_allowed_queries }}"
+      when: not_allowed_queries | length > 0  
 
-    - name: Filter out queries exceeding field limits
+    - name: Remove semicolon using regex
       set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when: 
-        - "item not in queries_exceeding_fields"
-        - "item not in not_allowed_queries"
-      with_items: "{{ index_queries }}"
+        allowed_queries2: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"
 
     - name: Debug - Allowed Queries
       debug:
         msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
       with_items: "{{ allowed_queries }}"
 
-    - name: Remove semicolon using regex
+    - name: Debug - Not Allowed Queries
+      debug:
+        msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
+      with_items: "{{ not_allowed_queries }}"
+
+    - name: Show the modified query
+      debug:
+        msg: "\033[34m{{ allowed_queries2 }}\033[0m"
+
+    - name: Add WITH defer_build and num_replica options in index queries
       set_fact:
-        allowed_queries_clean: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"
+        updated_queries1: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
+              '"num_replica":1,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true, "num_replica":1,')
+            | list
+          }}
 
     - name: Ensure WITH clause in index queries
       set_fact:
-        updated_queries: >-
+        updated_queries2: >-
           {{
-            allowed_queries_clean | map('regex_replace', 
-              'WITH\\s*\\{[^}]*\\}', 
+            allowed_queries2 | map('regex_replace', 
+              'WITH\\s*\{[^}]*\}', 
               'WITH {"defer_build": true, "num_replica": 1}') 
             | map('regex_replace', 
-              '(?i)(?!.*WITH\\s*\\{.*\\})$', 
+              '(?i)(?!.*WITH\\s*\{.*\})$', 
               ' WITH {"defer_build": true, "num_replica": 1}') 
             | list
           }}
@@ -80,12 +113,24 @@
     - name: Debug - Updated Index Queries
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries }}"
+      with_items: "{{ updated_queries1 }}"
+
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
+      with_items: "{{ updated_queries2 }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries }}"
-      when: updated_queries | length > 0
+      with_items: "{{ updated_queries2 }}"
+      when: updated_queries2 | length > 0
+      register: query_result
+      ignore_errors: no   
+
+    - name: Execute allowed index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated_queries1 }}"
+      when: updated_queries1 | length > 0
       register: query_result
       ignore_errors: no
 
