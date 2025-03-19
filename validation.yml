@@ -31,7 +31,7 @@
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        - "not item | regex_search('Meta\(\)\.id', ignorecase=True)"
+        - "not item | regex_search('META().id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
