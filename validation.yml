@@ -23,12 +23,14 @@
   
 
   
-
+    - name: Validate number of fields in index
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+      when:
+        - "item | regex_findall('\\(([^)]+)\\)', ignorecase=True) | first | split(',') | length > 5"
+      with_items: "{{ index_queries }}"
 
    
-
-  
-
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
