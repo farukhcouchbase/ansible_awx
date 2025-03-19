@@ -20,25 +20,23 @@
         not_allowed_queries: []
 
         
-    - name: Extract index names and fields from allowed queries
+    - name: Extract index field set and WHERE condition
       set_fact:
         index_map: {}
 
-    - name: Identify duplicate indexes on the same fields with same WHERE clause
+    - name: Identify duplicate indexes on the same fields with the same WHERE clause
       set_fact:
         index_map: >-
           {{
             index_map | combine({
-              item | regex_replace('CREATE INDEX .*? ON (.*?) USING GSI.*', '\1') ~ '|' ~ 
-              item | regex_replace('.*?WHERE (.*?) USING GSI.*', '\1', ignorecase=True):
-              (index_map.get(item | regex_replace('CREATE INDEX .*? ON (.*?) USING GSI.*', '\1') ~ '|' ~ 
-              item | regex_replace('.*?WHERE (.*?) USING GSI.*', '\1', ignorecase=True), []) + 
-              [item | regex_replace('CREATE INDEX `(.*?)` ON .*', '\1')]
+              item | regex_search('ON `(.*?)`\\.`(.*?)`\\.`(.*?)`\\((.*?)\\) WHERE (.*?) USING', '\\1.\\2.\\3|\\4|\\5') :
+              (index_map.get(item | regex_search('ON `(.*?)`\\.`(.*?)`\\.`(.*?)`\\((.*?)\\) WHERE (.*?) USING', '\\1.\\2.\\3|\\4|\\5'), []) + 
+              [item | regex_search('CREATE INDEX `(.*?)`', '\\1')]
             })
           }}
       with_items: "{{ allowed_queries2 }}"
 
-    
+
     - name: Identify duplicate field sets with WHERE clause
       set_fact:
         duplicate_indexes: >-
@@ -48,14 +46,15 @@
 
     - name: Display duplicate indexes
       debug:
-        msg: "Duplicate Index Found on Same Field and WHERE Clause: {{ item }}"
+        msg: "❌ Duplicate Index Found on Same Field and WHERE Clause: {{ item }}"
       with_items: "{{ duplicate_indexes }}"
       when: duplicate_indexes | length > 0
 
     - name: Fail the playbook if duplicate indexes exist
       fail:
-        msg: "Multiple indexes with different names found on the same fields **and WHERE condition**. Please check your queries."
+        msg: "🚨 Multiple indexes with different names found on the same fields **and WHERE condition**. Fix your queries!"
       when: duplicate_indexes | length > 0
+     
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
