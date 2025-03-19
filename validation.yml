@@ -12,6 +12,17 @@
     default_index_path:  "/path/to/default_index.sh"
 
   tasks:
+
+
+    - name: Extract fields from index queries
+      set_fact:
+        extracted_fields: "{{ (item | regex_findall('\\((.*?)\\)', item) | first | default('')) | replace(' ', '') }}"
+
+    - name: Validate number of fields
+      fail:
+        msg: "Too many fields in index definition: {{ extracted_fields }}"
+      when: extracted_fields.split(',') | length > 2
+  
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
