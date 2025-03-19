@@ -30,7 +30,7 @@
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search('WHERE\\s+\\w+\\s*=\\s*[\"']\\w+[\"']', ignorecase=True)"
+        - "not item | regex_search(\"WHERE\\s+\\w+\\s*=\\s*['\\\"]\\w+['\\\"]\", ignorecase=True)"
       with_items: "{{ index_queries }}"
 
     - name: Identify not allowed queries
