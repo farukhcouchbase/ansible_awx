@@ -18,6 +18,7 @@
         allowed_queries1: []
         allowed_queries2: []
         not_allowed_queries: []
+        queries_exceeding_fields: []
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
