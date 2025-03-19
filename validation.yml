@@ -24,6 +24,18 @@
         not_allowed_queries: []
 
   
+    - name: Validate number of fields in index queries
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+      when: 
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('\\(([^)]+)\\)', ignorecase=True)"
+        - "item | regex_findall('\\(([^)]+)\\)', item) | first | split(',') | length > 2"
+      with_items: "{{ index_queries }}"
+
+    - name: Remove queries exceeding field limit from allowed list
+      set_fact:
+        allowed_queries: "{{ allowed_queries | difference(not_allowed_queries) }}"
 
    
     - name: Validate syntax of index queries
