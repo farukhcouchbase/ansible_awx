@@ -37,23 +37,18 @@
       with_items: "{{ syntax_check.results }}"
       when: "'syntax error' not in item.stderr and 'syntax error' not in item.stdout"
 
-    - name: Suggest corrected queries
-      set_fact:
-        corrected_queries: "{{ corrected_queries | default([]) + [lookup('template', 'fix_couchbase_query.j2', item=item)] }}"
-      with_items: "{{ incorrect_queries }}"
-      when: incorrect_queries is defined
-
     - name: Show valid queries
       debug:
         msg: "Valid Query: {{ item }}"
       with_items: "{{ correct_queries }}"
       when: correct_queries is defined
 
-    - name: Show invalid queries and suggestions
+    - name: Show invalid queries
       debug:
-        msg: "{{ corrected_queries }}"
-      when: corrected_queries is defined
-  
+        msg: "Invalid Query: {{ item }}"
+      with_items: "{{ incorrect_queries }}"
+      when: incorrect_queries is defined
+
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
@@ -61,7 +56,7 @@
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search('WHERE\s+doc\.type\s*=\s*', ignorecase=True)"
+        - "not item | regex_search('WHERE\\s+doc\\.type\\s*=\\s*', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
     - name: Identify not allowed queries
@@ -69,12 +64,12 @@
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when:
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-        - "item | regex_search('WHERE\s+doc\.type\s*=\s*', ignorecase=True)"
+        - "item | regex_search('WHERE\\s+doc\\.type\\s*=\\s*', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Display not allowed queries in red
+    - name: Display not allowed queries
       debug:
-        msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
+        msg: "Not Allowed Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
       when: not_allowed_queries | length > 0  
 
@@ -84,17 +79,17 @@
 
     - name: Debug - Allowed Queries
       debug:
-        msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
+        msg: "Allowed Index Query: {{ item }}"
       with_items: "{{ allowed_queries }}"
 
     - name: Debug - Not Allowed Queries
       debug:
-        msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
+        msg: "Not Allowed Index Query: {{ item }}"
       with_items: "{{ not_allowed_queries }}"
 
     - name: Show the modified query
       debug:
-        msg: "\033[34m{{ allowed_queries2 }}\033[0m"
+        msg: "{{ allowed_queries2 }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
