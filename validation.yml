@@ -30,7 +30,7 @@
       when: 
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('\\(([^)]+)\\)', ignorecase=True)"
-        - "item | regex_findall('\\(([^)]+)\\)', item) | first | split(',') | length > 2"
+        - "(item | regex_findall('\\(([^)]+)\\)', item) | first | regex_findall('[^,]+') | length) > 2"
       with_items: "{{ index_queries }}"
 
     - name: Remove queries exceeding field limit from allowed list
