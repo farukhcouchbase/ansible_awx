@@ -39,6 +39,7 @@
       when:
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True) or item | regex_search('WHERE\\s+\\w+\\s*=\\s*[\"']\\w+[\"']', ignorecase=True)"
       with_items: "{{ index_queries }}"
+      
 
     - name: Debug - Not Allowed Queries
       debug:
