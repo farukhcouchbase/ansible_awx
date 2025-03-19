@@ -1,6 +1,6 @@
 ---
 - name: Validate and Create Couchbase Indexes
-  hosts: all 
+  hosts: all
   gather_facts: no
   vars:
     couchbase_bin_path: "/path/to/couchbase_bin"
@@ -24,30 +24,7 @@
       register: syntax_check
       with_items: "{{ index_queries }}"
       failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
-
-    - name: Identify incorrect queries
-      set_fact:
-        incorrect_queries: "{{ incorrect_queries | default([]) + [item.item] }}"
-      with_items: "{{ syntax_check.results }}"
-      when: "'syntax error' in item.stderr or 'syntax error' in item.stdout"
-
-    - name: Identify correct queries
-      set_fact:
-        correct_queries: "{{ correct_queries | default([]) + [item.item] }}"
-      with_items: "{{ syntax_check.results }}"
-      when: "'syntax error' not in item.stderr and 'syntax error' not in item.stdout"
-
-    - name: Show valid queries
-      debug:
-        msg: "Valid Query: {{ item }}"
-      with_items: "{{ correct_queries }}"
-      when: correct_queries is defined
-
-    - name: Show invalid queries
-      debug:
-        msg: "Invalid Query: {{ item }}"
-      with_items: "{{ incorrect_queries }}"
-      when: incorrect_queries is defined
+      #ignore_errors: yes  # Capture syntax errors without failing the playbook    
 
     - name: Validate index queries
       set_fact:
@@ -56,7 +33,6 @@
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search('WHERE\\s+doc\\.type\\s*=\\s*', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
     - name: Identify not allowed queries
@@ -64,12 +40,11 @@
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when:
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-        - "item | regex_search('WHERE\\s+doc\\.type\\s*=\\s*', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Display not allowed queries
+    - name: Display not allowed queries in red
       debug:
-        msg: "Not Allowed Query: {{ item }}"
+        msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
       with_items: "{{ not_allowed_queries }}"
       when: not_allowed_queries | length > 0  
 
@@ -79,27 +54,75 @@
 
     - name: Debug - Allowed Queries
       debug:
-        msg: "Allowed Index Query: {{ item }}"
+        msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
       with_items: "{{ allowed_queries }}"
 
     - name: Debug - Not Allowed Queries
       debug:
-        msg: "Not Allowed Index Query: {{ item }}"
+        msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
       with_items: "{{ not_allowed_queries }}"
 
     - name: Show the modified query
       debug:
-        msg: "{{ allowed_queries2 }}"
+        msg: "\033[34m{{ allowed_queries2 }}\033[0m"
+
+    - name: Add WITH defer_build and num_replica options in index queries
+      set_fact:
+        updated_queries1: >-
+          {{
+            allowed_queries | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
+              '"num_replica":1,') 
+            | map('regex_replace', 
+              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
+              '"defer_build":true, "num_replica":1,')
+            | list
+          }}
+
+    - name: Ensure WITH clause in index queries
+      set_fact:
+        updated_queries2: >-
+          {{
+            allowed_queries2 | map('regex_replace', 
+              'WITH\s*\{[^}]*\}', 
+              'WITH {"defer_build": true, "num_replica": 1}') 
+            | map('regex_replace', 
+              '(?i)(?!.*WITH\s*\{.*\})$', 
+              ' WITH {"defer_build": true, "num_replica": 1}') 
+            | list
+          }}
+
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
+      with_items: "{{ updated_queries1 }}"
+
+    - name: Debug - Updated Index Queries
+      debug:
+        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
+      with_items: "{{ updated_queries2 }}"
 
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ allowed_queries2 }}"
-      when: allowed_queries2 | length > 0
+      with_items: "{{ updated_queries2 }}"
+      when: updated_queries2 | length > 0
       register: query_result
       ignore_errors: no   
+
+    - name: Execute allowed index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated_queries1 }}"
+      when: updated_queries1 | length > 0
+      register: query_result
+      ignore_errors: no
 
     - name: Execute deferred_index.sh script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
+
+    
