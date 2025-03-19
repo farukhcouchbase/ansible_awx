@@ -23,7 +23,6 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
-      #ignore_errors: yes  # Prevents failure from stopping execution
       failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
     - name: Identify incorrect queries
@@ -55,7 +54,6 @@
         msg: "{{ corrected_queries }}"
       when: corrected_queries is defined
   
-
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
@@ -63,6 +61,7 @@
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
+        - "not item | regex_search('WHERE\s+doc\.type\s*=\s*', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
     - name: Identify not allowed queries
@@ -70,6 +69,7 @@
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when:
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
+        - "item | regex_search('WHERE\s+doc\.type\s*=\s*', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
     - name: Display not allowed queries in red
@@ -96,63 +96,15 @@
       debug:
         msg: "\033[34m{{ allowed_queries2 }}\033[0m"
 
-    - name: Add WITH defer_build and num_replica options in index queries
-      set_fact:
-        updated_queries1: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?=.*"num_replica"\s*:\s*1)', 
-              '"defer_build":true,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"num_replica"\s*:\s*1)(?=.*"defer_build"\s*:\s*true)', 
-              '"num_replica":1,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\s*:\s*true)(?!.*"num_replica"\s*:\s*1)', 
-              '"defer_build":true, "num_replica":1,')
-            | list
-          }}
-
-    - name: Ensure WITH clause in index queries
-      set_fact:
-        updated_queries2: >-
-          {{
-            allowed_queries2 | map('regex_replace', 
-              'WITH\s*\{[^}]*\}', 
-              'WITH {"defer_build": true, "num_replica": 1}') 
-            | map('regex_replace', 
-              '(?i)(?!.*WITH\s*\{.*\})$', 
-              ' WITH {"defer_build": true, "num_replica": 1}') 
-            | list
-          }}
-
-    - name: Debug - Updated Index Queries
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries1 }}"
-
-    - name: Debug - Updated Index Queries
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries2 }}"
-
     - name: Execute allowed index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries2 }}"
-      when: updated_queries2 | length > 0
+      with_items: "{{ allowed_queries2 }}"
+      when: allowed_queries2 | length > 0
       register: query_result
       ignore_errors: no   
-
-    - name: Execute allowed index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries1 }}"
-      when: updated_queries1 | length > 0
-      register: query_result
-      ignore_errors: no
 
     - name: Execute deferred_index.sh script
       command: "{{ deffered_index_path }}"
       args:
         chdir: "{{ deffered_index_path | dirname }}"
       register: script_output
-
-  
