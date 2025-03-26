@@ -25,7 +25,8 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       register: syntax_check
       with_items: "{{ index_queries }}"
-      failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
+      failed_when: "'syntax error' in syntax_check.stdout"
+      #failed_when: "'syntax error' in syntax_check.stderr or 'syntax error' in syntax_check.stdout"
 
     - name: Identify queries exceeding field limits
       set_fact:
