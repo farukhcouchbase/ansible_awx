@@ -26,7 +26,7 @@
       with_items: "{{ index_queries }}"
       register: syntax_check
       failed_when: "'syntax error' in syntax_check.stdout"
-      changed_when: false
+      
 
 
     - name: Identify queries exceeding field limits
