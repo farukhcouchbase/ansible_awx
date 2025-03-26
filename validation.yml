@@ -44,11 +44,17 @@
         query_field_list: "{{ query_field_list | default({}) | combine({ item.key: cleaned_fields.split(',') }) }}"
       with_dict: "{{ query_field_mapping }}"
 
-    - name: Identify queries exceeding 2 fields
+    - name: Identify queries exceeding 6 fields
       set_fact:
         queries_exceeding_fields: "{{ queries_exceeding_fields | default([]) + [item.key] }}"
       with_dict: "{{ query_field_list }}"
-      when: "query_field_list[item.key] | length > 2"
+      when: "query_field_list[item.key] | length > 6"
+
+    - name: Display warning for queries exceeding 6 fields
+      debug:
+        msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
+      with_dict: "{{ query_field_list }}"
+      when: "query_field_list[item.key] | length > 6"  
 
     - name: Debug - Queries exceeding field limits
       debug:
