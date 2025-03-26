@@ -22,7 +22,7 @@
         query_field_list: []
 
     - name: Validate syntax of index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}' >/dev/null 2>&1 || true"
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}' >/dev/null"
       with_items: "{{ index_queries }}"
       register: syntax_check
       failed_when: "'syntax error' in syntax_check.stdout"
