@@ -50,20 +50,20 @@
       with_dict: "{{ query_field_list }}"
       when: "query_field_list[item.key] | length > 6"
 
-    - name: Display warning for queries exceeding 6 fields
-      debug:
-        msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
-      with_dict: "{{ query_field_list }}"
-      when: "query_field_list[item.key] | length > 6"  
+    # - name: Display warning for queries exceeding 6 fields
+    #   debug:
+    #     msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
+    #   with_dict: "{{ query_field_list }}"
+    #   when: "query_field_list[item.key] | length > 6"  
 
-    - name: Debug - Queries exceeding field limits
-      debug:
-        msg: "Query exceeds field limit: {{ item }}"
-      with_items: "{{ queries_exceeding_fields }}"
+    # - name: Debug - Queries exceeding field limits
+    #   debug:
+    #     msg: "Query exceeds field limit: {{ item }}"
+    #   with_items: "{{ queries_exceeding_fields }}"
 
     - name: Stop execution if any query exceeds allowed field count
       fail:
-        msg: "The following queries exceed the allowed field count (2 fields): {{ queries_exceeding_fields }}"
+        msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
 
     - name: Validate index queries
