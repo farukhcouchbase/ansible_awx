@@ -53,13 +53,13 @@
       set_fact:
         existing_indexes_raw: "{{ cbq_output.stdout | trim }}"
 
-    - name: Parse existing index information safely
-      set_fact:
-        existing_indexes: "{{ existing_indexes_raw | default('[]') | from_json }}"
+    # - name: Parse existing index information safely
+    #   set_fact:
+    #     existing_indexes: "{{ existing_indexes_raw | default('[]') | from_json }}"
 
-    - name: Debug parsed indexes
-      debug:
-        msg: "{{ existing_indexes }}"
+    # - name: Debug parsed indexes
+    #   debug:
+    #     msg: "{{ existing_indexes }}"
 
     - name: Extract existing index fields
       set_fact:
