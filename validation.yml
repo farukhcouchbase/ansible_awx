@@ -7,6 +7,7 @@
     # couchbase_admin_password: "redhat"
     index_queries: []
     INDEX_NAME: []
+    duplicate_indexes: []
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
 
