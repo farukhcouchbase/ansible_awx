@@ -41,10 +41,22 @@
       set_fact:
         existing_indexes_raw: "{{ existing_indexes_output.stdout | default('[]') }}"
 
+    - name: Validate if existing_indexes_output.stdout is non-empty
+      set_fact:
+        existing_indexes_raw: "{{ existing_indexes_output.stdout | default('[]') | trim }}"
+
+    - name: Ensure existing_indexes_raw is valid JSON
+      set_fact:
+        existing_indexes_raw: "{{ '[]' if existing_indexes_raw == '' else existing_indexes_raw }}"
+
     - name: Parse existing index information safely
       set_fact:
         existing_indexes: "{{ existing_indexes_raw | from_json }}"
-      when: existing_indexes_raw | length > 2
+      when: existing_indexes_raw is not none and existing_indexes_raw | length > 2
+
+    - name: Debug parsed indexes
+      debug:
+        msg: "{{ existing_indexes }}"
 
     - name: Extract existing index fields
       set_fact:
