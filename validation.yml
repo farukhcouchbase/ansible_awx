@@ -90,12 +90,7 @@
         msg: "Redundant index detected! Queries attempting to create indexes on the same fields: {{ redundant_indexes }}"
       when: redundant_indexes | length > 0
 
-    - name: Execute allowed index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ allowed_queries }}"
-      when: allowed_queries | length > 0
-      register: query_result
-      ignore_errors: no
+ 
   
       #==========================================================================================================
 
