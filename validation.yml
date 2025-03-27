@@ -28,6 +28,10 @@
       register: existing_indexes
       changed_when: false
 
+    - name: Debug Couchbase query output
+      debug:
+        var: existing_indexes.stdout  
+
     - name: Parse existing indexes into a dictionary
       set_fact:
         existing_index_map: "{{ existing_indexes.stdout | from_json | json_query('[*].{name: name, fields: index_key}') }}"
