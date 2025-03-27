@@ -21,12 +21,49 @@
         query_field_mapping: []
         query_field_list: []
 
+    #==================================================================================================
+
+    - name: Fetch existing indexes from Couchbase
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT name, index_key FROM system:indexes WHERE keyspace_id != \"\"'"
+      register: existing_indexes
+      changed_when: false
+
+    - name: Parse existing indexes into a dictionary
+      set_fact:
+        existing_index_map: "{{ existing_indexes.stdout | from_json | json_query('[*].{name: name, fields: index_key}') }}"
+
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       with_items: "{{ index_queries }}"
       register: syntax_check
       failed_when: "'syntax error' in syntax_check.stdout"
-      
+
+    - name: Validate new indexes against existing ones
+      set_fact:
+        duplicate_indexes: "{{ duplicate_indexes | default([]) + [item] }}"
+      with_items: "{{ index_queries }}"
+      when: >
+        (item | regex_findall('ON \\S+\\((.*)\\)') | first | regex_replace('\\s+', '') in
+        existing_index_map | map(attribute='fields') | list) and
+        (item | regex_findall('CREATE INDEX (\\S+)') | first not in existing_index_map | map(attribute='name') | list)
+
+    - name: Fail if duplicate indexes exist
+      fail:
+        msg: "Duplicate indexes with different names detected: {{ duplicate_indexes }}"
+      when: duplicate_indexes | length > 0
+    #==================================================================================================    
+
+    - name: Validate syntax of index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
+      with_items: "{{ index_queries }}"
+      register: syntax_check
+      failed_when: "'syntax error' in syntax_check.stdout"
+
+
+    
+
+   
+    
 
 
     - name: Identify queries exceeding field limits
