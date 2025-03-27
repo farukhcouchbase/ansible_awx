@@ -32,9 +32,9 @@
         query_field_mapping: >-
           {{
             query_field_mapping | combine({
-              (item | regex_search('ON\\s+[^()]+\\((.*?)\\)', '\\1')): 
-              (query_field_mapping.get(item | regex_search('ON\\s+[^()]+\\((.*?)\\)', '\\1'), []) + 
-              [item | regex_search('CREATE INDEX\\s+([^\\s]+)', '\\1')])
+              (item | regex_search('ON\\s+[^()]+\\((.*?)\\)', '\\1') or 'unknown_field'): 
+              (query_field_mapping.get(item | regex_search('ON\\s+[^()]+\\((.*?)\\)', '\\1') or 'unknown_field', []) + 
+              [item | regex_search('CREATE INDEX\\s+([^\\s]+)', '\\1') or 'unknown_index'])
             })
           }}
       with_items: "{{ index_queries }}"
