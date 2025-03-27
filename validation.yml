@@ -41,9 +41,21 @@
       set_fact:
         existing_indexes_raw: "{{ '[]' if (existing_indexes_output.stdout is none or existing_indexes_output.stdout | trim == '') else existing_indexes_output.stdout | trim }}"
 
+    - name: Get existing indexes from Couchbase
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT * FROM system:indexes;'"
+      register: cbq_output
+
+    - name: Debug raw Couchbase index output
+      debug:
+        msg: "{{ cbq_output.stdout }}"
+
+    - name: Ensure valid JSON and parse existing index information
+      set_fact:
+        existing_indexes_raw: "{{ cbq_output.stdout | trim }}"
+
     - name: Parse existing index information safely
       set_fact:
-        existing_indexes: "{{ existing_indexes_raw | from_json | default([]) }}"
+        existing_indexes: "{{ existing_indexes_raw | default('[]') | from_json }}"
 
     - name: Debug parsed indexes
       debug:
