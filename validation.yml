@@ -75,6 +75,10 @@
     - name: Debug duplicate indexes
       debug:
         var: duplicate_indexes  
+
+    - name: Set duplicate indexes fact
+      set_fact:
+        duplicate_indexes: "{{ some_query_output | selectattr('index_name', 'defined') | list }}"    
     
     - name: Fail if duplicate indexes exist
       fail:
