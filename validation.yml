@@ -71,6 +71,10 @@
           - "Existing Index Fields: {{ existing_index_map | default([]) | map(attribute='fields') | list }}"
           - "Existing Index Names: {{ existing_index_map | default([]) | map(attribute='name') | list }}"
       with_items: "{{ index_queries }}"
+
+    - name: Debug duplicate indexes
+      debug:
+        var: duplicate_indexes  
     
     - name: Fail if duplicate indexes exist
       fail:
