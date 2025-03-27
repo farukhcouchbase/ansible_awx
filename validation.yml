@@ -22,11 +22,10 @@
         query_field_list: []
 
     #==================================================================================================
-
-    - name: Parse existing indexes into a dictionary
-      set_fact:
-        existing_index_map: "{{ (existing_indexes.stdout | from_json) | default([]) | json_query('[*].{name: name, fields: index_key}') }}"
-      when: existing_indexes.stdout | length > 2  # Ensure stdout isn't empty or just brackets
+    - name: Fetch existing indexes from Couchbase
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT RAW {\"name\": name, \"fields\": index_key} FROM system:indexes WHERE keyspace_id != \"\"'"
+      register: existing_indexes
+      changed_when: fals
 
     - name: Debug Couchbase query output
       debug:
@@ -34,7 +33,8 @@
 
     - name: Parse existing indexes into a dictionary
       set_fact:
-        existing_index_map: "{{ existing_indexes.stdout | from_json | json_query('[*].{name: name, fields: index_key}') }}"
+        existing_index_map: "{{ (existing_indexes.stdout | from_json) | default([]) | json_query('[*].{name: name, fields: index_key}') }}"
+      when: existing_indexes.stdout | length > 2  # Ensure stdout isn't empty or just brackets
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
