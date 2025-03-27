@@ -32,11 +32,14 @@
         query_field_mapping: >-
           {{
             query_field_mapping | combine({
-              item.split('(')[1].split(')')[0]: (query_field_mapping.get(item.split('(')[1].split(')')[0], []) + [item.split('INDEX ')[1].split(' ')[0]])
+              (item | regex_search('ON\\s+[^()]+\\((.*?)\\)', '\\1')): 
+              (query_field_mapping.get(item | regex_search('ON\\s+[^()]+\\((.*?)\\)', '\\1'), []) + 
+              [item | regex_search('CREATE INDEX\\s+([^\\s]+)', '\\1')])
             })
           }}
       with_items: "{{ index_queries }}"
 
+  
     - name: Identify duplicate indexes with different names on the same fields
       fail:
         msg: "Multiple indexes with different names found on the same fields: {{ item.key }} -> {{ item.value }}"
