@@ -19,86 +19,15 @@
         not_allowed_queries: []
         queries_exceeding_fields: []
         query_field_mapping: []
-        query_field_list: {}
+        query_field_list: []
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       with_items: "{{ index_queries }}"
       register: syntax_check
       failed_when: "'syntax error' in syntax_check.stdout"
-
-      #==========================================================================================================
-
-    - name: Fetch existing indexes from Couchbase
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT name, keyspace_id, index_key FROM system:indexes WHERE is_primary = false'"
-      register: existing_indexes_output
-
-    - name: Debug raw Couchbase query output
-      debug:
-        msg: "{{ existing_indexes_output.stdout }}"
-
-    - name: Ensure existing_indexes_raw is valid JSON
-      set_fact:
-        existing_indexes_raw: "{{ '[]' if (existing_indexes_output.stdout is none or existing_indexes_output.stdout | trim == '') else existing_indexes_output.stdout | trim }}"
-
-    - name: Get existing indexes from Couchbase
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT * FROM system:indexes;'"
-      register: cbq_output
-
-    - name: Debug raw Couchbase index output
-      debug:
-        msg: "{{ cbq_output.stdout }}"
-
-    - name: Ensure valid JSON and parse existing index information
-      set_fact:
-        existing_indexes_raw: "{{ cbq_output.stdout | trim }}"
-
-    # - name: Parse existing index information safely
-    #   set_fact:
-    #     existing_indexes: "{{ existing_indexes_raw | default('[]') | from_json }}"
-
-    # - name: Debug parsed indexes
-    #   debug:
-    #     msg: "{{ existing_indexes }}"
-
-    - name: Extract existing index fields
-      set_fact:
-        existing_index_fields: "{{ existing_index_fields | default({}) | combine({ item.keyspace_id: (existing_index_fields[item.keyspace_id] | default([])) + [item.index_key] }) }}"
-      # with_items: "{{ existing_indexes }}"
-      with_items: "{{ index_queries }}"
       
 
-    - name: Identify queries exceeding field limits
-      set_fact:
-        query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
-      with_items: "{{ index_queries }}"
-      when:
-        - "item is search('CREATE INDEX')"
-        - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"
-
-    - name: Convert field list to an array using split
-      vars:
-        cleaned_fields: "{{ item.value | replace('`', '') | regex_replace('\\s+', '') }}"
-      set_fact:
-        query_field_list: "{{ query_field_list | default({}) | combine({ item.key: cleaned_fields.split(',') }) }}"
-      with_dict: "{{ query_field_mapping }}"
-
-    - name: Check if new indexes already exist on the same fields
-      set_fact:
-        redundant_indexes: "{{ redundant_indexes | default([]) + [item] }}"
-      when:
-        - "query_field_list[item] in existing_index_fields.values()"
-      with_items: "{{ index_queries }}"
-
-    - name: Stop execution if redundant indexes are found
-      fail:
-        msg: "Redundant index detected! Queries attempting to create indexes on the same fields: {{ redundant_indexes }}"
-      when: redundant_indexes | length > 0
-  
-
-      #==========================================================================================================
-
-    
 
     - name: Identify queries exceeding field limits
       set_fact:
