@@ -33,9 +33,18 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT name, keyspace_id, index_key FROM system:indexes WHERE is_primary = false'"
       register: existing_indexes_output
 
-    - name: Parse existing index information
+    - name: Ensure the Couchbase query output is valid
+      debug:
+        msg: "{{ existing_indexes_output.stdout }}"
+
+    - name: Validate if existing_indexes_output.stdout is non-empty
       set_fact:
-        existing_indexes: "{{ existing_indexes_output.stdout | from_json }}"
+        existing_indexes_raw: "{{ existing_indexes_output.stdout | default('[]') }}"
+
+    - name: Parse existing index information safely
+      set_fact:
+        existing_indexes: "{{ existing_indexes_raw | from_json }}"
+      when: existing_indexes_raw | length > 2
 
     - name: Extract existing index fields
       set_fact:
@@ -55,7 +64,7 @@
         cleaned_fields: "{{ item.value | replace('`', '') | regex_replace('\\s+', '') }}"
       set_fact:
         query_field_list: "{{ query_field_list | default({}) | combine({ item.key: cleaned_fields.split(',') }) }}"
-      with_dict: "{{ query_field_mapping }}"  
+      with_dict: "{{ query_field_mapping }}"
 
     - name: Check if new indexes already exist on the same fields
       set_fact:
@@ -68,6 +77,13 @@
       fail:
         msg: "Redundant index detected! Queries attempting to create indexes on the same fields: {{ redundant_indexes }}"
       when: redundant_indexes | length > 0
+
+    - name: Execute allowed index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ allowed_queries }}"
+      when: allowed_queries | length > 0
+      register: query_result
+      ignore_errors: no
   
       #==========================================================================================================
 
