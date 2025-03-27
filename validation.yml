@@ -64,12 +64,13 @@
 
     - name: Debug extracted index fields
       debug:
-        msg: 
+        msg:
           - "Item: {{ item }}"
           - "Extracted Fields: {{ item | regex_findall('ON \\S+\\((.*)\\)') | first | regex_replace('\\s+', '') }}"
           - "Extracted Index Name: {{ item | regex_findall('CREATE INDEX (\\S+)') | first }}"
           - "Existing Index Fields: {{ existing_index_map | default([]) | map(attribute='fields') | list }}"
-          - "Existing Index Names: {{ existing_index_map | default([]) | map(attribute='name') | list }}"    
+          - "Existing Index Names: {{ existing_index_map | default([]) | map(attribute='name') | list }}"
+      with_items: "{{ index_queries }}"
     
     - name: Fail if duplicate indexes exist
       fail:
