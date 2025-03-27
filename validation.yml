@@ -27,31 +27,7 @@
       register: syntax_check
       failed_when: "'syntax error' in syntax_check.stdout"
 
-    - name: Extract index fields and check for duplicates
-      set_fact:
-        query_field_mapping: >-
-          {{
-            query_field_mapping | combine({
-              (item | regex_search('ON\\s+[^()]+\\((.*?)\\)', '\\1') or 'unknown_field'): 
-              (query_field_mapping.get(item | regex_search('ON\\s+[^()]+\\((.*?)\\)', '\\1') or 'unknown_field', []) + 
-              [item | regex_search('CREATE INDEX\\s+([^\\s]+)', '\\1') or 'unknown_index'])
-            })
-          }}
-      with_items: "{{ index_queries }}"
-
-  
-    - name: Identify duplicate indexes with different names on the same fields
-      fail:
-        msg: "Multiple indexes with different names found on the same fields: {{ item.key }} -> {{ item.value }}"
-      when: "item.value | length > 1"
-      with_dict: "{{ query_field_mapping }}"
-
-    - name: Proceed with index creation if validation passes
-      shell: "{{ default_index_path }} '{{ item }}'"
-      with_items: "{{ index_queries }}"
-      when: query_field_mapping | length > 0  
-      
-
+    
 
     - name: Identify queries exceeding field limits
       set_fact:
