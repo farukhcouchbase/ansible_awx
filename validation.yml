@@ -64,7 +64,9 @@
     - name: Extract existing index fields
       set_fact:
         existing_index_fields: "{{ existing_index_fields | default({}) | combine({ item.keyspace_id: (existing_index_fields[item.keyspace_id] | default([])) + [item.index_key] }) }}"
-      with_items: "{{ existing_indexes }}"
+      # with_items: "{{ existing_indexes }}"
+      with_items: "{{ index_queries }}"
+      
 
     - name: Identify queries exceeding field limits
       set_fact:
