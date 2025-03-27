@@ -33,8 +33,11 @@
 
     - name: Parse existing indexes into a dictionary
       set_fact:
-        existing_index_map: "{{ (existing_indexes.stdout | from_json) | default([]) | json_query('[*].{name: name, fields: index_key}') }}"
-      when: existing_indexes.stdout | length > 2  # Ensure stdout isn't empty or just brackets
+        existing_index_map: >-
+          {{
+            (existing_indexes.stdout | default('{}') | from_json | default([])) 
+            | json_query('[*].{name: name, fields: index_key}')
+          }}
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
