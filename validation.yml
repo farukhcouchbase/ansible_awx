@@ -29,7 +29,7 @@
 
       #==========================================================================================================
 
-       - name: Fetch existing indexes from Couchbase
+    - name: Fetch existing indexes from Couchbase
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT name, keyspace_id, index_key FROM system:indexes WHERE is_primary = false'"
       register: existing_indexes_output
 
