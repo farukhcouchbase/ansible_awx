@@ -31,13 +31,19 @@
       debug:
         var: existing_indexes.stdout  
 
-    - name: Parse existing indexes into a dictionary
+    - name: Check if existing indexes output is valid JSON
       set_fact:
-        existing_index_map: >-
-          {{
-            (existing_indexes.stdout | default('{}') | from_json | default([])) 
-            | json_query('[*].{name: name, fields: index_key}')
-          }}
+        is_valid_json: "{{ existing_indexes.stdout is not none and existing_indexes.stdout | trim | regex_search('^[{\\[]') is not none }}"
+
+    - name: Parse existing indexes into a dictionary (Only if JSON is valid)
+      set_fact:
+        existing_index_map: "{{ existing_indexes.stdout | from_json | json_query('[*].{name: name, fields: index_key}') }}"
+      when: is_valid_json | bool
+
+    - name: Handle invalid JSON output
+      debug:
+        msg: "Warning: existing_indexes.stdout is not valid JSON"
+      when: not is_valid_json | bool
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
