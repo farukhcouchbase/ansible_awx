@@ -57,9 +57,10 @@
       with_items: "{{ index_queries }}"
       when: >
         (item | regex_findall('ON \\S+\\((.*)\\)') | first | regex_replace('\\s+', '') in
-        existing_index_map | map(attribute='fields') | list) and
-        (item | regex_findall('CREATE INDEX (\\S+)') | first not in existing_index_map | map(attribute='name') | list)
-
+        (existing_index_map | default([]) | map(attribute='fields') | list)) and
+        (item | regex_findall('CREATE INDEX (\\S+)') | first not in 
+        (existing_index_map | default([]) | map(attribute='name') | list))
+    
     - name: Fail if duplicate indexes exist
       fail:
         msg: "Duplicate indexes with different names detected: {{ duplicate_indexes }}"
