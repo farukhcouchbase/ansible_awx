@@ -48,28 +48,11 @@
           | selectattr('stdout', 'defined')
           | selectattr('stdout', 'search', '{')
           | map(attribute='stdout')
-          | map('from_json', default={})
-          | map('keys')
-          | map('default', [])
-          | list
-          | flatten
-          | unique }}
-
-    - name: Display field names
-      debug:
-        var: field_names
-        
-    - name: Extract unique field names
-      set_fact:
-        field_names: "{{ field_queries.results
-          | selectattr('stdout', 'defined')
-          | selectattr('stdout', 'search', '{')
-          | map(attribute='stdout')
           | map('from_json')
           | map('keys')
           | list
           | flatten
-          | unique }}"
+          | unique }}
 
     - name: Display field names
       debug:
