@@ -43,7 +43,7 @@
 
     - name: Extract unique field names
       set_fact:
-        field_names: >-
+        field_names: >
           {{ field_queries.results
           | selectattr('stdout', 'defined')
           | selectattr('stdout', 'search', '{')
