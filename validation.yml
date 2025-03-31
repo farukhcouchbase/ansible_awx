@@ -48,9 +48,9 @@
           | selectattr('stdout', 'defined')
           | selectattr('stdout', 'search', '{')
           | map(attribute='stdout')
-          | reject('equalto', '')  # Remove empty stdout
-          | map('from_json', default={})  # Convert JSON, fallback to empty dict
-          | reject('equalto', None)  # Remove any None values
+          | reject('equalto', '')  
+          | map('from_json', default={})  
+          | reject('equalto', None)  
           | map('keys')
           | list
           | flatten
