@@ -49,10 +49,11 @@
           | selectattr('stdout', 'search', '{')
           | map(attribute='stdout')
           | map('from_json', default={})
-          | map('keys') | map('default', [])  # Apply default here
+          | map('keys')
+          | map('default', [])
           | list
           | flatten
-          | unique }}  
+          | unique }}
 
     - name: Display field names
       debug:
