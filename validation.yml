@@ -26,7 +26,7 @@
 
     #==================================================================================================
     - name: Fetch list of indexes from Couchbase
-      shell: "/opt/couchbase/bin/cbq  -u Admin -p redhat  -s "SELECT * FROM system:indexes;"
+      shell: "/opt/couchbase/bin/cbq  -u Admin -p redhat  -s 'SELECT * FROM system:indexes;'"
       # shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT * FROM system:indexes;'"
 
       register: index_output
