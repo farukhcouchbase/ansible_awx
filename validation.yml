@@ -25,15 +25,31 @@
         query_field_list: []
 
     #==================================================================================================
-    - name: Fetch list of indexes from Couchbase
-      shell: "/opt/couchbase/bin/cbq  -u Admin -p redhat  -s 'SELECT * FROM system:indexes;'"
-      # shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT * FROM system:indexes;'"
+    - name: Get all bucket names
+      command: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script="SELECT name FROM system:buckets;"
+      register: bucket_query
+      changed_when: false
 
-      register: index_output
+    - name: Extract bucket names
+      set_fact:
+        bucket_names: "{{ bucket_query.stdout | regex_findall('\"(.*?)\"') }}"
 
-    - name: Print the fetched indexes
+    - name: Fetch field names from each bucket
+      command: >
+        cbq -u "{{ couchbase_username }}" -p "{{ couchbase_password }}"
+        -e "{{ couchbase_host }}" --script="SELECT RAW OBJECT_NAMES(d) FROM `{{ item }}` d LIMIT 100;"
+      loop: "{{ bucket_names }}"
+      register: field_queries
+      changed_when: false
+      ignore_errors: yes  # Some buckets may not contain queryable JSON data
+
+    - name: Extract unique field names
+      set_fact:
+        field_names: "{{ field_queries.results | map(attribute='stdout') | regex_findall('\"(.*?)\"') | unique }}"
+
+    - name: Display field names
       debug:
-        msg: "{{ index_output.stdout_lines }}"
+        var: field_names
     
     # - name: Fetch existing indexes from Couchbase
     #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT RAW {\"name\": name, \"fields\": index_key} FROM system:indexes WHERE keyspace_id != \"\"'"
