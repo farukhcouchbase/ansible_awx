@@ -55,6 +55,7 @@
           | list
           | flatten
           | unique }}
+  
 
     - name: Display field names
       debug:
