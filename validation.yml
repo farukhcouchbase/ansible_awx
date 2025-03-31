@@ -45,9 +45,9 @@
       set_fact:
         field_names: "{{ field_queries.results
           | selectattr('stdout', 'defined')
-          | selectattr('stdout', 'search', '{')  # Ensure stdout contains JSON-like data
+          | selectattr('stdout', 'search', '{')
           | map(attribute='stdout')
-          | map('from_json', default={})  # Prevent failures
+          | map('from_json')
           | map('keys')
           | list
           | flatten
