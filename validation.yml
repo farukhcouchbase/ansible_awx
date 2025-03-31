@@ -48,7 +48,8 @@
             field_queries.results 
             | selectattr('stdout', 'defined') 
             | map(attribute='stdout') 
-            | map('from_json', default={}) 
+            | map('from_json') 
+            | select('defined') 
             | map('keys') 
             | flatten 
             | unique
