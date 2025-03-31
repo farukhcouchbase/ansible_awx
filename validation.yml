@@ -43,7 +43,7 @@
 
     - name: Extract unique field names
       set_fact:
-        "{{ field_queries.results | map(attribute='stdout') | map('from_json') | map('keys') | flatten | unique }}"
+        "{{ field_queries.results | map(attribute='stdout') | map('from_json') | map('keys') | flatten() | unique }}"
 
     - name: Display field names
       debug:
