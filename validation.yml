@@ -48,10 +48,10 @@
           | selectattr('stdout', 'defined')
           | selectattr('stdout', 'search', '{')
           | map(attribute='stdout')
-          | map('default', '{}')  # Default empty dict if stdout is empty or None
-          | map('from_json')  # Convert JSON
-          | reject('equalto', None)  # Remove None values
-          | map('keys')  # Extract keys from JSON
+          | map('default', '{}')
+          | map('from_json')
+          | reject('equalto', None)
+          | map('keys')
           | list
           | flatten
           | unique }}
