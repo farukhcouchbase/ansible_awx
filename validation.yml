@@ -35,7 +35,7 @@
         bucket_names: "{{ bucket_query.stdout | regex_findall('\"(.*?)\"') }}"
 
     - name: Fetch field names from each bucket
-      command: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script="SELECT RAW OBJECT_NAMES(d) FROM `{{ item }}` d LIMIT 100;"
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script="SELECT RAW OBJECT_NAMES(d) FROM `{{ item }}` d LIMIT 100;"
       loop: "{{ bucket_names }}"
       register: field_queries
       changed_when: false
