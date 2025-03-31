@@ -34,34 +34,52 @@
       set_fact:
         bucket_names: "{{ bucket_query.stdout | regex_findall('\"(.*?)\"') }}"
 
-    - name: Fetch field names from each bucket
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT RAW OBJECT_NAMES(d) FROM `{{ item }}` d LIMIT 100;'"
-      loop: "{{ bucket_names }}"
-      register: field_queries
+    - name: Get all indexes
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT name, keyspace_id FROM system:indexes WHERE is_primary = false;'"
+      register: index_query
       changed_when: false
-      ignore_errors: yes  # Some buckets may not contain queryable JSON data
 
-    - name: Debug field_queries.results
-      debug:
-        var: field_queries.results  
+    - name: Extract index names and keyspaces
+      set_fact:
+        indexes: "{{ index_query.stdout | regex_findall('\"name\":\"(.*?)\".*?\"keyspace_id\":\"(.*?)\"') }}"
+
+    - name: Get index fields
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT name, keyspace_id, index_key FROM system:indexes WHERE is_primary = false;'"
+      register: index_fields_query
+      changed_when: false
+
+    - name: Extract index fields
+      set_fact:
+        index_fields: "{{ index_fields_query.stdout | regex_findall('\"name\":\"(.*?)\".*?\"keyspace_id\":\"(.*?)\".*?\"index_key\":\\[(.*?)\\]') }}"    
+
+    # - name: Fetch field names from each bucket
+    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT RAW OBJECT_NAMES(d) FROM `{{ item }}` d LIMIT 100;'"
+    #   loop: "{{ bucket_names }}"
+    #   register: field_queries
+    #   changed_when: false
+    #   ignore_errors: yes  # Some buckets may not contain queryable JSON data
+
+    # - name: Debug field_queries.results
+    #   debug:
+    #     var: field_queries.results  
 
     
-    - name: Extract only defined stdout values
-      debug:
-        msg: "{{ field_queries.results | selectattr('stdout', 'defined') }}"
+    # - name: Extract only defined stdout values
+    #   debug:
+    #     msg: "{{ field_queries.results | selectattr('stdout', 'defined') }}"
 
-    - name: Extract only stdout containing `{`
-      debug:
-        msg: "{{ field_queries.results | selectattr('stdout', 'defined') | selectattr('stdout', 'search', '{') }}"
+    # - name: Extract only stdout containing `{`
+    #   debug:
+    #     msg: "{{ field_queries.results | selectattr('stdout', 'defined') | selectattr('stdout', 'search', '{') }}"
 
-    - name: Extract stdout values
-      debug:
-        msg: "{{ field_queries.results | selectattr('stdout', 'defined') | selectattr('stdout', 'search', '{') | map(attribute='stdout') }}"
+    # - name: Extract stdout values
+    #   debug:
+    #     msg: "{{ field_queries.results | selectattr('stdout', 'defined') | selectattr('stdout', 'search', '{') | map(attribute='stdout') }}"
 
 
-    - name: Debug field_queries.results
-      debug:
-        var: field_queries.results
+    # - name: Debug field_queries.results
+    #   debug:
+    #     var: field_queries.results
     
    
 
