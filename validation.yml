@@ -46,9 +46,9 @@
         field_names: "{{ field_queries.results | selectattr('stdout', 'defined') | selectattr('stdout', 'search', '{') | map(attribute='stdout') | map('default', '{}') | map('from_json') | reject('equalto', None) | map('keys') | list | flatten | unique }}"
     
 
-    - name: Display field names
+    - name: Debug field_queries.results
       debug:
-        var: field_names
+        var: field_queries.results
     
    
 
