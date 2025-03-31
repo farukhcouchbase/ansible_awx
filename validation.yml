@@ -53,6 +53,15 @@
       register: syntax_check
       failed_when: "'syntax error' in syntax_check.stdout"
 
+    - name: Debug index fields and names
+      debug:
+        msg:
+          - "Extracted fields: {{ item | regex_findall('ON \\S+\\((.*)\\)') | first | regex_replace('\\s+', '') }}"
+          - "Extracted index name: {{ item | regex_findall('CREATE INDEX (\\S+)') | first }}"
+          - "Existing index fields: {{ existing_index_map | map(attribute='fields') | list }}"
+          - "Existing index names: {{ existing_index_map | map(attribute='name') | list }}"
+      with_items: "{{ index_queries }}"  
+
     - name: Validate new indexes against existing ones
       set_fact:
         duplicate_indexes: "{{ duplicate_indexes | default([]) + [item] }}"
