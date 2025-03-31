@@ -30,27 +30,53 @@
       register: bucket_query
       changed_when: false
 
+    - name: Debug bucket query output
+      debug:
+        var: bucket_query.stdout
+
     - name: Extract bucket names
       set_fact:
         bucket_names: "{{ bucket_query.stdout | regex_findall('\"(.*?)\"') }}"
+
+    - name: Debug extracted bucket names
+      debug:
+        var: bucket_names
 
     - name: Get all indexes
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT name, keyspace_id FROM system:indexes WHERE is_primary = false;'"
       register: index_query
       changed_when: false
 
+    - name: Debug index query output
+      debug:
+        var: index_query.stdout
+
     - name: Extract index names and keyspaces
       set_fact:
         indexes: "{{ index_query.stdout | regex_findall('\"name\":\"(.*?)\".*?\"keyspace_id\":\"(.*?)\"') }}"
+
+    - name: Debug extracted indexes
+      debug:
+        var: indexes
 
     - name: Get index fields
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT name, keyspace_id, index_key FROM system:indexes WHERE is_primary = false;'"
       register: index_fields_query
       changed_when: false
 
+    - name: Debug index fields query output
+      debug:
+        var: index_fields_query.stdout
+
     - name: Extract index fields
       set_fact:
-        index_fields: "{{ index_fields_query.stdout | regex_findall('\"name\":\"(.*?)\".*?\"keyspace_id\":\"(.*?)\".*?\"index_key\":\\[(.*?)\\]') }}"    
+        index_fields: "{{ index_fields_query.stdout | regex_findall('\"name\":\"(.*?)\".*?\"keyspace_id\":\"(.*?)\".*?\"index_key\":\\[(.*?)\\]') }}"
+
+    - name: Debug extracted index fields
+      debug:
+        var: index_fields
+
+  
 
     # - name: Fetch field names from each bucket
     #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT RAW OBJECT_NAMES(d) FROM `{{ item }}` d LIMIT 100;'"
