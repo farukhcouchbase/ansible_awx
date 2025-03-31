@@ -49,7 +49,7 @@
           | selectattr('stdout', 'search', '{')
           | map(attribute='stdout')
           | map('from_json', default={})
-          | map('keys')
+          | map('keys') | map('default', [])  # Apply default here
           | list
           | flatten
           | unique }}  
