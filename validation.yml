@@ -26,10 +26,7 @@
 
     #==================================================================================================
     - name: Fetch list of indexes from Couchbase
-      shell: >
-        {{ couchbase_bin_path }} -u "{{ couchbase_admin_username }}" -p "{{ couchbase_admin_password }}"
-        --script='SELECT idx.* FROM system:indexes AS idx 
-        WHERE idx.using="gsi" ORDER BY idx.keyspace_id;'
+      shell:  shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }}  -s "SELECT * FROM system:indexes;"
       register: index_output
 
     - name: Print the fetched indexes
