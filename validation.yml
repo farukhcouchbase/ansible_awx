@@ -47,22 +47,8 @@
 
     - name: Extract unique field names
       set_fact:
-        field_names: >-
-          {{
-            field_queries.results
-            | selectattr('stdout', 'defined')
-            | selectattr('stdout', 'search', '{')
-            | map(attribute='stdout')
-            | map('default', '{}')
-            | map('from_json')
-            | reject('equalto', None)
-            | map('keys')
-            | list
-            | flatten
-            | unique
-            | default([])
-          }}
-    
+        field_names: "{{ field_queries.results | selectattr('stdout', 'defined') | selectattr('stdout', 'search', '{') | map(attribute='stdout') | map('default', '{}') | map('from_json') | reject('equalto', None) | map('keys') | list | flatten | unique | default([]) }}"
+
 
     - name: Debug field_queries.results
       debug:
