@@ -43,7 +43,7 @@
 
     - name: Extract unique field names
       set_fact:
-        field_names: "{{ field_queries.results | map(attribute='stdout') | regex_findall('\"(.*?)\"') | unique }}"
+        field_names: "{{ field_queries.results | map(attribute='stdout') | map('string') | join('\n') | regex_findall('\"(.*?)\"') | unique }}"
 
     - name: Display field names
       debug:
