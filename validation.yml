@@ -25,6 +25,15 @@
         query_field_list: []
 
     #==================================================================================================
+
+    - name: Run cbq command to fetch indexes
+      command:  "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'SELECT name, keyspace_id, index_key FROM system:indexes WHERE is_primary = false;'"
+      register: couchbase_indexes
+
+    - name: Parse and display indexes
+      debug:
+        msg: "{{ couchbase_indexes.stdout }}"
+
     - name: Get all bucket names
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} --script='SELECT name FROM system:buckets;'"
       register: bucket_query
