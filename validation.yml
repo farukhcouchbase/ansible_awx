@@ -16,7 +16,7 @@
   tasks:
 
     - name: Read file content
-      command: cat /path/to/field.txt
+      command: cat /home/ubuntu/fields.txt
       register: file_content
       changed_when: false
 
