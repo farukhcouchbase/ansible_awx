@@ -22,7 +22,7 @@
 
     - name: Print file content
       debug:
-        msg: "{{ file_content.stdout }}"
+        msg: "{{ file_content.stdout_lines  }}"
 
     - name: Identify and categorize index queries
       set_fact:
