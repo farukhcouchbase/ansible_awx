@@ -14,6 +14,16 @@
     default_index_path: "/path/to/default_index.sh"
 
   tasks:
+
+    - name: Read file content
+      command: cat /path/to/field.txt
+      register: file_content
+      changed_when: false
+
+    - name: Print file content
+      debug:
+        msg: "{{ file_content.stdout }}"
+
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
