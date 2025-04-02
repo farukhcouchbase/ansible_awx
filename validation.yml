@@ -31,7 +31,7 @@
 
     - name: Display file content as-is
       debug:
-        msg: "{{ file_content.stdout }}"
+        msg: "{{ file_content.stdout | from_json }}"
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
