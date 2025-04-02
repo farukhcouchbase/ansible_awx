@@ -28,11 +28,10 @@
     - name: Read file content
       command: cat /home/ubuntu/fields.txt
       register: file_content
-      changed_when: false
 
     - name: Print file content
       debug:
-        msg: "{{ file_content.stdout  }}"
+        msg: "{{ file_content.stdout_lines }}"
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
