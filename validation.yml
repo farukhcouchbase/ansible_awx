@@ -25,13 +25,13 @@
         query_field_list: []
 
      
-    - name: Read file content
-      command: cat /home/ubuntu/fields.txt
-      register: file_content
+    # - name: Read file content
+    #   command: cat /home/ubuntu/fields.txt
+    #   register: file_content
 
-    - name: Display file content as-is
-      debug:
-        msg: "{{ file_content.stdout | from_json }}"
+    # - name: Display file content as-is
+    #   debug:
+    #     msg: "{{ file_content.stdout | from_json }}"
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
