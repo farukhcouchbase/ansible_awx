@@ -29,9 +29,9 @@
       command: cat /home/ubuntu/fields.txt
       register: file_content
 
-    - name: Print file content
+    - name: Display file content as-is
       debug:
-        msg: "{{ file_content.stdout_lines }}"
+        msg: "{{ file_content.stdout }}"
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
