@@ -31,15 +31,8 @@
         chdir: /home/ubuntu
       #register: script_output
         
-    - name: Display file content as-is
-      debug:
-        msg: "{{ file_content.stdout }}"
-
-    - name: Display file content if valid JSON
-      debug:
-        msg: "{{ file_content.stdout | from_json }}"
-      when: file_content.stdout is not none and file_content.stdout | trim | regex_search('^{.*}$')    
-    
+ 
+  #================================================================
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
