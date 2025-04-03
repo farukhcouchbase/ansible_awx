@@ -25,13 +25,11 @@
         query_field_list: []
 
      
-    - name: Read file content
-      command: cat /home/ubuntu/fields.txt
-      register: file_content
-
-    - name: Debug file_content stdout
-      debug:
-        var: file_content.stdout
+    - name: Run the script
+      shell: /home/ubuntu/index.sh
+      args:
+        chdir: /home/ubuntu
+      #register: script_output
         
     - name: Display file content as-is
       debug:
