@@ -30,6 +30,15 @@
       args:
         chdir: /home/ubuntu
       #register: script_output
+
+    - name: Read new1_fields.txt content
+      slurp:
+        src: /home/ubuntu/new1_fields.txt
+      register: file_content
+
+    - name: Display file content
+      debug:
+        msg: "{{ file_content['content'] | b64decode }}"  
         
  
   #================================================================
