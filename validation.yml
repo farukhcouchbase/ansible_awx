@@ -39,6 +39,10 @@
     - name: Display file content
       debug:
         msg: "{{ file_content['content'] | b64decode }}"  
+
+    - name: Display file content
+      debug:
+        msg: "{{ file_content['content'] }}"      
         
  
   #================================================================
