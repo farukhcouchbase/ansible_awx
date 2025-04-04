@@ -210,34 +210,11 @@
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries2 }}"
 
-    - name: Read current fields from file
-      command: cat /home/ubuntu/fields.txt
-      register: file_content
-      changed_when: false
+  
 
-    - name: Print current fields
-      debug:
-        msg: "{{ file_content.stdout }}"
+  
 
-    - name: Read previously stored fields (if file exists)
-      command: cat /tmp/previous_fields.txt
-      register: previous_file_content
-      failed_when: false
-      changed_when: false
-
-    - name: Print previous fields
-      debug:
-        msg: "{{ previous_file_content.stdout | default('No previous fields found') }}"
-
-    - name: Compare current and previous fields
-      set_fact:
-        fields_changed: "{{ file_content.stdout != previous_file_content.stdout | default('') }}"
-
-    - name: Store the current fields for next execution
-      copy:
-        content: "{{ file_content.stdout }}"
-        dest: /tmp/previous_fields.txt
-      when: fields_changed
+   
 
     - name: Execute allowed index queries (Method 2)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
