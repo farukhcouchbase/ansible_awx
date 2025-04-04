@@ -42,8 +42,30 @@
 
       
         
+    #========================Comparison of the fields values =======================================
+    - name: Extract Index Key Value
+      set_fact:
+        index_key_value: "{{ file_content['content'] | b64decode | regex_search(\"Index Key: \\['`([^`]*)`'\\]\", '\\1') | first }}"
+
+    - name: Debug Extracted Index Key
+      debug:
+        msg: "Extracted Index Key: {{ index_key_value }}"
+
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+        - "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
+      with_items: "{{ index_queries }}"    
  
-  #================================================================
+     
+    
+  
+    #===============================================================================================
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
