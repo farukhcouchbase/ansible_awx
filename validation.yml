@@ -118,7 +118,7 @@
       when: queries_exceeding_fields | length > 0
 #=====================================================================================================================
 
-   - name: Validate index queries
+    - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
