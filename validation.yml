@@ -43,9 +43,14 @@
       
         
     #========================Comparison of the fields values =======================================
-    - name: Extract Index Key Value
+    - name: Extract Index Details
       set_fact:
-        index_key_value: "{{ file_content['content'] | b64decode | regex_search(\"Index Key: \\['`([^`]*)`'\\]\", '\\1') | first }}"
+        decoded_content: "{{ file_content['content'] | b64decode }}"
+        index_keys: "{{ decoded_content | regex_findall(\"Index Key\\s+: \\['`([^`]*)`'\\]\", '\\1') }}"
+        conditions: "{{ decoded_content | regex_findall(\"Condition\\s+: \\(([^\\)]*)\\)\", '\\1') }}"
+        keyspace_ids: "{{ decoded_content | regex_findall(\"Keyspace ID: ([^\\n]+)\", '\\1') }}"
+        scope_ids: "{{ decoded_content | regex_findall(\"Scope ID\\s+: ([^\\n]+)\", '\\1') }}"
+
 
     - name: Debug Extracted Index Key
       debug:
