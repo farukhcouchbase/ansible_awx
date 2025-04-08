@@ -56,6 +56,14 @@
     - name: Debug Index Details
       debug:
         var: index_details
+
+    - name: Debug Extracted Index Fields
+      debug:
+        msg:
+          - "Index Key: {{ index_key }}"
+          - "Condition: {{ condition }}"
+          - "Keyspace ID: {{ keyspace_id }}"
+          - "Scope ID: {{ scope_id }}"    
   
 
     # - name: Validate index queries
