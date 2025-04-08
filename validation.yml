@@ -53,15 +53,12 @@
               'Index Key\\s+: \\[(.*?)\\]\\nCondition\\s+: \\((.*?)\\)\\nKeyspace ID: (.*?)\\nScope ID\\s+: (.*?)\\n'
             )
           }}
+ 
 
-    - name: Display extracted details
+    - name: Debug Index Details
       debug:
-        msg: >
-          Index Key: {{ item.0 }},
-          Condition: {{ item.1 }},
-          Keyspace ID: {{ item.2 }},
-          Scope ID: {{ item.3 }}
-      loop: "{{ index_details }}"
+        var: index_details
+  
 
     # - name: Validate index queries
     #   set_fact:
