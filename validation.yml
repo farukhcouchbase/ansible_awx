@@ -149,7 +149,7 @@
 
     - name: Validate index queries
       set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
+        allowed_queries: "{{ allowed_queries + [item | string] }}"
       when:
         - "not (item | string | regex_search('CREATE PRIMARY INDEX', ignorecase=True))"
         - "not (item | string | regex_search('META\\(\\)\\.id', ignorecase=True))"
@@ -159,7 +159,7 @@
         - "not (item | string | regex_search(condition, ignorecase=True))"
         - "not (item | string | regex_search(keyspace_id, ignorecase=True))"
         - "not (item | string | regex_search(scope_id, ignorecase=True))"
-      loop: "{{ index_queries | list }}"
+      loop: "{{ [index_queries] if index_queries is string else index_queries }}"
 
  
 #=====================================================================================================================
