@@ -158,11 +158,12 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not (item | list | regex_search(index_key, ignorecase=True))"
-        - "not (item | list | regex_search(condition, ignorecase=True))"
-        - "not (item | list | regex_search(keyspace_id, ignorecase=True))"
-        - "not (item | list | regex_search(scope_id, ignorecase=True))"
+        - "not item | regex_search(index_key, ignorecase=True)"
+        - "not item | regex_search(condition, ignorecase=True)"
+        - "not item | regex_search(keyspace_id, ignorecase=True)"
+        - "not item | regex_search(scope_id, ignorecase=True)"
       loop: "{{ [index_queries] if index_queries is string else index_queries }}"
+
 
  
 #=====================================================================================================================
