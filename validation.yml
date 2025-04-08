@@ -55,9 +55,7 @@
         decoded_content: "{{ file_content['content'] | b64decode }}"
 
 
-    - name: Debug Index Details
-      debug:
-        var: index_details
+  
 
     - name: Debug Extracted Index Fields
       debug:
@@ -143,7 +141,10 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
+        - "not item | regex_search(index_key, ignorecase=True)"  # Dynamic check
+        - "not item | regex_search(condition, ignorecase=True)"  # Dynamic check
+        - "not item | regex_search(keyspace_id, ignorecase=True)"  # Dynamic check
+        - "not item | regex_search(scope_id, ignorecase=True)"  # Dynamic check
       with_items: "{{ index_queries }}"    
  
 #=====================================================================================================================
