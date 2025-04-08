@@ -43,18 +43,25 @@
       
         
     #========================Comparison of the fields values =======================================
+   
+
     - name: Extract Index Details
       set_fact:
-        decoded_content: "{{ file_content['content'] | b64decode }}"
-        index_keys: "{{ decoded_content | regex_findall(\"Index Key\\s+: \\['`([^`]*)`'\\]\", '\\1') }}"
-        conditions: "{{ decoded_content | regex_findall(\"Condition\\s+: \\(([^\\)]*)\\)\", '\\1') }}"
-        keyspace_ids: "{{ decoded_content | regex_findall(\"Keyspace ID: ([^\\n]+)\", '\\1') }}"
-        scope_ids: "{{ decoded_content | regex_findall(\"Scope ID\\s+: ([^\\n]+)\", '\\1') }}"
+        index_details: >-
+          {{
+            file_content['content'] | b64decode | regex_findall(
+              'Index Key\\s+: \\[(.*?)\\]\\nCondition\\s+: \\((.*?)\\)\\nKeyspace ID: (.*?)\\nScope ID\\s+: (.*?)\\n'
+            )
+          }}
 
-
-    - name: Debug Extracted Index Key
+    - name: Display extracted details
       debug:
-        msg: "Extracted Index Key: {{ index_key_value }}"
+        msg: >
+          Index Key: {{ item.0 }},
+          Condition: {{ item.1 }},
+          Keyspace ID: {{ item.2 }},
+          Scope ID: {{ item.3 }}
+      loop: "{{ index_details }}"
 
     # - name: Validate index queries
     #   set_fact:
