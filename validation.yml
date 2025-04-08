@@ -136,33 +136,21 @@
       when: queries_exceeding_fields | length > 0
 #=====================================================================================================================
 
-    # - name: Validate index queries
-    #   set_fact:
-    #     allowed_queries: "{{ allowed_queries + [item] }}"
-    #   when:
-        # - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        # - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
-        # - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        # - "item | regex_search('WHERE', ignorecase=True)"
-    #     - "not item | regex_search(index_key, ignorecase=True)"  # Dynamic check
-    #     - "not item | regex_search(condition, ignorecase=True)"  # Dynamic check
-    #     - "not item | regex_search(keyspace_id, ignorecase=True)"  # Dynamic check
-    #     - "not item | regex_search(scope_id, ignorecase=True)"  # Dynamic check
-    #   with_items: "{{ index_queries }}"    
-
+   
     - name: Validate index queries
       set_fact:
-        allowed_queries: "{{ allowed_queries + [item | string] }}"
+        allowed_queries: "{{ allowed_queries + [item] }}"
       when:
         - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search(index_key, ignorecase=True)"
-        - "not item | regex_search(condition, ignorecase=True)"
-        - "not item | regex_search(keyspace_id, ignorecase=True)"
-        - "not item | regex_search(scope_id, ignorecase=True)"
-      loop: "{{ [index_queries] if index_queries is string else index_queries }}"
+        - "not item | regex_search('Index Key\\s+:', ignorecase=True)"
+        - "not item | regex_search('Condition\\s+:', ignorecase=True)"
+        - "not item | regex_search('Keyspace ID\\s+:', ignorecase=True)"
+        - "not item | regex_search('Scope ID\\s+:', ignorecase=True)"
+      with_items: "{{ index_queries }}"    
+ 
 
 
  
