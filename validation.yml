@@ -159,7 +159,7 @@
         - "not (item | string | regex_search(condition, ignorecase=True))"
         - "not (item | string | regex_search(keyspace_id, ignorecase=True))"
         - "not (item | string | regex_search(scope_id, ignorecase=True))"
-      loop: "{{ index_queries }}"
+      loop: "{{ index_queries | list }}"
 
  
 #=====================================================================================================================
