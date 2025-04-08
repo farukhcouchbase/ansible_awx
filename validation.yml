@@ -44,7 +44,7 @@
         
     #========================Comparison of the fields values =======================================
    
-    - name: Extract Individual Index Details
+    - name: Extract and clean individual index details
       set_fact:
         index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') | regex_replace('[`\\'\"\\[\\]]', '') }}"
         condition: "{{ decoded_content | regex_search('Condition\\s+: \\((.*?)\\)', '\\1') | regex_replace('.*=\\s*[\"\\']?(.*?)[\"\\']?$', '\\1') }}"
@@ -52,6 +52,7 @@
         scope_id: "{{ decoded_content | regex_search('Scope ID\\s+: (.*?)\\n', '\\1') | regex_replace('[`\\[\\]]', '') }}"
       vars:
         decoded_content: "{{ file_content['content'] | b64decode }}"
+
 
     - name: Debug Index Details
       debug:
