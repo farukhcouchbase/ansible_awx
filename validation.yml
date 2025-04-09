@@ -41,6 +41,12 @@
       debug:
         msg: "{{ file_content['content'] | b64decode }}"  
 
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - "not (file_content['content'] | b64decode) | regex_search('your_regex_pattern')"    
+
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       with_items: "{{ index_queries }}"
