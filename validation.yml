@@ -56,13 +56,15 @@
       vars:
         decoded_content: "{{ file_content['content'] | b64decode }}"
 
+
     - name: Debug Extracted Index Fields
       debug:
         msg:
-          - "{{ index_key }}"
-          - "{{ condition }}"
+          - "{{  bucket_id }}"
           - "{{ keyspace_id }}"
           - "{{ scope_id }}"
+          - "{{ index_key }}"
+          - "{{  condition }}"
 
     # - debug:
     #     msg: "index_key = {{ index_key }}, type = {{ index_key | type_debug }}"      
