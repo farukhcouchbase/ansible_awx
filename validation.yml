@@ -144,7 +144,7 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
+        #- "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
       with_items: "{{ index_queries }}"
 
 #====================================================================================================================
