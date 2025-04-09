@@ -152,10 +152,10 @@
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when: 
-        - not item is search(index_key)
-        - not item is search(condition)
-        - not item is search(keyspace_id)
-        - not item is search(scope_id)
+        - not item is search(index_key | join('|'))
+        - not item is search(condition | join('|'))
+        - not item is search(keyspace_id | join('|'))
+        - not item is search(scope_id | join('|'))
       with_items: "{{ index_queries }}" 
     
 
