@@ -163,10 +163,7 @@
       with_items: "{{ index_queries }}"
       register: query_result
 
-    - name: Debug the item being processed
-      debug:
-        msg: "Processing item: {{ item }}"
-      when: query_result is defined
+    
 
 
 
