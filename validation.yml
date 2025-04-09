@@ -147,7 +147,7 @@
         #- "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
       with_items: "{{ index_queries }}"
 
-# ====================================================================================================================
+
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
@@ -158,7 +158,7 @@
         - not item is search(scope_id)
       with_items: "{{ index_queries }}" 
     
-# ===================================================================================================================
+
 
     - name: Identify not allowed queries
       set_fact:
