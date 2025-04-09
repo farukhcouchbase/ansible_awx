@@ -148,25 +148,26 @@
       with_items: "{{ index_queries }}"
 
       
+    - name: Debug index_queries
+      debug:
+        msg: "Index queries: {{ index_queries }}"
+
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - not (item is search(index_key | join('|')))
+        - not (item is search(condition | join('|')))
+        - not (item is search(keyspace_id | join('|')))
+        - not (item is search(scope_id | join('|')))
+      with_items: "{{ index_queries }}"
+      register: query_result
+
     - name: Debug the item being processed
       debug:
         msg: "Processing item: {{ item }}"
+      when: query_result is defined
 
-    - name: Debug index_key
-      debug:
-        msg: "Index Key: {{ index_key }}"
-
-    - name: Debug condition
-      debug:
-        msg: "Condition: {{ condition }}"
-
-    - name: Debug keyspace_id
-      debug:
-        msg: "Keyspace ID: {{ keyspace_id }}"
-
-    - name: Debug scope_id
-      debug:
-        msg: "Scope ID: {{ scope_id }}"
 
 
     # - name: Validate index queries
@@ -179,15 +180,7 @@
     #     - not item is search(scope_id | join('|'))
     #   with_items: "{{ index_queries }}" 
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - not (item is search(index_key | join('|')))
-        - not (item is search(condition | join('|')))
-        - not (item is search(keyspace_id | join('|')))
-        - not (item is search(scope_id | join('|')))
-      with_items: "{{ index_queries }}"  
+    
     
 
 
