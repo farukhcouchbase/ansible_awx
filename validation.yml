@@ -137,19 +137,33 @@
 #=====================================================================================================================
 
    
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   when:
+    #     - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+    #     - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+    #     - "item | regex_search('CREATE INDEX', ignorecase=True)"
+    #     - "item | regex_search('WHERE', ignorecase=True)"
+    #     - "not item | regex_search('Index Key\\s+:', ignorecase=True)"
+    #     - "not item | regex_search('Condition\\s+:', ignorecase=True)"
+    #     - "not item | regex_search('Keyspace ID\\s+:', ignorecase=True)"
+    #     - "not item | regex_search('Scope ID\\s+:', ignorecase=True)"
+    #   with_items: "{{ index_queries }}"    
+
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
-        - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search('Index Key\\s+:', ignorecase=True)"
-        - "not item | regex_search('Condition\\s+:', ignorecase=True)"
-        - "not item | regex_search('Keyspace ID\\s+:', ignorecase=True)"
-        - "not item | regex_search('Scope ID\\s+:', ignorecase=True)"
-      with_items: "{{ index_queries }}"    
+      when: >
+        item is search('CREATE INDEX', ignorecase=True) and
+        item is search('WHERE', ignorecase=True) and
+        item is not search('CREATE PRIMARY INDEX', ignorecase=True) and
+        item is not search('META\\(\\)\\.id', ignorecase=True) and
+        item is not search('Index Key\\s+:', ignorecase=True) and
+        item is not search('Condition\\s+:', ignorecase=True) and
+        item is not search('Keyspace ID\\s+:', ignorecase=True) and
+        item is not search('Scope ID\\s+:', ignorecase=True)
+      with_items: "{{ index_queries }}"
  
 
 
