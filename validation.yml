@@ -134,50 +134,31 @@
       fail:
         msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
+
 #=====================================================================================================================
-
-   
-    # - name: Validate index queries
-    #   set_fact:
-    #     allowed_queries: "{{ allowed_queries + [item] }}"
-    #   when:
-    #     - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-    #     - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
-    #     - "item | regex_search('CREATE INDEX', ignorecase=True)"
-    #     - "item | regex_search('WHERE', ignorecase=True)"
-    #     - "not item | regex_search('Index Key\\s+:', ignorecase=True)"
-    #     - "not item | regex_search('Condition\\s+:', ignorecase=True)"
-    #     - "not item | regex_search('Keyspace ID\\s+:', ignorecase=True)"
-    #     - "not item | regex_search('Scope ID\\s+:', ignorecase=True)"
-    #   with_items: "{{ index_queries }}"    
-
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
-      when: >
-        item is search('CREATE INDEX', ignorecase=True) and
-        item is search('WHERE', ignorecase=True) and
-        item is not search('CREATE PRIMARY INDEX', ignorecase=True) and
-        item is not search('META\\(\\)\\.id', ignorecase=True) and
-        item is not search('Index Key\\s+:', ignorecase=True) and
-        item is not search('Condition\\s+:', ignorecase=True) and
-        item is not search('Keyspace ID\\s+:', ignorecase=True) and
-        item is not search('Scope ID\\s+:', ignorecase=True)
+      when:
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+        - "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
       with_items: "{{ index_queries }}"
- 
 
-
- 
-#=====================================================================================================================
-    # - name: Validate index queries
-    #   set_fact:
-    #     allowed_queries: "{{ allowed_queries + [item] }}"
-    #   when:
-    #     - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-    #     - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
-    #     - "item | regex_search('CREATE INDEX', ignorecase=True)"
-    #     - "item | regex_search('WHERE', ignorecase=True)"
-    #   with_items: "{{ index_queries }}"
+#====================================================================================================================
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when: 
+        - not item is search(index_key)
+        - not item is search(condition)
+        - not item is search(keyspace_id)
+        - not item is search(scope_id)
+      with_items: "{{ index_queries }}" 
+    
+#===================================================================================================================
 
     - name: Identify not allowed queries
       set_fact:
