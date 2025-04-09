@@ -48,7 +48,7 @@
     
     - name: Extract Individual Index Details
       set_fact:
-        bucket_id: "{{ decoded_content | regex_search('Bucket ID\\s+:\\s*(.*?)\\n', '\\1') }}"
+        #bucket_id: "{{ decoded_content | regex_search('Bucket ID\\s+:\\s*(.*?)\\n', '\\1') }}"
         keyspace_id: "{{ decoded_content | regex_search('Keyspace ID\\s+:\\s*(.*?)\\n', '\\1') }}"
         scope_id: "{{ decoded_content | regex_search('Scope ID\\s+:\\s*(.*?)\\n', '\\1') }}"
         index_key: "{{ decoded_content | regex_search('Index Key\\s+:\\s*(.*?)\\n', '\\1') }}"
@@ -62,7 +62,7 @@
     - name: Debug extracted values
       debug:
         msg:
-          - "Bucket ID: {{ bucket_id }}"
+         # - "Bucket ID: {{ bucket_id }}"
           - "Keyspace ID: {{ keyspace_id }}"
           - "Scope ID: {{ scope_id }}"
           - "Index Key: {{ index_key }}"
@@ -148,7 +148,7 @@
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
         # - "not item | regex_search(index_key, ignorecase=True)"  # Dynamic check
-        - "not item | regex_search('bucket_id=\\S+', ignorecase=True)"  # Match "bucket_id=" followed by any non-whitespace characters
+       # - "not item | regex_search('bucket_id=\\S+', ignorecase=True)"  # Match "bucket_id=" followed by any non-whitespace characters
         - "not item | regex_search('keyspace_id=\\S+', ignorecase=True)"  # Match "keyspace_id=" followed by any non-whitespace characters
         - "not item | regex_search('scope_id=\\S+', ignorecase=True)"  # Match "scope_id=" followed by any non-whitespace characters
         - "not item | regex_search('index_key=\\S+', ignorecase=True)"  # Match "index_key=" followed by any non-whitespace characters
