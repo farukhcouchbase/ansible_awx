@@ -98,16 +98,22 @@
       with_items: "{{ index_queries }}"
 
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - "not (file_content['content'] | b64decode) | regex_search('^`[^`]+`\\.\\`[^`]+`\\.\\`[^`]+`\\(`([^`]+`(?:,`[^`]+)*)\\`) WHERE \\(`[^`]+`\\s*=\\s*\"[^\"]+\"\\)$')"
-      with_items: "{{ index_queries }}"  
+    
 
     - name: Debug the allowed_queries list
       debug:
         msg: "Allowed Queries: {{ allowed_queries }}"    
+
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - "(file_content['content'] | b64decode) | regex_search('^`[^`]+`\\.\\`[^`]+`\\.\\`[^`]+`\\(`([^`]+`(?:,`[^`]+)*)\\`) WHERE \\(`[^`]+`\\s*=\\s*\"[^\"]+\"\\)$')"
+      with_items: "{{ index_queries }}"  
+
+    - name: Debug the allowed_queries list
+      debug:
+        msg: "Allowed Queries: {{ allowed_queries }}"     
 
     - name: Identify not allowed queries
       set_fact:
