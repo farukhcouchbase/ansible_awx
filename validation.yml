@@ -158,7 +158,7 @@
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
         - not (item | regex_search(index_key | join('|'), ignorecase=True))
-        - not (item | regex_search(condition | join('|'), ignorecase=True))
+      
         - not (item | regex_search(keyspace_id | join('|'), ignorecase=True))
         - not (item | regex_search(scope_id | join('|'), ignorecase=True))
       with_items: "{{ index_queries }}"
