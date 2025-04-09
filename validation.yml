@@ -103,7 +103,6 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-
       with_items: "{{ index_queries }}"
 
     - name: Identify not allowed queries
