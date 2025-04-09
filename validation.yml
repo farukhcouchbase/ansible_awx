@@ -57,14 +57,16 @@
         decoded_content: "{{ file_content['content'] | b64decode }}"
 
 
-    - name: Debug Extracted Index Fields
+    
+
+    - name: Debug extracted values
       debug:
         msg:
-          - "{{ bucket_id }}"
-          - "{{ keyspace_id }}"
-          - "{{ scope_id }}"
-          - "{{ index_key }}"
-          - "{{ condition }}"
+          - "Bucket ID: {{ bucket_id }}"
+          - "Keyspace ID: {{ keyspace_id }}"
+          - "Scope ID: {{ scope_id }}"
+          - "Index Key: {{ index_key }}"
+          - "Condition: {{ condition }}"
 
     # - debug:
     #     msg: "index_key = {{ index_key }}, type = {{ index_key | type_debug }}"      
