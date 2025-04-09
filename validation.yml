@@ -65,8 +65,8 @@
           - "{{ keyspace_id }}"
           - "{{ scope_id }}"
 
-    - debug:
-        msg: "index_key = {{ index_key }}, type = {{ index_key | type_debug }}"      
+    # - debug:
+    #     msg: "index_key = {{ index_key }}, type = {{ index_key | type_debug }}"      
   
 
     # - name: Validate index queries
