@@ -1,3 +1,4 @@
+
 - name: Validate and Create Couchbase Indexes
   hosts: all
   gather_facts: no
