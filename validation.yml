@@ -145,7 +145,12 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search(index_key, ignorecase=True)"  # Dynamic check
+        # - "not item | regex_search(index_key, ignorecase=True)"  # Dynamic check
+        - "not item | regex_search('bucket_id=\\S+', ignorecase=True)"  # Match "bucket_id=" followed by any non-whitespace characters
+        - "not item | regex_search('keyspace_id=\\S+', ignorecase=True)"  # Match "keyspace_id=" followed by any non-whitespace characters
+        - "not item | regex_search('scope_id=\\S+', ignorecase=True)"  # Match "scope_id=" followed by any non-whitespace characters
+        - "not item | regex_search('index_key=\\S+', ignorecase=True)"  # Match "index_key=" followed by any non-whitespace characters
+        - "not item | regex_search('condition=\\S+', ignorecase=True)"  # Match "condition=" followed by any non-whitespace characters
       with_items: "{{ index_queries }}"
 
       
@@ -153,17 +158,7 @@
       debug:
         msg: "Index queries: {{ index_queries }}"
 
-    - name: Validate index queries with debug
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - not (
-            item | regex_search('`' + index_key | join('`|`') + '`', ignorecase=True) or
-            item | regex_search(keyspace_id | join('|'), ignorecase=True) or
-            item | regex_search(scope_id | join('|'), ignorecase=True)
-          )
-      with_items: "{{ index_queries }}"
-      register: query_result
+   
 
     - name: Debug query validation
       debug:
