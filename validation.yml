@@ -157,9 +157,9 @@
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
-        - not (item | regex_search(index_key | join('|'), ignorecase=True))
-        - not (item | regex_search(condition | join('|'), ignorecase=True))
-        - not (item | regex_search(keyspace_id | join('|'), ignorecase=True))
+        - not (item | regex_search(Index Key | join('|'), ignorecase=True))
+        - not (item | regex_search(Condition | join('|'), ignorecase=True))
+        - not (item | regex_search(Keyspace ID | join('|'), ignorecase=True))
         - not (item | regex_search(scope_id | join('|'), ignorecase=True))
       with_items: "{{ index_queries }}"
       register: query_result
@@ -173,7 +173,7 @@
     #     - not item is search(index_key | join('|'))
     #     - not item is search(condition | join('|'))
     #     - not item is search(keyspace_id | join('|'))
-    #     - not item is search(scope_id | join('|'))
+    #     - not item is search(Scope ID | join('|'))
     #   with_items: "{{ index_queries }}" 
 
     
