@@ -153,19 +153,21 @@
       debug:
         msg: "Index queries: {{ index_queries }}"
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - not (
-            
-            item | regex_search(keyspace_id | join('|'), ignorecase=True) or
-            item | regex_search(scope_id | join('|'), ignorecase=True)
-          )
-      with_items: "{{ index_queries }}"
-      register: query_result
+    - name: Validate index queries with debug
+  set_fact:
+    allowed_queries: "{{ allowed_queries + [item] }}"
+  when:
+    - not (
+        item | regex_search('`' + index_key | join('`|`') + '`', ignorecase=True) or
+        item | regex_search(keyspace_id | join('|'), ignorecase=True) or
+        item | regex_search(scope_id | join('|'), ignorecase=True)
+      )
+  with_items: "{{ index_queries }}"
+  register: query_result
 
-
+- name: Debug query validation
+  debug:
+    var: query_result
 
     # - name: Validate index queries
     #   set_fact:
