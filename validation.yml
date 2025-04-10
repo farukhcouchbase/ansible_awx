@@ -253,12 +253,12 @@
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries2 }}"
 
-    - name: Execute allowed index queries (Method 2)
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries2 }}"
-      when: updated_queries2 | length > 0
-      register: query_result
-      ignore_errors: no
+    # - name: Execute allowed index queries (Method 2)
+    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+    #   with_items: "{{ updated_queries2 }}"
+    #   when: updated_queries2 | length > 0
+    #   register: query_result
+    #   ignore_errors: no
 
     - name: Execute allowed index queries (Method 1)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
