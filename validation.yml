@@ -50,6 +50,65 @@
       debug:
         msg: "{{ file_content['content'] | b64decode }}"      
 
+    #===========================================================================
+
+
+
+
+    - name: Read fields1.txt content
+      slurp:
+        src: /home/ubuntu/fields1.txt
+      register: file_content
+
+    - name: Decode file content
+      set_fact:
+        decoded_content: "{{ file_content['content'] | b64decode }}"
+
+    - name: Parse index info from fields1.txt
+      set_fact:
+        bucket_id: "{{ decoded_content.split('\n')[0].split(':')[1] | trim }}"
+        scope_id: "{{ decoded_content.split('\n')[1].split(':')[1] | trim }}"
+        keyspace_id: "{{ decoded_content.split('\n')[2].split(':')[1] | trim }}"
+        index_keys: "{{ decoded_content.split('\n')[3].split(':')[1] | trim }}"
+        condition: "{{ decoded_content.split('\n')[4].split(':')[1] | trim }}"
+
+    - name: Set existing index signature for comparison
+      set_fact:
+        existing_signature: "{{ bucket_id }}.{{ scope_id }}.{{ keyspace_id }}{{ index_keys }}{{ condition }}"
+
+    - name: Initialize updated queries list
+      set_fact:
+        updated_queries2: []
+
+    - name: Filter and collect only unique index queries
+      set_fact:
+        updated_queries2: "{{ updated_queries2 + [ item ] }}"
+      with_items: "{{ index_queries }}"
+      when: >
+        (item | regex_search('ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING')) is not none and
+        (
+          (
+            item | regex_replace('.*ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING.*', 
+            '\\1.\\2.\\3\\4\\5')
+          ) != existing_signature
+        )
+
+    - name: Show final filtered queries
+      debug:
+        msg: "Allowed Index Queries: {{ updated_queries2 }}"
+
+    - name: Execute allowed index queries (Method 2)
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+      with_items: "{{ updated_queries2 }}"
+      when: updated_queries2 | length > 0
+      register: query_result
+      ignore_errors: no
+
+
+
+   
+    #===========================================================================     
+
       
 
     - name: Validate syntax of index queries 
@@ -113,16 +172,16 @@
       debug:
         msg: "Allowed Queries: {{ allowed_queries }}"    
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - "(file_content['content'] | b64decode) | regex_search('^`[^`]+`\\.`[^`]+`\\.`[^`]+`\\(`([^`]+(?:,`[^`]+)*)\\`) WHERE \\(`[^`]+`\\s*=\\s*\"[^\"]+\"\\)$')"
-      with_items: "{{ index_queries }}"  
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   when:
+    #     - "(file_content['content'] | b64decode) | regex_search('^`[^`]+`\\.`[^`]+`\\.`[^`]+`\\(`([^`]+(?:,`[^`]+)*)\\`) WHERE \\(`[^`]+`\\s*=\\s*\"[^\"]+\"\\)$')"
+    #   with_items: "{{ index_queries }}"  
 
-    - name: Debug the allowed_queries list
-      debug:
-        msg: "Allowed Queries: {{ allowed_queries }}"     
+    # - name: Debug the allowed_queries list
+    #   debug:
+    #     msg: "Allowed Queries: {{ allowed_queries }}"     
 
     - name: Identify not allowed queries
       set_fact:
