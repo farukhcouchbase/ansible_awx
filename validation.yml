@@ -1,7 +1,7 @@
 
 - name: Validate and Create Couchbase Indexes
   hosts: all
-  gather_facts: no
+  gather_facts: no 
   vars:
     couchbase_bin_path: "/path/to/couchbase_bin"
     # couchbase_admin_username: "Admin"
