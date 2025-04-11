@@ -88,7 +88,12 @@
         seen_signatures: "{{ seen_signatures + [ current_signature ] }}"
       vars:
         current_signature: >-
-          {{ item | regex_replace('^CREATE INDEX `[^`]+` ', 'CREATE INDEX `placeholder_index` ') | trim }}
+          {{
+            item
+            | regex_replace('^CREATE INDEX `[^`]+` ', 'CREATE INDEX `placeholder_index` ')
+            | regex_replace('\s+', ' ')  # Normalize whitespace
+            | trim
+          }}
       with_items: "{{ index_queries }}"
       when: current_signature not in seen_signatures
 
