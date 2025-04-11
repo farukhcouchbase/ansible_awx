@@ -67,11 +67,11 @@
 
     - name: Parse index info from fields1.txt
       set_fact:
-        bucket_id: "{{ decoded_content.split('\n')[0].split(':')[1] | trim }}"
-        scope_id: "{{ decoded_content.split('\n')[1].split(':')[1] | trim }}"
-        keyspace_id: "{{ decoded_content.split('\n')[2].split(':')[1] | trim }}"
-        index_keys: "{{ decoded_content.split('\n')[3].split(':')[1] | trim }}"
-        condition: "{{ decoded_content.split('\n')[4].split(':')[1] | trim }}"
+        bucket_id: "{{ decoded_content[0].split('\n')[0].split(':')[1] | trim }}"
+        scope_id: "{{ decoded_content[0].split('\n')[1].split(':')[1] | trim }}"
+        keyspace_id: "{{ decoded_content[0].split('\n')[2].split(':')[1] | trim }}"
+        index_keys: "{{ decoded_content[0].split('\n')[3].split(':')[1] | trim }}"
+        condition: "{{ decoded_content[0].split('\n')[4].split(':')[1] | trim }}"
 
     - name: Set existing index signature for comparison
       set_fact:
