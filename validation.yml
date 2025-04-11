@@ -75,18 +75,18 @@
         existing_signature: "{{ bucket_id }}.{{ scope_id }}.{{ keyspace_id }}{{ index_keys }}{{ condition }}"
 
     - name: Define new index queries to check
-  set_fact:
-    new_queries:
-      - "CREATE INDEX `Secondary_index_5000` ON `travel-sample`.`scopeA`.`collection4`( `field10`, `field11`) WHERE `type` = \"airplane1\" USING GSI WITH {\"defer_build\":true};"
-      - "CREATE INDEX `Secondary_index_5001` ON `travel-sample`.`scopeA`.`collection4`( `field10`, `field11`) WHERE `type` = \"airplane1\" USING GSI WITH {\"defer_build\":true};"    
-
-    - name: Filter new queries by unique signature (excluding index name)
       set_fact:
-        updated_queries2: "{{ updated_queries2 + [item] }}"
-        seen_signatures: "{{ seen_signatures + [new_signature] }}"
-      when: new_signature not in seen_signatures
-      vars:
-        new_signature: >-
+        new_queries:
+          - "CREATE INDEX `Secondary_index_5000` ON `travel-sample`.`scopeA`.`collection4`( `field10`, `field11`) WHERE `type` = \"airplane1\" USING GSI WITH {\"defer_build\":true};"
+          - "CREATE INDEX `Secondary_index_5001` ON `travel-sample`.`scopeA`.`collection4`( `field10`, `field11`) WHERE `type` = \"airplane1\" USING GSI WITH {\"defer_build\":true};"    
+
+        - name: Filter new queries by unique signature (excluding index name)
+          set_fact:
+            updated_queries2: "{{ updated_queries2 + [item] }}"
+            seen_signatures: "{{ seen_signatures + [new_signature] }}"
+          when: new_signature not in seen_signatures
+          vars:
+            new_signature: >-
           {{
             item | regex_search('ON\\s+`([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\(([^\\)]+)\\)\\s+WHERE\\s+([^\\s]+\\s*=\\s*[^\\s]+)', '\\1.\\2.\\3.\\4.\\5')
             | default('')
