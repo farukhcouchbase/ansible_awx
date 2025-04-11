@@ -87,7 +87,7 @@
 
     - name: Create index if signature is new
       command: >
-        "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }}  
+        /opt/couchbase/bin/cbq -u admin -p password -e couchbase://localhost  
         --script="CREATE INDEX `Secondary_index_{{ 100 | random(seed=index_signature) }}` ON `{{ bucket_id }}`.`{{ scope_id }}`.`{{ keyspace_id }}`({{ index_keys }}) WHERE {{ condition }} USING GSI WITH {{ '{\"defer_build\":true}' }};"
       when: not index_exists
 
