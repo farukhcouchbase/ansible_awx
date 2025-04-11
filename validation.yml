@@ -1,7 +1,7 @@
 
 - name: Validate and Create Couchbase Indexes
   hosts: all
-  gather_facts: no 
+  gather_facts: no
   vars:
     couchbase_bin_path: "/path/to/couchbase_bin"
     # couchbase_admin_username: "Admin"
@@ -11,7 +11,6 @@
     duplicate_indexes: []
     some_query_output: []
     existing_index_map: []
-    decoded_content: []
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
 
@@ -33,15 +32,6 @@
         chdir: /home/ubuntu
       #register: script_output
 
-    - name: Read fields2.txt content
-      slurp:
-        src: /home/ubuntu/fields2.txt
-      register: file_content
-
-    - name: Display file content
-      debug:
-        msg: "{{ file_content['content'] | b64decode }}"  
-
     - name: Read fields1.txt content
       slurp:
         src: /home/ubuntu/fields1.txt
@@ -49,25 +39,65 @@
 
     - name: Display file content
       debug:
-        msg: "{{ file_content['content'] | b64decode }}"      
+        msg: "{{ file_content['content'] | b64decode }}"  
 
+      
+        
+    #========================Comparison of the fields values =======================================
+   
     
-    - name: Parse index info from fields1.txt
+    - name: Extract Individual Index Details
       set_fact:
-        bucket_id: "{{ (decoded_content | string | regex_search('Bucket ID\\s*:\\s*(.*)')) | trim }}"
-        scope_id: "{{ (decoded_content | string | regex_search('Scope ID\\s*:\\s*(.*)')) | trim }}"
-        keyspace_id: "{{ (decoded_content | string | regex_search('Keyspace ID\\s*:\\s*(.*)')) | trim }}"
-        index_keys: "{{ (decoded_content | string | regex_search('Index Key\\s*:\\s*(.*)')) | trim }}"
-        condition: "{{ (decoded_content | string | regex_search('Condition\\s*:\\s*(.*)')) | trim }}"
+        index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') }}"
+        condition: "{{ decoded_content | regex_search('Condition\\s+: \\((.*?)\\)', '\\1') }}"
+        keyspace_id: "{{ decoded_content | regex_search('Keyspace ID: (.*?)\\n', '\\1') }}"
+        scope_id: "{{ decoded_content | regex_search('Scope ID\\s+: (.*?)\\n', '\\1') }}"
+      vars:
+        decoded_content: "{{ file_content['content'] | b64decode }}"
 
 
+  
 
+    - name: Debug Extracted Index Fields
+      debug:
+        msg:
+          - "{{ index_key }}"
+          - "{{ condition }}"
+          - "{{ keyspace_id }}"
+          - "{{ scope_id }}"
 
-    - name: Validate syntax of index queries 
+    # - debug:
+    #     msg: "index_key = {{ index_key }}, type = {{ index_key | type_debug }}"      
+  
+
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   when:
+    #     - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+    #     - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+    #     - "item | regex_search('CREATE INDEX', ignorecase=True)"
+    #     - "item | regex_search('WHERE', ignorecase=True)"
+    #     - "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
+    #   with_items: "{{ index_queries }}"    
+ 
+     
+    
+  
+    #===============================================================================================
+
+    - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       with_items: "{{ index_queries }}"
       register: syntax_check
       failed_when: "'syntax error' in syntax_check.stdout"
+
+
+    
+
+   
+    
+
 
     - name: Identify queries exceeding field limits
       set_fact:
@@ -106,7 +136,7 @@
         msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
 
-
+#=====================================================================================================================
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
@@ -115,25 +145,41 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
+        #- "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
       with_items: "{{ index_queries }}"
 
-
-    
-
-    - name: Debug the allowed_queries list
+      
+    - name: Debug index_queries
       debug:
-        msg: "Allowed Queries: {{ allowed_queries }}"    
+        msg: "Index queries: {{ index_queries }}"
+
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - not (
+            
+            item | regex_search(keyspace_id | join('|'), ignorecase=True) or
+            item | regex_search(scope_id | join('|'), ignorecase=True)
+          )
+      with_items: "{{ index_queries }}"
+      register: query_result
+
+
 
     # - name: Validate index queries
     #   set_fact:
     #     allowed_queries: "{{ allowed_queries + [item] }}"
-    #   when:
-    #     - "(file_content['content'] | b64decode) | regex_search('^`[^`]+`\\.`[^`]+`\\.`[^`]+`\\(`([^`]+(?:,`[^`]+)*)\\`) WHERE \\(`[^`]+`\\s*=\\s*\"[^\"]+\"\\)$')"
-    #   with_items: "{{ index_queries }}"  
+    #   when: 
+    #     - not item is search(index_key | join('|'))
+    #     - not item is search(condition | join('|'))
+    #     - not item is search(keyspace_id | join('|'))
+    #     - not item is search(scope_id | join('|'))
+    #   with_items: "{{ index_queries }}" 
 
-    - name: Debug the allowed_queries list
-      debug:
-        msg: "Allowed Queries: {{ allowed_queries }}"     
+    
+    
+
 
     - name: Identify not allowed queries
       set_fact:
@@ -204,6 +250,20 @@
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries2 }}"
+
+  
+
+  
+
+   
+
+    # - name: Execute allowed index queries (Method 2)
+    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+    #   with_items: "{{ updated_queries2 }}"
+    #   when: updated_queries2 | length > 0 and fields_changed
+    #   register: query_result
+    #   ignore_errors: no
+  
 
     - name: Execute allowed index queries (Method 2)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
