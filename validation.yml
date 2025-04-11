@@ -44,8 +44,6 @@
       
         
     #========================Comparison of the fields values =======================================
-   
-    
     - name: Extract Individual Index Details
       set_fact:
         index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') }}"
@@ -54,32 +52,10 @@
         scope_id: "{{ decoded_content | regex_search('Scope ID\\s+: (.*?)\\n', '\\1') }}"
       vars:
         decoded_content: "{{ file_content['content'] | b64decode }}"
+    
+   
 
-
-  
-
-    - name: Debug Extracted Index Fields
-      debug:
-        msg:
-          - "{{ index_key }}"
-          - "{{ condition }}"
-          - "{{ keyspace_id }}"
-          - "{{ scope_id }}"
-
-    # - debug:
-    #     msg: "index_key = {{ index_key }}, type = {{ index_key | type_debug }}"      
-  
-
-    # - name: Validate index queries
-    #   set_fact:
-    #     allowed_queries: "{{ allowed_queries + [item] }}"
-    #   when:
-    #     - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-    #     - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
-    #     - "item | regex_search('CREATE INDEX', ignorecase=True)"
-    #     - "item | regex_search('WHERE', ignorecase=True)"
-    #     - "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
-    #   with_items: "{{ index_queries }}"    
+   
  
      
     
