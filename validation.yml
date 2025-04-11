@@ -82,20 +82,7 @@
       set_fact:
         seen_signatures: []
 
-    - name: Filter and collect only unique index queries (based on query body)
-      set_fact:
-        updated_queries2: "{{ updated_queries2 + [ item ] }}"
-        seen_signatures: "{{ seen_signatures + [ current_signature ] }}"
-      vars:
-        current_signature: >-
-          {{
-            item
-            | regex_replace('^CREATE INDEX `[^`]+` ', 'CREATE INDEX `placeholder_index` ')
-            | regex_replace('\\s+', ' ')
-            | trim
-          }}
-      with_items: "{{ index_queries }}"
-      when: current_signature not in seen_signatures
+    
 
 
     - name: Show final filtered queries
