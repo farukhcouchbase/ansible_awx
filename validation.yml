@@ -53,27 +53,22 @@
 
     #===========================================================================
 
-
-
-
     - name: Read fields1.txt content
       slurp:
         src: /home/ubuntu/fields1.txt
       register: slurped_file
 
-    - name: Display file content
-      debug:
-        msg: "{{ slurped_file.content | b64decode }}"  
+    - name: Decode file content
+      set_fact:
+        decoded_content: "{{ slurped_file.content | b64decode }}"
 
     - name: Parse index info from fields1.txt
       set_fact:
-        bucket_id: "{{ (decoded_content | string | regex_search('Bucket ID\\s*:\\s*(.*)')) | trim }}"
-        scope_id: "{{ (decoded_content | string | regex_search('Scope ID\\s*:\\s*(.*)')) | trim }}"
-        keyspace_id: "{{ (decoded_content | string | regex_search('Keyspace ID\\s*:\\s*(.*)')) | trim }}"
-        index_keys: "{{ (decoded_content | string | regex_search('Index Key\\s*:\\s*(.*)')) | trim }}"
-        condition: "{{ (decoded_content | string | regex_search('Condition\\s*:\\s*(.*)')) | trim }}"
-
-
+        bucket_id: "{{ decoded_content | regex_search('Bucket ID\\s*:\\s*(.*)', '\\1') | default('') | trim }}"
+        scope_id: "{{ decoded_content | regex_search('Scope ID\\s*:\\s*(.*)', '\\1') | default('') | trim }}"
+        keyspace_id: "{{ decoded_content | regex_search('Keyspace ID\\s*:\\s*(.*)', '\\1') | default('') | trim }}"
+        index_keys: "{{ decoded_content | regex_search('Index Key\\s*:\\s*(.*)', '\\1') | default('') | trim }}"
+        condition: "{{ decoded_content | regex_search('Condition\\s*:\\s*(.*)', '\\1') | default('') | trim }}"
 
     - name: Set existing index signature for comparison
       set_fact:
@@ -91,7 +86,7 @@
         (item | regex_search('ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING')) is not none and
         (
           (
-            item | regex_replace('.*ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING.*', 
+            item | regex_replace('.*ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING.*',
             '\\1.\\2.\\3\\4\\5')
           ) != existing_signature
         )
@@ -106,6 +101,7 @@
       when: updated_queries2 | length > 0
       register: query_result
       ignore_errors: no
+
 
 
 
