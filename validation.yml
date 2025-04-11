@@ -12,6 +12,7 @@
     some_query_output: []
     existing_index_map: []
     decoded_content: []
+    index_signature: []
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
 
