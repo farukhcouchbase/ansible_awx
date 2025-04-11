@@ -78,15 +78,17 @@
       set_fact:
         updated_queries2: []
 
-    - name: Filter and collect only unique index queries
+    - name: Filter and collect only unique index queries (ignoring index name)
       set_fact:
         updated_queries2: "{{ updated_queries2 + [ item ] }}"
       with_items: "{{ index_queries }}"
       when: >
-        (item | regex_search('ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING')) is not none and
+        (
+          item | regex_search('CREATE INDEX .*?ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING') is not none
+        ) and
         (
           (
-            item | regex_replace('.*ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING.*',
+            item | regex_replace('CREATE INDEX .*?ON `([^`]+)`\\.`([^`]+)`\\.`([^`]+)`\\((.*?)\\) WHERE (.*?) USING.*',
             '\\1.\\2.\\3\\4\\5')
           ) != existing_signature
         )
