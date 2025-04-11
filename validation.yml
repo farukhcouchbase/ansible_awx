@@ -38,9 +38,9 @@
         src: /home/ubuntu/fields2.txt
       register: file_content
 
-    # - name: Display file content
-    #   debug:
-    #     msg: "{{ file_content['content'] | b64decode }}"  
+    - name: Display file content
+      debug:
+        msg: "{{ file_content['content'] | b64decode }}"  
 
     - name: Read fields1.txt content
       slurp:
