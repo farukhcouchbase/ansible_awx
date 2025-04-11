@@ -91,11 +91,12 @@
           {{
             item
             | regex_replace('^CREATE INDEX `[^`]+` ', 'CREATE INDEX `placeholder_index` ')
-            | regex_replace('\s+', ' ')  # Normalize whitespace
+            | regex_replace('\\s+', ' ')
             | trim
           }}
       with_items: "{{ index_queries }}"
       when: current_signature not in seen_signatures
+
 
     - name: Show final filtered queries
       debug:
