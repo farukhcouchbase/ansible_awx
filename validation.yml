@@ -27,29 +27,29 @@
         query_field_list: []
 
      
-    # - name: Run the script
-    #   shell: /home/ubuntu/index.sh
-    #   args:
-    #     chdir: /home/ubuntu
-    #   #register: script_output
+    - name: Run the script
+      shell: /home/ubuntu/index.sh
+      args:
+        chdir: /home/ubuntu
+      #register: script_output
 
-    # - name: Read fields2.txt content
-    #   slurp:
-    #     src: /home/ubuntu/fields2.txt
-    #   register: file_content
+    - name: Read fields2.txt content
+      slurp:
+        src: /home/ubuntu/fields2.txt
+      register: file_content
 
     # - name: Display file content
     #   debug:
     #     msg: "{{ file_content['content'] | b64decode }}"  
 
-    # - name: Read fields1.txt content
-    #   slurp:
-    #     src: /home/ubuntu/fields1.txt
-    #   register: file_content
+    - name: Read fields1.txt content
+      slurp:
+        src: /home/ubuntu/fields1.txt
+      register: file_content
 
-    # - name: Display file content
-    #   debug:
-    #     msg: "{{ file_content['content'] | b64decode }}"      
+    - name: Display file content
+      debug:
+        msg: "{{ file_content['content'] | b64decode }}"      
 
     #===========================================================================
 
