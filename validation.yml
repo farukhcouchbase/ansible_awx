@@ -61,7 +61,7 @@
         src: /home/ubuntu/fields1.txt
       register: slurped_file
 
-   - name: Display file content
+    - name: Display file content
       debug:
         msg: "{{ slurped_file.content | b64decode }}"  
 
