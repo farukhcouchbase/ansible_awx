@@ -32,37 +32,37 @@
         chdir: /home/ubuntu
       #register: script_output
 
-    - name: Read fields1.txt content
-      slurp:
-        src: /home/ubuntu/fields1.txt
-      register: file_content
+    # - name: Read fields1.txt content
+    #   slurp:
+    #     src: /home/ubuntu/fields1.txt
+    #   register: file_content
 
-    - name: Display file content
-      debug:
-        msg: "{{ file_content['content'] | b64decode }}"  
+    # - name: Display file content
+    #   debug:
+    #     msg: "{{ file_content['content'] | b64decode }}"  
  
  
-    - name: Extract Individual Index Details
-      set_fact:
-        index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') }}"
-        condition: "{{ decoded_content | regex_search('Condition\\s+: \\((.*?)\\)', '\\1') }}"
-        keyspace_id: "{{ decoded_content | regex_search('Keyspace ID: (.*?)\\n', '\\1') }}"
-        scope_id: "{{ decoded_content | regex_search('Scope ID\\s+: (.*?)\\n', '\\1') }}"
-      vars:
-        decoded_content: "{{ file_content['content'] | b64decode }}"
+    # - name: Extract Individual Index Details
+    #   set_fact:
+    #     index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') }}"
+    #     condition: "{{ decoded_content | regex_search('Condition\\s+: \\((.*?)\\)', '\\1') }}"
+    #     keyspace_id: "{{ decoded_content | regex_search('Keyspace ID: (.*?)\\n', '\\1') }}"
+    #     scope_id: "{{ decoded_content | regex_search('Scope ID\\s+: (.*?)\\n', '\\1') }}"
+    #   vars:
+    #     decoded_content: "{{ file_content['content'] | b64decode }}"
 
-    - name: Debug extracted index details
-      debug:
-        msg:
-          - "Index Key: {{ index_key }}"
-          - "Condition: {{ condition }}"
-          - "Keyspace ID: {{ keyspace_id }}"
-          - "Scope ID: {{ scope_id }}"
+    # - name: Debug extracted index details
+    #   debug:
+    #     msg:
+    #       - "Index Key: {{ index_key }}"
+    #       - "Condition: {{ condition }}"
+    #       - "Keyspace ID: {{ keyspace_id }}"
+    #       - "Scope ID: {{ scope_id }}"
           
    
-    - name: Initialize allowed_queries
-      set_fact:
-        allowed_queries: []
+    # - name: Initialize allowed_queries
+    #   set_fact:
+    #     allowed_queries: []
 
     # - name: Flatten extracted values
     #   set_fact:
@@ -86,60 +86,64 @@
     #     - "not item | regex_search(scope_id_flat | regex_escape, ignorecase=True)"
     #   with_items: "{{ index_queries }}"
 
-    - name: Extract index fields from index_key
-      set_fact:
-        index_key_fields: "{{ index_key[0] | regex_findall('`([^`]*)`') }}"
+    # - name: Extract index fields from index_key
+    #   set_fact:
+    #     index_key_fields: "{{ index_key[0] | regex_findall('`([^`]*)`') }}"
 
-    - name: Extract condition fields
-      set_fact:
-        condition_fields: "{{ condition[0] | regex_findall('`([^`]*)`|\"([^\"]*)\"') | map('select', '!=', '') | map('first') | list }}"
+    # - name: Extract condition fields
+    #   set_fact:
+    #     condition_fields: "{{ condition[0] | regex_findall('`([^`]*)`|\"([^\"]*)\"') | map('select', '!=', '') | map('first') | list }}"
 
-    - name: Flatten keyspace_id
-      set_fact:
-        keyspace_id_flat: "{{ keyspace_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
+    # - name: Flatten keyspace_id
+    #   set_fact:
+    #     keyspace_id_flat: "{{ keyspace_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
 
-    - name: Flatten scope_id
-      set_fact:
-        scope_id_flat: "{{ scope_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
+    # - name: Flatten scope_id
+    #   set_fact:
+    #     scope_id_flat: "{{ scope_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
 
-    - name: Initialize allowed queries list
-      set_fact:
-        allowed_queries: []
+    # - name: Initialize allowed queries list
+    #   set_fact:
+    #     allowed_queries: []
 
-    - name: Debug index fields
-      debug:
-        msg: "Index Key Fields: {{ index_key_fields }}"
+    # - name: Debug index fields
+    #   debug:
+    #     msg: "Index Key Fields: {{ index_key_fields }}"
 
-    - name: Debug condition fields
-      debug:
-        msg: "Condition Fields: {{ condition_fields }}"
+    # - name: Debug condition fields
+    #   debug:
+    #     msg: "Condition Fields: {{ condition_fields }}"
 
-    - name: Debug keyspace_id_flat
-      debug:
-        msg: "Keyspace ID Flat: {{ keyspace_id_flat }}"
+    # - name: Debug keyspace_id_flat
+    #   debug:
+    #     msg: "Keyspace ID Flat: {{ keyspace_id_flat }}"
 
-    - name: Debug scope_id_flat
-      debug:
-        msg: "Scope ID Flat: {{ scope_id_flat }}"
+    # - name: Debug scope_id_flat
+    #   debug:
+    #     msg: "Scope ID Flat: {{ scope_id_flat }}"
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - item is not none
-        - index_key_fields | length > 0
-        - condition_fields | length > 0
-        - keyspace_id_flat | length > 0
-        - scope_id_flat | length > 0
-        - not (item | regex_search(index_key_fields | join('|'), ignorecase=True))
-        - not (item | regex_search(condition_fields | join('|'), ignorecase=True))
-        - not (item | regex_search(keyspace_id_flat, ignorecase=True))
-        - not (item | regex_search(scope_id_flat, ignorecase=True))
-      with_items: "{{ index_queries }}"
-
-
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   when:
+    #     - item is not none
+      #   - index_key_fields | length > 0
+      #   - condition_fields | length > 0
+      #   - keyspace_id_flat | length > 0
+      #   - scope_id_flat | length > 0
+      #   - not (item | regex_search(index_key_fields | join('|'), ignorecase=True))
+      #   - not (item | regex_search(condition_fields | join('|'), ignorecase=True))
+      #   - not (item | regex_search(keyspace_id_flat, ignorecase=True))
+      #   - not (item | regex_search(scope_id_flat, ignorecase=True))
+      # with_items: "{{ index_queries }}"
 
 
+
+#==============================================================================================
+    
+
+
+    
 #===============================================================================================   
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
@@ -187,7 +191,16 @@
 
 #=====================================================================================================================
     
-     
+    - name: Read fields1.txt content
+      slurp:
+        src: /home/ubuntu/fields2.txt
+      register: file_content
+
+    - name: Print decoded content of fields1.txt
+      debug:
+        msg: "{{ file_content.content | b64decode }}"
+
+
 
     - name: Validate index queries
       set_fact:
@@ -197,6 +210,7 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
+        - "not (file_content.content | b64decode) | regex_search(item, ignorecase=True)"
        
       with_items: "{{ index_queries }}"
 
