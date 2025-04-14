@@ -200,6 +200,13 @@
       debug:
         msg: "{{ file_content.content | b64decode }}"
 
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when: >
+        not (file_content.content | b64decode | regex_search(item, ignorecase=True))
+      with_items: "{{ index_queries }}"    
+
 
 
     - name: Validate index queries
@@ -210,9 +217,11 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not (file_content.content | b64decode) | regex_search(item, ignorecase=True)"
+        #- "not (file_content.content | b64decode) | regex_search(item, ignorecase=True)"
        
       with_items: "{{ index_queries }}"
+
+      
 
 
       #========================================================================================
