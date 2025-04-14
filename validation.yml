@@ -32,14 +32,14 @@
         chdir: /home/ubuntu
       #register: script_output
 
-    # - name: Read fields1.txt content
-    #   slurp:
-    #     src: /home/ubuntu/fields1.txt
-    #   register: file_content
+    - name: Read fields2.txt content
+      slurp:
+        src: /home/ubuntu/fields2.txt
+      register: file_content
 
-    # - name: Display file content
-    #   debug:
-    #     msg: "{{ file_content['content'] | b64decode }}"  
+    - name: Display file content
+      debug:
+        msg: "{{ file_content['content'] | b64decode }}"  
  
  
     # - name: Extract Individual Index Details
@@ -145,91 +145,91 @@
 
     
 #===============================================================================================   
-    - name: Validate syntax of index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-      with_items: "{{ index_queries }}"
-      register: syntax_check
-      failed_when: "'syntax error' in syntax_check.stdout"
+    # - name: Validate syntax of index queries
+    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
+    #   with_items: "{{ index_queries }}"
+    #   register: syntax_check
+    #   failed_when: "'syntax error' in syntax_check.stdout"
 
 
-    - name: Identify queries exceeding field limits
-      set_fact:
-        query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
-      with_items: "{{ index_queries }}"
-      when:
-        - "item is search('CREATE INDEX')"
-        - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"
+    # - name: Identify queries exceeding field limits
+    #   set_fact:
+    #     query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
+    #   with_items: "{{ index_queries }}"
+    #   when:
+    #     - "item is search('CREATE INDEX')"
+    #     - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"
 
-    - name: Convert field list to an array using split
-      vars:
-        cleaned_fields: "{{ item.value | replace('`', '') | regex_replace('\\s+', '') }}"
-      set_fact:
-        query_field_list: "{{ query_field_list | default({}) | combine({ item.key: cleaned_fields.split(',') }) }}"
-      with_dict: "{{ query_field_mapping }}"
+    # - name: Convert field list to an array using split
+    #   vars:
+    #     cleaned_fields: "{{ item.value | replace('`', '') | regex_replace('\\s+', '') }}"
+    #   set_fact:
+    #     query_field_list: "{{ query_field_list | default({}) | combine({ item.key: cleaned_fields.split(',') }) }}"
+    #   with_dict: "{{ query_field_mapping }}"
 
-    - name: Identify queries exceeding 6 fields
-      set_fact:
-        queries_exceeding_fields: "{{ queries_exceeding_fields | default([]) + [item.key] }}"
-      with_dict: "{{ query_field_list }}"
-      when: "query_field_list[item.key] | length > 6"
+    # - name: Identify queries exceeding 6 fields
+    #   set_fact:
+    #     queries_exceeding_fields: "{{ queries_exceeding_fields | default([]) + [item.key] }}"
+    #   with_dict: "{{ query_field_list }}"
+    #   when: "query_field_list[item.key] | length > 6"
 
-    - name: Display warning for queries exceeding 6 fields
-      debug:
-        msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
-      with_dict: "{{ query_field_list }}"
-      when: "query_field_list[item.key] | length > 6"  
+    # - name: Display warning for queries exceeding 6 fields
+    #   debug:
+    #     msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
+    #   with_dict: "{{ query_field_list }}"
+    #   when: "query_field_list[item.key] | length > 6"  
 
-    - name: Debug - Queries exceeding field limits
-      debug:
-        msg: "Query exceeds field limit: {{ item }}"
-      with_items: "{{ queries_exceeding_fields }}"
+    # - name: Debug - Queries exceeding field limits
+    #   debug:
+    #     msg: "Query exceeds field limit: {{ item }}"
+    #   with_items: "{{ queries_exceeding_fields }}"
 
-    - name: Stop execution if any query exceeds allowed field count
-      fail:
-        msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
-      when: queries_exceeding_fields | length > 0
+    # - name: Stop execution if any query exceeds allowed field count
+    #   fail:
+    #     msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
+    #   when: queries_exceeding_fields | length > 0
 
 #=====================================================================================================================
     
-    - name: Read fields2.txt content
-      slurp:
-        src: /home/ubuntu/fields2.txt
-      register: file_content
+    # - name: Read fields2.txt content
+    #   slurp:
+    #     src: /home/ubuntu/fields2.txt
+    #   register: file_content
 
-    - name: Print decoded content of fields2.txt
-      debug:
-        msg: "{{ file_content.content | b64decode }}"
+    # - name: Print decoded content of fields2.txt
+    #   debug:
+    #     msg: "{{ file_content.content | b64decode }}"
 
 
-    - name: Identify not allowed queries
-      set_fact:
-        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-      when: >
-        (item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)) or (not item | regex_search('WHERE', ignorecase=True))
-        and (file_content.content | b64decode) | regex_search(item, ignorecase=True)
-      with_items: "{{ index_queries }}"
+    # - name: Identify not allowed queries
+    #   set_fact:
+    #     not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+    #   when: >
+    #     (item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)) or (not item | regex_search('WHERE', ignorecase=True))
+    #     and (file_content.content | b64decode) | regex_search(item, ignorecase=True)
+    #   with_items: "{{ index_queries }}"
     
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when: >
-        not (file_content.content | b64decode | regex_search(item, ignorecase=True))
-      with_items: "{{ index_queries }}"    
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   when: >
+    #     not (file_content.content | b64decode | regex_search(item, ignorecase=True))
+    #   with_items: "{{ index_queries }}"    
 
 
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-        - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
-        - "item | regex_search('CREATE INDEX', ignorecase=True)"
-        - "item | regex_search('WHERE', ignorecase=True)"
-        #- "not (file_content.content | b64decode) | regex_search(item, ignorecase=True)"
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   when:
+    #     - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+    #     - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+    #     - "item | regex_search('CREATE INDEX', ignorecase=True)"
+    #     - "item | regex_search('WHERE', ignorecase=True)"
+    #     #- "not (file_content.content | b64decode) | regex_search(item, ignorecase=True)"
        
-      with_items: "{{ index_queries }}"
+    #   with_items: "{{ index_queries }}"
 
       
 
@@ -271,76 +271,76 @@
     
 
 
-    - name: Identify not allowed queries
-      set_fact:
-        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-      when:
-        - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
+    # - name: Identify not allowed queries
+    #   set_fact:
+    #     not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+    #   when:
+    #     - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
+    #   with_items: "{{ index_queries }}"
 
   
-    - name: Display not allowed queries in red
-      debug:
-        msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
-      with_items: "{{ not_allowed_queries }}"
-      when: not_allowed_queries | length > 0  
+    # - name: Display not allowed queries in red
+    #   debug:
+    #     msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
+    #   with_items: "{{ not_allowed_queries }}"
+    #   when: not_allowed_queries | length > 0  
 
-    - name: Remove semicolon using regex
-      set_fact:
-        allowed_queries2: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"
+    # - name: Remove semicolon using regex
+    #   set_fact:
+    #     allowed_queries2: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"
 
-    - name: Debug - Allowed Queries
-      debug:
-        msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
-      with_items: "{{ allowed_queries }}"
+    # - name: Debug - Allowed Queries
+    #   debug:
+    #     msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
+    #   with_items: "{{ allowed_queries }}"
 
-    - name: Debug - Not Allowed Queries
-      debug:
-        msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
-      with_items: "{{ not_allowed_queries }}"
+    # - name: Debug - Not Allowed Queries
+    #   debug:
+    #     msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
+    #   with_items: "{{ not_allowed_queries }}"
 
-    - name: Show the modified query
-      debug:
-        msg: "\033[34m{{ allowed_queries2 }}\033[0m"
+    # - name: Show the modified query
+    #   debug:
+    #     msg: "\033[34m{{ allowed_queries2 }}\033[0m"
 
-    - name: Add WITH defer_build and num_replica options in index queries
-      set_fact:
-        updated_queries1: >-
-          {{
-            allowed_queries | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\\s*:\\s*true)(?=.*"num_replica"\\s*:\\s*1)', 
-              '"defer_build":true,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"num_replica"\\s*:\\s*1)(?=.*"defer_build"\\s*:\\s*true)', 
-              '"num_replica":1,') 
-            | map('regex_replace', 
-              '(?<=\{)(?!.*"defer_build"\\s*:\\s*true)(?!.*"num_replica"\\s*:\\s*1)', 
-              '"defer_build":true, "num_replica":1,')
-            | list
-          }}
+    # - name: Add WITH defer_build and num_replica options in index queries
+    #   set_fact:
+    #     updated_queries1: >-
+    #       {{
+    #         allowed_queries | map('regex_replace', 
+    #           '(?<=\{)(?!.*"defer_build"\\s*:\\s*true)(?=.*"num_replica"\\s*:\\s*1)', 
+    #           '"defer_build":true,') 
+    #         | map('regex_replace', 
+    #           '(?<=\{)(?!.*"num_replica"\\s*:\\s*1)(?=.*"defer_build"\\s*:\\s*true)', 
+    #           '"num_replica":1,') 
+    #         | map('regex_replace', 
+    #           '(?<=\{)(?!.*"defer_build"\\s*:\\s*true)(?!.*"num_replica"\\s*:\\s*1)', 
+    #           '"defer_build":true, "num_replica":1,')
+    #         | list
+    #       }}
 
-    - name: Ensure WITH clause in index queries
-      set_fact:
-        updated_queries2: >-
-          {{
-            allowed_queries2 | map('regex_replace', 
-              'WITH\\s*\{[^}]*\}', 
-              'WITH {"defer_build": true, "num_replica": 1}') 
-            | map('regex_replace', 
-              '(?i)(?!.*WITH\\s*\{.*\})$', 
-              ' WITH {"defer_build": true, "num_replica": 1}') 
-            | list
-          }}
+    # - name: Ensure WITH clause in index queries
+    #   set_fact:
+    #     updated_queries2: >-
+    #       {{
+    #         allowed_queries2 | map('regex_replace', 
+    #           'WITH\\s*\{[^}]*\}', 
+    #           'WITH {"defer_build": true, "num_replica": 1}') 
+    #         | map('regex_replace', 
+    #           '(?i)(?!.*WITH\\s*\{.*\})$', 
+    #           ' WITH {"defer_build": true, "num_replica": 1}') 
+    #         | list
+    #       }}
 
-    - name: Debug - Updated Index Queries (Method 1)
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries1 }}"
+    # - name: Debug - Updated Index Queries (Method 1)
+    #   debug:
+    #     msg: "\033[32mUpdated Query: {{ item }}\033[0m"
+    #   with_items: "{{ updated_queries1 }}"
 
-    - name: Debug - Updated Index Queries (Method 2)
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries2 }}"
+    # - name: Debug - Updated Index Queries (Method 2)
+    #   debug:
+    #     msg: "\033[32mUpdated Query: {{ item }}\033[0m"
+    #   with_items: "{{ updated_queries2 }}"
 
   
 
@@ -348,30 +348,30 @@
 
    
 
+    # # - name: Execute allowed index queries (Method 2)
+    # #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+    # #   with_items: "{{ updated_queries2 }}"
+    # #   when: updated_queries2 | length > 0 and fields_changed
+    # #   register: query_result
+    # #   ignore_errors: no
+  
+
     # - name: Execute allowed index queries (Method 2)
     #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
     #   with_items: "{{ updated_queries2 }}"
-    #   when: updated_queries2 | length > 0 and fields_changed
+    #   when: updated_queries2 | length > 0
     #   register: query_result
     #   ignore_errors: no
-  
 
-    - name: Execute allowed index queries (Method 2)
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries2 }}"
-      when: updated_queries2 | length > 0
-      register: query_result
-      ignore_errors: no
+    # - name: Execute allowed index queries (Method 1)
+    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+    #   with_items: "{{ updated_queries1 }}"
+    #   when: updated_queries1 | length > 0
+    #   register: query_result
+    #   ignore_errors: no
 
-    - name: Execute allowed index queries (Method 1)
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries1 }}"
-      when: updated_queries1 | length > 0
-      register: query_result
-      ignore_errors: no
-
-    - name: Execute deferred_index.sh script
-      command: "{{ deffered_index_path }}"
-      args:
-        chdir: "{{ deffered_index_path | dirname }}"
-      register: script_output
+    # - name: Execute deferred_index.sh script
+    #   command: "{{ deffered_index_path }}"
+    #   args:
+    #     chdir: "{{ deffered_index_path | dirname }}"
+    #   register: script_output
