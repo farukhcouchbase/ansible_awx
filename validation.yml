@@ -61,7 +61,7 @@
         msg: "Similar index exists? {{ similar_index_exists }}"
 
     - name: Run cbq command to create index (only if different structure)
-      shell: "/opt/couchbase/bin/cbq -e localhost:8093 -u admin -p password -s '{{ file_content['content'] | b64decode }}'"
+      shell: "/opt/couchbase/bin/cbq -e localhost:8093 -u Admin -p redhat -s '{{ file_content['content'] | b64decode }}'"
       when: not similar_index_exists
 
 #===========================================================================================================     
