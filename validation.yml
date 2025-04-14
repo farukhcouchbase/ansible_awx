@@ -191,12 +191,12 @@
 
 #=====================================================================================================================
     
-    - name: Read fields1.txt content
+    - name: Read fields2.txt content
       slurp:
         src: /home/ubuntu/fields2.txt
       register: file_content
 
-    - name: Print decoded content of fields1.txt
+    - name: Print decoded content of fields2.txt
       debug:
         msg: "{{ file_content.content | b64decode }}"
 
@@ -213,6 +213,9 @@
         - "not (file_content.content | b64decode) | regex_search(item, ignorecase=True)"
        
       with_items: "{{ index_queries }}"
+
+
+      #========================================================================================
 
     
 
