@@ -106,23 +106,40 @@
       set_fact:
         allowed_queries: []
 
+    - name: Debug index fields
+      debug:
+        msg: "Index Key Fields: {{ index_key_fields }}"
+
+    - name: Debug condition fields
+      debug:
+        msg: "Condition Fields: {{ condition_fields }}"
+
+    - name: Debug keyspace_id_flat
+      debug:
+        msg: "Keyspace ID Flat: {{ keyspace_id_flat }}"
+
+    - name: Debug scope_id_flat
+      debug:
+        msg: "Scope ID Flat: {{ scope_id_flat }}"
+
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
         - item is not none
+        - index_key_fields | length > 0
+        - condition_fields | length > 0
         - keyspace_id_flat | length > 0
         - scope_id_flat | length > 0
-        - index_key_fields | select('search', item, ignorecase=True) | list | length == 0
-        - condition_fields | select('search', item, ignorecase=True) | list | length == 0
+        - not (item | regex_search(index_key_fields | join('|'), ignorecase=True))
+        - not (item | regex_search(condition_fields | join('|'), ignorecase=True))
         - not (item | regex_search(keyspace_id_flat, ignorecase=True))
         - not (item | regex_search(scope_id_flat, ignorecase=True))
       with_items: "{{ index_queries }}"
 
 
-         
-    
-   
+
+
 #===============================================================================================   
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
