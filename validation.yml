@@ -58,20 +58,12 @@
           - "Condition: {{ condition }}"
           - "Keyspace ID: {{ keyspace_id }}"
           - "Scope ID: {{ scope_id }}"
-
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      vars:
-        match_result: "{{ item | regex_search(index_key | regex_escape) | default('') }}"
-      when: match_result == ''
           
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
-       
-       # - "not item | regex_search(index_key | regex_escape, ignorecase=True)"
+        - "not item | regex_search(index_key | regex_escape, ignorecase=True)"
         - "not item | regex_search(condition | regex_escape, ignorecase=True)"
         - "not item | regex_search(keyspace_id | regex_escape, ignorecase=True)"
         - "not item | regex_search(scope_id | regex_escape, ignorecase=True)"
