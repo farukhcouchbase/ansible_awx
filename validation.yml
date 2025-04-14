@@ -107,6 +107,10 @@
       when: queries_exceeding_fields | length > 0
 
 #=====================================================================================================================
+
+    - debug:
+       msg: "item={{ item }}, index_key={{ index_key }}"
+
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
