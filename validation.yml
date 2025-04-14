@@ -62,6 +62,13 @@
    
 #===============================================================================================
 
+    - name: Validate index queries
+      debug:
+        msg: "Validation passed for {{ item }}"
+      loop: "{{ index_query_list }}"
+      when: not (item | regex_search(index_key | regex_escape, ignorecase=True))  
+
+    
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       with_items: "{{ index_queries }}"
@@ -119,8 +126,12 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-       
+        - "not item | regex_search(index_key | regex_escape, ignorecase=True)"
+        - "not item | regex_search(condition | regex_escape, ignorecase=True)"
+        - "not item | regex_search(keyspace_id | regex_escape, ignorecase=True)"
+        - "not item | regex_search(scope_id | regex_escape, ignorecase=True)"
       with_items: "{{ index_queries }}"
+     
 
     - name: Validate index queries
       set_fact:
@@ -130,12 +141,10 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        - "not item | regex_search(index_key | regex_escape, ignorecase=True)"
-        - "not item | regex_search(condition | regex_escape, ignorecase=True)"
-        - "not item | regex_search(keyspace_id | regex_escape, ignorecase=True)"
-        - "not item | regex_search(scope_id | regex_escape, ignorecase=True)"
+       
       with_items: "{{ index_queries }}"
-  
+
+    
 
       
     - name: Debug index_queries
