@@ -62,9 +62,9 @@
     - name: Flatten extracted values
       set_fact:
         index_key_flat: "{{ index_key[0] | regex_replace('[''\"\\[\\]]', '') }}"
-        condition_flat: '{{ condition[0] | regex_replace("['\"\\[\\]]", "") }}'
-        keyspace_id_flat: "{{ keyspace_id[0] | regex_replace(\"['\\\"\\[\\]]\", '') }}"
-        scope_id_flat: "{{ scope_id[0] | regex_replace(\"['\\\"\\[\\]]\", '') }}"
+        condition_flat: '{{ condition[0] | regex_replace('[''\"\\[\\]]', '') }}"
+        keyspace_id_flat: "{{ keyspace_id[0] regex_replace('[''\"\\[\\]]', '') }}"
+        scope_id_flat: "{{ scope_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
 
     - name: Validate index queries
       set_fact:
