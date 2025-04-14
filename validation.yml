@@ -62,7 +62,9 @@
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
-      when: item | regex_search(index_key | regex_escape) == ''
+      vars:
+        match_result: "{{ item | regex_search(index_key | regex_escape) | default('') }}"
+      when: match_result == ''
           
     - name: Validate index queries
       set_fact:
