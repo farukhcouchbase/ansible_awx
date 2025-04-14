@@ -42,22 +42,22 @@
         msg: "{{ file_content['content'] | b64decode }}"  
  
  
-    # - name: Extract Individual Index Details
-    #   set_fact:
-    #     index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') }}"
-    #     condition: "{{ decoded_content | regex_search('Condition\\s+: \\((.*?)\\)', '\\1') }}"
-    #     keyspace_id: "{{ decoded_content | regex_search('Keyspace ID: (.*?)\\n', '\\1') }}"
-    #     scope_id: "{{ decoded_content | regex_search('Scope ID\\s+: (.*?)\\n', '\\1') }}"
-    #   vars:
-    #     decoded_content: "{{ file_content['content'] | b64decode }}"
+    - name: Extract Individual Index Details
+      set_fact:
+        index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') }}"
+        condition: "{{ decoded_content | regex_search('Condition\\s+: \\((.*?)\\)', '\\1') }}"
+        keyspace_id: "{{ decoded_content | regex_search('Keyspace ID: (.*?)\\n', '\\1') }}"
+        scope_id: "{{ decoded_content | regex_search('Scope ID\\s+: (.*?)\\n', '\\1') }}"
+      vars:
+        decoded_content: "{{ file_content['content'] | b64decode }}"
 
-    # - name: Debug extracted index details
-    #   debug:
-    #     msg:
-    #       - "Index Key: {{ index_key }}"
-    #       - "Condition: {{ condition }}"
-    #       - "Keyspace ID: {{ keyspace_id }}"
-    #       - "Scope ID: {{ scope_id }}"    
+    - name: Debug extracted index details
+      debug:
+        msg:
+          - "Index Key: {{ index_key }}"
+          - "Condition: {{ condition }}"
+          - "Keyspace ID: {{ keyspace_id }}"
+          - "Scope ID: {{ scope_id }}"    
     
    
 #===============================================================================================
