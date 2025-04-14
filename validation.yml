@@ -115,8 +115,23 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-        #- "not item | regex_search(index_key_value, ignorecase=True)"  # Dynamic check
+       
       with_items: "{{ index_queries }}"
+
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+        - "not item | regex_search(index_key | regex_escape, ignorecase=True)"
+        - "not item | regex_search(condition | regex_escape, ignorecase=True)"
+        - "not item | regex_search(keyspace_id | regex_escape, ignorecase=True)"
+        - "not item | regex_search(scope_id | regex_escape, ignorecase=True)"
+      with_items: "{{ index_queries }}"
+  
 
       
     - name: Debug index_queries
