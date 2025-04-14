@@ -69,7 +69,7 @@
       failed_when: "'syntax error' in syntax_check.stdout"
 
 
-   - name: Identify queries exceeding field limits
+    - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
       with_items: "{{ index_queries }}"
