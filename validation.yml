@@ -64,27 +64,61 @@
       set_fact:
         allowed_queries: []
 
-    - name: Flatten extracted values
+    # - name: Flatten extracted values
+    #   set_fact:
+    #     index_key_flat: "{{ index_key[0] | regex_replace('[''\"\\[\\]]', '') }}"
+    #     condition_flat: "{{ condition[0] | regex_replace('[''\"\\[\\]]', '') }}"
+    #     keyspace_id_flat: "{{ keyspace_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
+    #     scope_id_flat: "{{ scope_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
+
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   when:
+    #     - item is not none
+    #     - index_key_flat | length > 0
+    #     - condition_flat | length > 0
+    #     - keyspace_id_flat | length > 0
+    #     - scope_id_flat | length > 0
+    #     - "not item | regex_search(index_key_flat | regex_escape, ignorecase=True)"
+    #     - "not item | regex_search(condition_flat | regex_escape, ignorecase=True)"
+    #     - "not item | regex_search(keyspace_id_flat | regex_escape, ignorecase=True)"
+    #     - "not item | regex_search(scope_id_flat | regex_escape, ignorecase=True)"
+    #   with_items: "{{ index_queries }}"
+
+    - name: Extract index fields from index_key
       set_fact:
-        index_key_flat: "{{ index_key[0] | regex_replace('[''\"\\[\\]]', '') }}"
-        condition_flat: "{{ condition[0] | regex_replace('[''\"\\[\\]]', '') }}"
+        index_key_fields: "{{ index_key[0] | regex_findall('`([^`]*)`') }}"
+
+    - name: Extract condition fields
+      set_fact:
+        condition_fields: "{{ condition[0] | regex_findall('`([^`]*)`|\"([^\"]*)\"') | map('select', '!=', '') | map('first') | list }}"
+
+    - name: Flatten keyspace_id
+      set_fact:
         keyspace_id_flat: "{{ keyspace_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
+
+    - name: Flatten scope_id
+      set_fact:
         scope_id_flat: "{{ scope_id[0] | regex_replace('[''\"\\[\\]]', '') }}"
+
+    - name: Initialize allowed queries list
+      set_fact:
+        allowed_queries: []
 
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
         - item is not none
-        - index_key_flat | length > 0
-        - condition_flat | length > 0
         - keyspace_id_flat | length > 0
         - scope_id_flat | length > 0
-        - "not item | regex_search(index_key_flat | regex_escape, ignorecase=True)"
-        - "not item | regex_search(condition_flat | regex_escape, ignorecase=True)"
-        - "not item | regex_search(keyspace_id_flat | regex_escape, ignorecase=True)"
-        - "not item | regex_search(scope_id_flat | regex_escape, ignorecase=True)"
+        - index_key_fields | select('search', item, ignorecase=True) | list | length == 0
+        - condition_fields | select('search', item, ignorecase=True) | list | length == 0
+        - not (item | regex_search(keyspace_id_flat, ignorecase=True))
+        - not (item | regex_search(scope_id_flat, ignorecase=True))
       with_items: "{{ index_queries }}"
+
 
          
     
