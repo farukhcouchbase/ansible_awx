@@ -40,18 +40,7 @@
     - name: Display file content
       debug:
         msg: "{{ file_content['content'] | b64decode }}"  
-
-   
-
-    - name: Extract index blocks using regex (no split)
-      set_fact:
-        raw_blocks: "{{ (file_content['content'] | b64decode) | regex_findall('(?s)(Bucket ID.*?)(?=\\n\\s*\\n|$)') }}"
-
-    - name: Convert blocks to dictionaries
-      set_fact:
-        index_list: >-
-          {{ raw_blocks | map('regex_findall', '^(.*?):\\s*(.*)$', multiline=True)
-                        | map('items2dict') | list }}  
+ 
  
     - name: Extract Individual Index Details
       set_fact:
@@ -80,13 +69,7 @@
       failed_when: "'syntax error' in syntax_check.stdout"
 
 
-    
-
-   
-    
-
-
-    - name: Identify queries exceeding field limits
+   - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
       with_items: "{{ index_queries }}"
