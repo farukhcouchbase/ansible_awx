@@ -1,4 +1,4 @@
-
+ 
 - name: Validate and Create Couchbase Indexes
   hosts: all
   gather_facts: no
@@ -52,15 +52,17 @@
         scope_id: "{{ decoded_content | regex_search('Scope ID\\s+: (.*?)\\n', '\\1') }}"
       vars:
         decoded_content: "{{ file_content['content'] | b64decode }}"
-    
-   
 
-   
- 
-     
+    - name: Debug extracted index details
+      debug:
+        msg:
+          - "Index Key: {{ index_key }}"
+          - "Condition: {{ condition }}"
+          - "Keyspace ID: {{ keyspace_id }}"
+          - "Scope ID: {{ scope_id }}"    
     
-  
-    #===============================================================================================
+   
+#===============================================================================================
 
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
