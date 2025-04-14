@@ -41,11 +41,18 @@
       debug:
         msg: "{{ file_content['content'] | b64decode }}"  
 
-    - name: Decode and split into blocks
-      set_fact:
-        raw_blocks: "{{ file_content['content'] | b64decode | split('\n\n') }}"    
+   
 
-      
+    - name: Extract index blocks using regex (no split)
+      set_fact:
+        raw_blocks: "{{ (file_content['content'] | b64decode) | regex_findall('(?s)(Bucket ID.*?)(?=\\n\\s*\\n|$)') }}"
+
+    - name: Convert blocks to dictionaries
+      set_fact:
+        index_list: >-
+          {{ raw_blocks | map('regex_findall', '^(.*?):\\s*(.*)$', multiline=True)
+                        | map('items2dict') | list }}  
+ 
     - name: Extract Individual Index Details
       set_fact:
         index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') }}"
