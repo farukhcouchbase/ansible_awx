@@ -41,9 +41,11 @@
       debug:
         msg: "{{ file_content['content'] | b64decode }}"  
 
+    - name: Decode and split into blocks
+      set_fact:
+        raw_blocks: "{{ file_content['content'] | b64decode | split('\n\n') }}"    
+
       
-        
-    #========================Comparison of the fields values =======================================
     - name: Extract Individual Index Details
       set_fact:
         index_key: "{{ decoded_content | regex_search('Index Key\\s+: \\[(.*?)\\]', '\\1') }}"
