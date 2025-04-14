@@ -200,6 +200,16 @@
       debug:
         msg: "{{ file_content.content | b64decode }}"
 
+
+    - name: Identify not allowed queries
+      set_fact:
+        not_allowed_queries: "{{ not_allowed_queries + [item] }}"
+      when: >
+        (item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)) or (not item | regex_search('WHERE', ignorecase=True))
+        and (file_content.content | b64decode) | regex_search(item, ignorecase=True)
+      with_items: "{{ index_queries }}"
+    
+
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
@@ -268,6 +278,7 @@
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
+  
     - name: Display not allowed queries in red
       debug:
         msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
