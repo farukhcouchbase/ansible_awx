@@ -9,7 +9,7 @@
     index_queries: []
     INDEX_NAME: []
     duplicate_indexes: []
-    some_query_output: []
+    some_query_output: [] 
     existing_index_map: []
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
