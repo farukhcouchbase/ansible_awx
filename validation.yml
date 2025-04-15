@@ -55,10 +55,10 @@
         index_meta: >-
           {{
             dict(
-              name = (decoded_indexes | regex_search('NAME *: (.*?)\\n', '\\1')),
-              bucket = (decoded_indexes | regex_search('Bucket ID *: (.*?)\\n', '\\1')),
-              scope = (decoded_indexes | regex_search('Scope ID *: (.*?)\\n', '\\1')),
-              collection = (decoded_indexes | regex_search('Keyspace ID *: (.*?)\\n', '\\1'))
+              name = (decoded_indexes | regex_search('NAME *: (.*?)\\n', '\\1') | default('')),
+              bucket = (decoded_indexes | regex_search('Bucket ID *: (.*?)\\n', '\\1') | default('')),
+              scope = (decoded_indexes | regex_search('Scope ID *: (.*?)\\n', '\\1') | default('')),
+              collection = (decoded_indexes | regex_search('Keyspace ID *: (.*?)\\n', '\\1') | default(''))
             )
           }}
 
