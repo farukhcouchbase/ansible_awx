@@ -144,24 +144,9 @@
       when: queries_exceeding_fields | length > 0
 
 
-    # - name: Read fields2.txt content
-    #   slurp:
-    #     src: /home/ubuntu/fields2.txt
-    #   register: file_content
+ 
 
-    # - name: Print decoded content of fields2.txt
-    #   debug:
-    #     msg: "{{ file_content.content | b64decode }}"
-
-
-    # - name: Identify not allowed queries
-    #   set_fact:
-    #     not_allowed_queries: "{{ not_allowed_queries + [item] }}"
-    #   when: >
-    #     (item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)) or (not item | regex_search('WHERE', ignorecase=True))
-    #     and (file_content.content | b64decode) | regex_search(item, ignorecase=True)
-    #   with_items: "{{ index_queries }}"
-    
+ 
 
    
 
