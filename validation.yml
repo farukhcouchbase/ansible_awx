@@ -32,14 +32,14 @@
       args:
         chdir: /home/ubuntu
 
-    - name: Read fields2.txt content
+    - name: Read file /home/ubuntu/fields1.txt
       slurp:
         src: /home/ubuntu/fields1.txt
       register: file_content
 
-    - name: Display file content (decoded)
+    - name: Print decoded file content
       debug:
-        msg: "{{ file_content['content'] | b64decode }}"
+        msg: "{{ file_content.content | b64decode }}"
 
 
 #===========================================================================================================     
