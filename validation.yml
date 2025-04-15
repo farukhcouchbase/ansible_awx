@@ -81,8 +81,7 @@
     - name: Fail if name is different but location is the same
       fail:
         msg: >-
-          ⚠️ Index name '{{ query_meta.name }}' is different but bucket/scope/collection match existing index '{{ index_meta.name }}'.
-          This may cause a conflict in: {{ query_meta.bucket }}.{{ query_meta.scope }}.{{ query_meta.collection }}
+          ⚠️ Index with different name but same bucket , scope and collection are not allowed to create 
       when: >
         index_meta.name != query_meta.name and
         index_meta.bucket == query_meta.bucket and
