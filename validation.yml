@@ -50,17 +50,18 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
-    - name: Extract original index metadata (from decoded content)
+    - name: Extract original index metadata (safe parsing)
       set_fact:
-        index_meta: >-
-          {{
-            dict(
-              name = (decoded_indexes | regex_search('NAME *: (.*?)\\n', '\\1') | default('')),
-              bucket = (decoded_indexes | regex_search('Bucket ID *: (.*?)\\n', '\\1') | default('')),
-              scope = (decoded_indexes | regex_search('Scope ID *: (.*?)\\n', '\\1') | default('')),
-              collection = (decoded_indexes | regex_search('Keyspace ID *: (.*?)\\n', '\\1') | default(''))
-            )
-          }}
+        index_meta:
+          name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+
+    - name: Debug extracted index metadata
+      debug:
+        var: index_meta
+    
 
     - name: Extract new index data from index_queries
       set_fact:
