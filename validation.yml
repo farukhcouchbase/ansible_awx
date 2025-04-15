@@ -41,6 +41,59 @@
       debug:
         msg: "{{ file_content.content | b64decode }}"
 
+    - name: Debug index_queries
+      debug:
+        msg: "Index queries: {{ index_queries }}" 
+
+
+    - name: Set decoded file content as variable
+      set_fact:
+        decoded_indexes: "{{ file_content.content | b64decode }}"
+
+    - name: Extract original index metadata (from decoded content)
+      set_fact:
+        index_meta: >-
+          {{
+            dict(
+              name = (decoded_indexes | regex_search('NAME *: (.*?)\\n', '\\1')),
+              bucket = (decoded_indexes | regex_search('Bucket ID *: (.*?)\\n', '\\1')),
+              scope = (decoded_indexes | regex_search('Scope ID *: (.*?)\\n', '\\1')),
+              collection = (decoded_indexes | regex_search('Keyspace ID *: (.*?)\\n', '\\1'))
+            )
+          }}
+
+    - name: Extract new index data from index_queries
+      set_fact:
+        query_meta: >-
+          {{
+            dict(
+              name = (index_queries | regex_search('create index `(.+?)`', '\\1')),
+              bucket = (index_queries | regex_search('ON `(.*?)`\\.', '\\1')),
+              scope = (index_queries | regex_search('ON `.*?`\\.`(.*?)`\\.', '\\1')),
+              collection = (index_queries | regex_search('ON `.*?`\\.`.*?`\\.`(.*?)`', '\\1'))
+            )
+          }}
+
+    - name: Fail if name is different but location is the same
+      fail:
+        msg: >-
+          ⚠️ Index name '{{ query_meta.name }}' is different but bucket/scope/collection match existing index '{{ index_meta.name }}'.
+          This may cause a conflict in: {{ query_meta.bucket }}.{{ query_meta.scope }}.{{ query_meta.collection }}
+      when: >
+        index_meta.name != query_meta.name and
+        index_meta.bucket == query_meta.bucket and
+        index_meta.scope == query_meta.scope and
+        index_meta.collection == query_meta.collection
+
+    - name: Allow execution
+      debug:
+        msg: "✅ Index is allowed. Either name matches or location is different."
+      when: >
+        index_meta.name == query_meta.name or
+        index_meta.bucket != query_meta.bucket or
+        index_meta.scope != query_meta.scope or
+        index_meta.collection != query_meta.collection   
+
 
 #===========================================================================================================     
     # - name: Run the script
