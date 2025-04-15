@@ -63,17 +63,20 @@
         var: index_meta
     
 
-    - name: Extract new index data from index_queries
+    - name: Extract new index data from index_queries (safe parsing)
       set_fact:
-        query_meta: >-
-          {{
-            dict(
-              name = (index_queries | regex_search('create index `(.+?)`', '\\1')),
-              bucket = (index_queries | regex_search('ON `(.*?)`\\.', '\\1')),
-              scope = (index_queries | regex_search('ON `.*?`\\.`(.*?)`\\.', '\\1')),
-              collection = (index_queries | regex_search('ON `.*?`\\.`.*?`\\.`(.*?)`', '\\1'))
-            )
-          }}
+        query_meta:
+          name: "{{ index_queries | regex_search('(?i)create index `(.+?)`', '\\1') | default('') }}"
+          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
+          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
+          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
+
+
+
+    - name: Debug extracted query metadata
+      debug:
+        var: query_meta
+
 
     - name: Fail if name is different but location is the same
       fail:
