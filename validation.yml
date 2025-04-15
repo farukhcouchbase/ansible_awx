@@ -41,28 +41,6 @@
       debug:
         msg: "{{ file_content['content'] | b64decode }}"
 
-# Simulate existing index DDL (replace with actual task if fetched from output)
-    - name: Set existing index DDL (example value from earlier debug output)
-      set_fact:
-        existing_index_output:
-          msg: 'CREATE INDEX `Secondary_index_3` ON `travel-sample`.`scopeA`.`collection4`(`field11`) WHERE `type` = "airplane1" USING GSI WITH {"defer_build":true};'
-
-    - name: Normalize DDLs for comparison (remove index names)
-      set_fact:
-        new_index_ddl: "{{ (file_content['content'] | b64decode) | regex_replace('CREATE INDEX `[^`]+`', 'CREATE INDEX `__PLACEHOLDER__`') }}"
-        existing_index_ddl: "{{ existing_index_output.msg | regex_replace('CREATE INDEX `[^`]+`', 'CREATE INDEX `__PLACEHOLDER__`') }}"
-
-    - name: Check if a similar index already exists
-      set_fact:
-        similar_index_exists: "{{ new_index_ddl == existing_index_ddl }}"
-
-    - name: Debug to show if similar index exists
-      debug:
-        msg: "Similar index exists? {{ similar_index_exists }}"
-
-    - name: Run cbq command to create index (only if different structure)
-      shell: "/opt/couchbase/bin/cbq -e localhost:8093 -u Admin -p redhat -s '{{ file_content['content'] | b64decode }}'"
-      when: not similar_index_exists
 
 #===========================================================================================================     
     # - name: Run the script
