@@ -150,13 +150,16 @@
    
 
 
-   
+    - name: Validate index query
+      debug:
+        msg: "Valid index query"
+      when: not (query | string | regex_search('CREATE PRIMARY INDEX', ignorecase=True))
    
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
-        - not (item | string | regex_search('CREATE PRIMARY INDEX', ignorecase=True))
+       # - not (item | string | regex_search('CREATE PRIMARY INDEX', ignorecase=True))
         - not (item | string | regex_search('META\\(\\)\\.id', ignorecase=True))
         - item | string | regex_search('CREATE INDEX', ignorecase=True)
         - item | string | regex_search('WHERE', ignorecase=True)
