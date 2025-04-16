@@ -166,12 +166,12 @@
     #   when: not (item | string | regex_search('META\\(\\)\\.id', ignorecase=True))
   
    
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      when:
-        - item | string | regex_search('CREATE INDEX', ignorecase=True)
-        - item | string | regex_search('WHERE', ignorecase=True)
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   when:
+    #     - item | string | regex_search('CREATE INDEX', ignorecase=True)
+    #     - item | string | regex_search('WHERE', ignorecase=True)
       #  - not (item | string | regex_search('META\\(\\)\\.id', ignorecase=True))
        
    
