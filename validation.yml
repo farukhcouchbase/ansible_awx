@@ -170,10 +170,10 @@
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
       when:
-       # - not (item | string | regex_search('CREATE PRIMARY INDEX', ignorecase=True))
-        - not (item | string | regex_search('META\\(\\)\\.id', ignorecase=True))
         - item | string | regex_search('CREATE INDEX', ignorecase=True)
         - item | string | regex_search('WHERE', ignorecase=True)
+      #  - not (item | string | regex_search('META\\(\\)\\.id', ignorecase=True))
+       
    
       
     - name: Debug index_queries
