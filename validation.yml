@@ -159,11 +159,11 @@
       set_fact:
         allowed_queries: []
 
-    - name: Validate index queries
-      set_fact:
-        allowed_queries: "{{ allowed_queries + [item] }}"
-      loop: "{{ queries }}"
-      when: not (item | string | regex_search('META\\(\\)\\.id', ignorecase=True))
+    # - name: Validate index queries
+    #   set_fact:
+    #     allowed_queries: "{{ allowed_queries + [item] }}"
+    #   loop: "{{ queries }}"
+    #   when: not (item | string | regex_search('META\\(\\)\\.id', ignorecase=True))
   
    
     - name: Validate index queries
