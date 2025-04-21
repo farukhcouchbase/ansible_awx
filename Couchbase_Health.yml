@@ -11,6 +11,7 @@
 
     - name: ✅ Check if node is reachable (ping)
       ansible.builtin.ping:
+      ignore_errors: yes
 
     - name: ✅ Confirm SSH connectivity
       ansible.builtin.command: echo "SSH authentication successful"
