@@ -6,7 +6,7 @@
     couchbase_bin_path: "/path/to/couchbase_bin"
     couchbase_admin_username: []
     ouchbase_admin_password: []
-    index_queries: []
+    index_queries: [] 
     INDEX_NAME: []
     duplicate_indexes: []
     some_query_output: [] 
