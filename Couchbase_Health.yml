@@ -32,7 +32,7 @@
       shell: "/opt/couchbase/bin/couchbase-cli server-list -c 127.0.0.1 -u '{{ cb_admin }}' -p '{{ cb_pass }}'"
       register: cluster_status
       changed_when: false
-      ignore_errors: no
+      ignore_errors: yes
 
     - name: ❓ Check if cluster is healthy
       ansible.builtin.fail:
