@@ -13,9 +13,9 @@
     #   ansible.builtin.ping:
     #   ignore_errors: yes
 
-    - name: ✅ Confirm SSH connectivity
-      ansible.builtin.command: echo "SSH authentication successful"
-      register: ssh_result
+    # - name: ✅ Confirm SSH connectivity
+    #   ansible.builtin.command: echo "SSH authentication successful"
+    #   register: ssh_result
 
     # - name: Show SSH connection result
     #   ansible.builtin.debug:
