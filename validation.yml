@@ -28,7 +28,7 @@
 #===========================================================================================================
 
     - name: Run the script
-      shell: /home/ubuntu/index.sh
+      shell: /home/ubuntu/index.sh 
       args:
         chdir: /home/ubuntu
 
