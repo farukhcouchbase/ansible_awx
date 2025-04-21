@@ -9,17 +9,17 @@
 
   tasks:
 
-    - name: ✅ Check if node is reachable (ping)
-      ansible.builtin.ping:
-      ignore_errors: yes
+    # - name: ✅ Check if node is reachable (ping)
+    #   ansible.builtin.ping:
+    #   ignore_errors: yes
 
     - name: ✅ Confirm SSH connectivity
       ansible.builtin.command: echo "SSH authentication successful"
       register: ssh_result
 
-    - name: Show SSH connection result
-      ansible.builtin.debug:
-        msg: "{{ ssh_result.stdout }}"
+    # - name: Show SSH connection result
+    #   ansible.builtin.debug:
+    #     msg: "{{ ssh_result.stdout }}"
 
     - name: ✅ Check if Couchbase service is running
       ansible.builtin.systemd:
