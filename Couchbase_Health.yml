@@ -28,7 +28,7 @@
       failed_when: couchbase_status.status.ActiveState != "active"
 
     - name: 📋 Retrieve Couchbase cluster node list
-      shell: /opt/couchbase/bin/cbq server-list -c 127.0.0.1 -u {{ cb_admin }} -p {{ cb_pass }}
+      shell: "/opt/couchbase/bin/couchbase-cli server-list -c 127.0.0.1 -u '{{ cb_admin }}' -p '{{ cb_pass }}'"
       register: cluster_status
       changed_when: false
       ignore_errors: no
@@ -39,7 +39,7 @@
       when: "'healthy active' not in cluster_status.stdout"
 
     - name: ✅ Display Couchbase nodes and status
-      shell: /opt/couchbase/bin/couchbase-cli server-list -c 127.0.0.1 -u {{ cb_admin }} -p {{ cb_pass }} | awk '{print "Node: " $2 " | Status: " $3 " " $4}'
+      shell: "/opt/couchbase/bin/couchbase-cli server-list -c 127.0.0.1 -u '{{ cb_admin }}' -p '{{ cb_pass }}' | awk '{print \"Node: \" $2 \" | Status: \" $3 \" \" $4}'"
       register: nodes_output
       changed_when: false
 
@@ -48,7 +48,7 @@
         var: nodes_output.stdout_lines
 
     - name: 🔎 Check expected Couchbase ports
-      ansible.builtin.shell: ss -tuln | grep -q ':{{ item }} '
+      ansible.builtin.shell: "ss -tuln | grep -q ':{{ item }} '"
       with_items: "{{ couchbase_ports }}"
       register: port_check
       ignore_errors: true
