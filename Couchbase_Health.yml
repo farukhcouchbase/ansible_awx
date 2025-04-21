@@ -32,7 +32,17 @@
       shell: "/opt/couchbase/bin/couchbase-cli server-list -c 127.0.0.1 -u '{{ cb_admin }}' -p '{{ cb_pass }}'"
       register: cluster_status
       changed_when: false
-      ignore_errors: no
+      failed_when: false 
+
+    - name: 🚨 Check if cluster node list command failed
+      fail:
+        msg: "❌ Failed to retrieve Couchbase cluster node list. Check if the cluster is running and credentials are correct."
+      when: cluster_status.rc != 0
+
+    - name: ✅ Debug cluster output (if needed)
+      debug:
+        msg: "{{ cluster_status.stdout }}"
+      when: cluster_status.rc == 0  
 
     - name: ❓ Check if cluster is healthy
       ansible.builtin.fail:
