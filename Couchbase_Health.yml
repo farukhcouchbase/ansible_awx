@@ -48,14 +48,14 @@
       ansible.builtin.debug:
         var: nodes_output.stdout_lines
 
-    - name: 🔎 Check expected Couchbase ports
-      ansible.builtin.shell: "ss -tuln | grep -q ':{{ item }} '"
-      with_items: "{{ couchbase_ports }}"
-      register: port_check
-      ignore_errors: true
+    # - name: 🔎 Check expected Couchbase ports
+    #   ansible.builtin.shell: "ss -tuln | grep -q ':{{ item }} '"
+    #   with_items: "{{ couchbase_ports }}"
+    #   register: port_check
+    #   ignore_errors: true
 
-    - name: Show port availability status
-      ansible.builtin.debug:
-        msg: >-
-          Port {{ item.item }}: {{ '✅ Open' if item.rc == 0 else '❌ Closed' }}
-      loop: "{{ port_check.results }}"
+    # - name: Show port availability status
+    #   ansible.builtin.debug:
+    #     msg: >-
+    #       Port {{ item.item }}: {{ '✅ Open' if item.rc == 0 else '❌ Closed' }}
+    #   loop: "{{ port_check.results }}"
