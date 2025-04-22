@@ -26,6 +26,20 @@
         query_field_list: []
 
 #===========================================================================================================
+
+    - name: Validate syntax of index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
+      with_items: "{{ index_queries }}"
+      register: syntax_check
+      failed_when: "'syntax error' in syntax_check.stdout"
+
+    - name: Display syntax error if any
+      debug:
+        msg: "Syntax error found in query: {{ item.item }}"
+      when: "'syntax error' in item.stdout"
+      with_items: "{{ syntax_check.results }}"  
+
+   
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
@@ -111,11 +125,11 @@
         index_meta.collection != query_meta.collection   
     
 
-    - name: Validate syntax of index queries
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-      with_items: "{{ index_queries }}"
-      register: syntax_check
-      failed_when: "'syntax error' in syntax_check.stdout"
+    # - name: Validate syntax of index queries
+    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
+    #   with_items: "{{ index_queries }}"
+    #   register: syntax_check
+    #   failed_when: "'syntax error' in syntax_check.stdout"
 
 
 
