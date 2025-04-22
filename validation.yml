@@ -26,9 +26,6 @@
         query_field_list: []
 
 #===========================================================================================================
-
-    
-
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
