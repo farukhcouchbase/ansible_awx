@@ -34,7 +34,7 @@
       failed_when: "'syntax error' in syntax_check.stdout"
 
     - name: Display syntax error if any
-      debug:
+      fail:
         msg: "Syntax error found in query: {{ item.item }}"
       when: "'syntax error' in item.stdout"
       with_items: "{{ syntax_check.results }}"  
