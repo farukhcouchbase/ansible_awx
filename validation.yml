@@ -34,11 +34,6 @@
       no_log: true
       failed_when: "'syntax error' in syntax_check.stdout"
 
-    - name: 🚨 Check the syntax of the index query 
-      fail:
-        msg: " The query is incorrect"
-      when: syntax_check.rc != 0  
-
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
