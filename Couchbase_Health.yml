@@ -6,7 +6,7 @@
     couchbase_ports: [8091, 8092, 8093, 8094, 11210, 11207, 11209, 18091, 18092, 18093, 4369, 21100]
 
   tasks:
-
+ 
     # - name: ✅ Check if node is reachable (ping)
     #   ansible.builtin.ping:
     #   ignore_errors: yes
