@@ -117,12 +117,6 @@
       register: syntax_check
       failed_when: "'syntax error' in syntax_check.stdout"
 
-    - name: Fail if any syntax errors found
-      fail:
-        msg: "The above query is incorrect."
-      when: >
-        syntax_check.results is defined and
-        syntax_check.results | selectattr('stdout', 'search', 'syntax error') | list | length > 0  
 
 
     - name: Identify queries exceeding field limits
