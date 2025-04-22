@@ -5,7 +5,7 @@
   vars:
     couchbase_bin_path: "/path/to/couchbase_bin"
     couchbase_admin_username: []
-    couchbase_admin_password: []
+    couchbase_admin_password: [] 
     index_queries: [] 
     INDEX_NAME: []
     duplicate_indexes: []
