@@ -27,9 +27,7 @@
 
 #===========================================================================================================
 
-    - name: Debug index_queries
-      debug:
-        msg: "Index queries: {{ index_queries }}" 
+    
 
     - name: Validate index queries
       set_fact:
