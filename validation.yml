@@ -42,9 +42,9 @@
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Debug index_queries
-      debug:
-        msg: "Index queries: {{ index_queries }}" 
+    # - name: Debug index_queries
+    #   debug:
+    #     msg: "Index queries: {{ index_queries }}" 
 
     - name: Run the script
       shell: /home/ubuntu/index.sh 
@@ -60,9 +60,9 @@
       debug:
         msg: "{{ file_content.content | b64decode }}"
 
-    - name: Debug index_queries
-      debug:
-        msg: "Index queries: {{ index_queries }}" 
+    # - name: Debug index_queries
+    #   debug:
+    #     msg: "Index queries: {{ index_queries }}" 
 
     - name: Set decoded file content as variable
       set_fact:
@@ -88,9 +88,9 @@
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
 
-    - name: Debug extracted query metadata
-      debug:
-        var: query_meta
+    # - name: Debug extracted query metadata
+    #   debug:
+    #     var: query_meta
 
     - name: Fail if name is different but location is the same
       fail:
