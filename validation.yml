@@ -25,8 +25,6 @@
         query_field_mapping: []
         query_field_list: []
 
-#===========================================================================================================
-
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       with_items: "{{ index_queries }}"
@@ -66,7 +64,6 @@
       debug:
         msg: "Index queries: {{ index_queries }}" 
 
-
     - name: Set decoded file content as variable
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
@@ -83,7 +80,6 @@
       debug:
         var: index_meta
     
-
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
@@ -92,12 +88,9 @@
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
 
-
-
     - name: Debug extracted query metadata
       debug:
         var: query_meta
-
 
     - name: Fail if name is different but location is the same
       fail:
@@ -118,15 +111,6 @@
         index_meta.scope != query_meta.scope or
         index_meta.collection != query_meta.collection   
     
-
-    # - name: Validate syntax of index queries
-    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-    #   with_items: "{{ index_queries }}"
-    #   register: syntax_check
-    #   failed_when: "'syntax error' in syntax_check.stdout"
-
-
-
     - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
@@ -163,29 +147,6 @@
       fail:
         msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
-#======================================SHIFT THIS FILTERING PART AT THE BEGINNING ============================
-
-    # - name: Debug index_queries
-    #   debug:
-    #     msg: "Index queries: {{ index_queries }}" 
-
-    # - name: Validate index queries
-    #   set_fact:
-    #     allowed_queries: "{{ allowed_queries + [item] }}"
-    #   when:
-    #     - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
-    #     - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
-    #     - "item | regex_search('CREATE INDEX', ignorecase=True)"
-    #     - "item | regex_search('WHERE', ignorecase=True)"
-    #   with_items: "{{ index_queries }}"
-
-    # - name: Debug index_queries
-    #   debug:
-    #     msg: "Index queries: {{ index_queries }}"
-
-#=========================================== SHIFT THIS ==========================================================
-
-    
 
     - name: Identify not allowed queries
       set_fact:
@@ -194,7 +155,6 @@
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-  
     - name: Display not allowed queries in red
       debug:
         msg: "\033[1;31mNot Allowed Query: {{ item }}\033[0m"
@@ -257,21 +217,7 @@
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries2 }}"
-
-  
-
-  
-
-   
-
-    # - name: Execute allowed index queries (Method 2)
-    #   shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-    #   with_items: "{{ updated_queries2 }}"
-    #   when: updated_queries2 | length > 0 and fields_changed
-    #   register: query_result
-    #   ignore_errors: no
-  
-
+      
     - name: Execute allowed index queries (Method 2)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries2 }}"
