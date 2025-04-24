@@ -38,13 +38,9 @@
       loop: "{{ couchbase_ports }}"
       changed_when: false
 
-    - name: Debug port check results
-      debug:
-        var: port_status.results
-
     - name: Show port check output for each port
       debug:
-        msg: "Port {{ item.item }}: {{ item.stdout }}"
+        msg: "Port {{ item.stdout }}"
       loop: "{{ port_status.results }}"      
 
     - 
