@@ -40,5 +40,5 @@
 
     - name: Display port results
       debug:
-        msg: "Port {{ couchbase_ports[item.0] }} is {{ item.1.stdout }}"
+        msg: "Port {{ couchbase_ports[item.0] }} "
       with_indexed_items: "{{ port_status.results }}"
