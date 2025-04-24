@@ -38,9 +38,14 @@
       loop: "{{ couchbase_ports }}"
       changed_when: false
 
-    - name: Show summarized port check output
-      debug:
-        msg: "PORT={{ item.item }} STATUS={{ item.stdout | regex_replace(' - Services: ', ' SRV=') }}"
+    - name: Summarize port statuses
+      set_fact:
+        port_summary: >-
+          {{ port_summary | default([]) + [item.item ~ ':' ~ item.stdout] }}
       loop: "{{ port_status.results }}"
+
+    - name: Display summarized result
+      debug:
+        msg: "{{ port_summary | join(', ') }}"
 
     
