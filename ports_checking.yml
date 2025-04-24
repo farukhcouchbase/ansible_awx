@@ -40,16 +40,7 @@
 
     - name: Show summarized port check output
       debug:
-        msg: "Port {{ item.item }} is {{ item.stdout }}"
+        msg: "PORT={{ item.item }} STATUS={{ item.stdout | regex_replace(' - Services: ', ' SRV=') }}"
       loop: "{{ port_status.results }}"
 
-
-
-    - name: Show summarized port check output
-      debug:
-        msg: >-
-          Port {{ item.item }} is {{
-            item.stdout.split(' - ')[0] 
-          }}{% if 'Services' in item.stdout %} ({{ item.stdout.split('Services: ')[1] }}){% endif %}
-      loop: "{{ port_status.results }}"
     
