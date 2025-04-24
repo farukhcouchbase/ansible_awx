@@ -42,3 +42,11 @@
       debug:
         msg: "Port {{ couchbase_ports[item.0] }} is {{ item.1.stdout }}"
       with_indexed_items: "{{ port_status.results }}"
+
+
+    - name: Display port results
+      debug:
+        msg: >-
+          Port {{ couchbase_ports[item.0] }}
+          is {{ 'OPEN' if 'OPEN' in item.1.stdout else 'CLOSED - Services: [' ~ item.1.stdout.split('[', 1)[1] }}
+      with_indexed_items: "{{ port_status.results }}"  
