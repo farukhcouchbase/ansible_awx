@@ -48,4 +48,6 @@
       debug:
         msg: "{{ port_summary | join(', ') }}"
 
+         
+
     
