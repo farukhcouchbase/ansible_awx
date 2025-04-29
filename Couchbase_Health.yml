@@ -8,19 +8,6 @@
     couchbase_ports: [8091, 8092, 8093, 8094, 11210, 11207, 11209, 18091, 18092, 18093, 4369, 21100]
 
   tasks:
- 
-    # - name: ✅ Check if node is reachable (ping)
-    #   ansible.builtin.ping:
-    #   ignore_errors: yes
-
-    # - name: ✅ Confirm SSH connectivity
-    #   ansible.builtin.command: echo "SSH authentication successful"
-    #   register: ssh_result
-
-    # - name: Show SSH connection result
-    #   ansible.builtin.debug:
-    #     msg: "{{ ssh_result.stdout }}"
-
     - name: ✅ Check if Couchbase service is running
       ansible.builtin.systemd:
         name: couchbase-server
@@ -57,15 +44,3 @@
     - name: Show parsed Couchbase node info
       ansible.builtin.debug:
         var: nodes_output.stdout_lines
-
-    # - name: 🔎 Check expected Couchbase ports
-    #   ansible.builtin.shell: "ss -tuln | grep -q ':{{ item }} '"
-    #   with_items: "{{ couchbase_ports }}"
-    #   register: port_check
-    #   ignore_errors: true
-
-    # - name: Show port availability status
-    #   ansible.builtin.debug:
-    #     msg: >-
-    #       Port {{ item.item }}: {{ '✅ Open' if item.rc == 0 else '❌ Closed' }}
-    #   loop: "{{ port_check.results }}"
