@@ -46,6 +46,6 @@
 
     - name: Display summarized result
       debug:
-        msg: "{{ port_summary | join(', ') }}"
+        msg: "{{ port_summary | join('\n') }}"
 
     
