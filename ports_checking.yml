@@ -44,9 +44,9 @@
           {{ port_summary | default([]) + [item.item ~ ':' ~ item.stdout] }}
       loop: "{{ port_status.results }}"
 
-    # - name: Display summarized result
-    #   debug:
-    #     msg: "{{ port_summary | join('\n\n') }}"
+    - name: Display summarized result
+      debug:
+        msg: "{{ port_summary | join('\n\n') }}"
 
     - name: Display each summarized result separately
       debug:
