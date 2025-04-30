@@ -49,21 +49,20 @@
         msg: "{{ port_summary | join(', ') }}"
 
 
-    - name: Display summarized result in readable format
-      debug:
-        msg: |
-          {% for item in port_summary %}
-          - Port: {{ item.split(':')[0] }}
-            Status: {{ item.split(':')[1].split(' - ')[0] }}
-            {% if 'Services:' in item %}
-            Services:
-            {% for svc in item.split('Services: ')[1].strip('[]').split(',') %}
-              - {{ svc.strip() }}
-            {% endfor %}
-            {% endif %}
-          {% endfor %}
+    - name: Format port summary into structured list
+      set_fact:
+        formatted_ports: >-
+          {{
+            port_summary | map('regex_replace', '^(\\d+):(\\w+)(?: - Services: \\[(.*)\\])?', '{"port": "\\1", "status": "\\2", "services": [\\3]}')
+                         | map('from_json')
+                         | map('combine', {'services': (item.services | default('') | string).split(',') | map('trim') | list })
+                         | list
+          }}
 
-    
+  
+    - name: Display formatted port summary
+      debug:
+        var: formatted_ports
 
          
 
