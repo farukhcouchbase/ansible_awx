@@ -47,3 +47,20 @@
     - name: Display summarized result
       debug:
         msg: "{{ port_summary | join(', ') }}"
+
+
+
+
+    - name: Summarize port statuses
+      set_fact:
+        port_summary: >-
+          {{ port_summary | default([]) + [item.item ~ ':' ~ item.stdout] }}
+      loop: "{{ port_status.results }}"
+
+    - name: Display port summary in readable format
+      debug:
+        msg: |
+          Port Status Summary:
+          {% for entry in port_summary %}
+          - {{ entry }}
+          {% endfor %}    
