@@ -64,3 +64,34 @@
           {% for entry in port_summary %}
           - {{ entry }}
           {% endfor %}    
+
+
+
+    - name: Prepare structured port data
+      set_fact:
+        structured_ports: >-
+          {{
+            structured_ports | default([]) + [{
+              'port': entry.split(':')[0],
+              'status': (entry.split(':')[1]).split('-')[0] | trim,
+              'services': (
+                entry.find('Services:') != -1
+                and entry.split('Services:')[1] | trim(' []')
+                or ''
+              )
+            }]
+          }}
+      loop: "{{ port_summary }}"
+      loop_control:
+        loop_var: entry
+
+    - name: Display port summary in clean format
+      debug:
+        msg: |
+          Port Status Summary:
+          {% for item in structured_ports %}
+          - Port {{ item.port }}: {{ item.status }}
+            {% if item.services %}
+            Services: {{ item.services }}
+            {% endif %}
+          {% endfor %} 
