@@ -53,14 +53,14 @@
       debug:
         msg: |
           {% for item in port_summary %}
-          - {{ item.split(':')[0] }}:
-              Status: {{ item.split(':')[1].split(' - ')[0] }}
-              {% if 'Services:' in item %}
-              Services:
-                {% for svc in item.split('Services: ')[1].strip('[]').split(',') %}
-                - {{ svc }}
-                {% endfor %}
-              {% endif %}
+          - Port: {{ item.split(':')[0] }}
+            Status: {{ item.split(':')[1].split(' - ')[0] }}
+            {% if 'Services:' in item %}
+            Services:
+            {% for svc in item.split('Services: ')[1].strip('[]').split(',') %}
+              - {{ svc.strip() }}
+            {% endfor %}
+            {% endif %}
           {% endfor %}
 
     
