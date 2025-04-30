@@ -53,7 +53,7 @@
       debug:
         msg: |
           {% for item in port_summary %}
-      -     {{ item.split(':')[0] }}:
+          - {{ item.split(':')[0] }}:
               Status: {{ item.split(':')[1].split(' - ')[0] }}
               {% if 'Services:' in item %}
               Services:
@@ -62,6 +62,7 @@
                 {% endfor %}
               {% endif %}
           {% endfor %}
+
     
 
          
