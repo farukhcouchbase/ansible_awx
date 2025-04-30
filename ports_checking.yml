@@ -48,16 +48,7 @@
       debug:
         msg: "{{ port_summary | join('\n\n') }}"
 
-
-    - name: Filter specific port statuses
-      set_fact:
-        filtered_port_summary: >-
-          {{ (port_summary | select('search', '8091:') | list) +
-             (port_summary | select('search', '8092:') | list) +
-             (port_summary | select('search', '11207:') | list) +
-             (port_summary | select('search', '18092:') | list) }}
-
-    - name: Display filtered result
+    - name: Display each summarized result separately
       debug:
-        msg: "{{ filtered_port_summary | join('\n\n') }}"
-    
+        msg: "{{ item }}"
+      loop: "{{ port_summary }}"    
