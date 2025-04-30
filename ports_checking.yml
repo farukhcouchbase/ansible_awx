@@ -47,23 +47,3 @@
     - name: Display summarized result
       debug:
         msg: "{{ port_summary | join(', ') }}"
-
-
-    - name: Format port summary into structured list
-      set_fact:
-        formatted_ports: >-
-          {{
-            port_summary | map('regex_replace', '^(\\d+):(\\w+)(?: - Services: \\[(.*)\\])?', '{"port": "\\1", "status": "\\2", "services": [\\3]}')
-                         | map('from_json')
-                         | map('combine', {'services': (item.services | default('') | string).split(',') | map('trim') | list })
-                         | list
-          }}
-
-  
-    - name: Display formatted port summary
-      debug:
-        var: formatted_ports
-
-         
-
-    
