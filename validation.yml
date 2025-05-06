@@ -25,6 +25,11 @@
         query_field_mapping: []
         query_field_list: []
 
+        
+
+    - name:  Run Couchbase query script
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }}  -s "SELECT * FROM system:indexes;" > fields.json 2>&1"
+      
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       with_items: "{{ index_queries }}"
