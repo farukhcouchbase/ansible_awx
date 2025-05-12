@@ -25,7 +25,20 @@
         query_field_mapping: []
         query_field_list: []
 
-        
+    - name: Categorize index queries as CREATE, DROP, ALTER, or UNKNOWN
+      set_fact:
+        query_types: >-
+          {{
+            query_types | default({}) | combine({
+              item: (
+                'CREATE' if item is match('(?i)^\\s*CREATE\\s+INDEX') else
+                'DROP' if item is match('(?i)^\\s*DROP\\s+INDEX') else
+                'ALTER' if item is match('(?i)^\\s*ALTER\\s+INDEX') else
+                'UNKNOWN'
+              )
+            })
+          }}
+      loop: "{{ index_queries }}"    
 
     - name: Run Couchbase query script
       shell: >
