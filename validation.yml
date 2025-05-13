@@ -38,7 +38,8 @@
               )
             })
           }}
-      loop: "{{ index_queries }}"    
+      loop: "{{ [index_queries] if index_queries is string else index_queries }}"
+  
 
     - name: Run Couchbase query script
       shell: >
