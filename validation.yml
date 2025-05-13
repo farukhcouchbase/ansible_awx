@@ -36,6 +36,17 @@
       debug:
         msg: "{{ query_types }}"
 
+    - name: Extract operation type from Couchbase index query
+      vars:
+        query_type: "{{ index_queries | regex_search('^(CREATE|DROP|ALTER)', ignorecase=False) }}"
+      debug:
+        msg: >-
+          {% if query_type is not none %}
+            The query is of type: {{ query_type }}
+          {% else %}
+            The query type could not be determined.
+          {% endif %}    
+
     - name: Run Couchbase query script
       shell: >
         {{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s "SELECT * FROM system:indexes;" > fields.json 2>&1
