@@ -37,8 +37,7 @@
             'UNKNOWN'
           }}
       debug:
-        msg: "The query is of type: {{ query_type }}"
-
+        msg: "The query is of type: {{ query_type }}" 
 
     - name: Run Couchbase query script
       shell: >
