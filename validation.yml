@@ -28,14 +28,6 @@
         query_field_mapping: []
         query_field_list: []
 
-
-
-    - name: Categorize and print the type of Couchbase index queries
-      vars:
-        query_type: "{{ index_queries | regex_search('^(CREATE|DROP|ALTER)', ignorecase=False) }}"
-      debug:
-        msg: "{{ query_types }}"
-
     - name: Extract operation type from Couchbase index query
       vars:
         query_type: "{{ index_queries | regex_search('^(CREATE|DROP|ALTER)', ignorecase=False) }}"
