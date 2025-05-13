@@ -11,6 +11,9 @@
     duplicate_indexes: []
     some_query_output: [] 
     existing_index_map: []
+    query_types: []
+    query_type: []
+    
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
 
