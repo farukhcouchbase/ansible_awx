@@ -31,13 +31,14 @@
       vars:
         query_type: >-
           {{
-            'CREATE' if index_queries is match('(?i)^\\s*CREATE\\s+INDEX') else
-            'DROP' if index_queries is match('(?i)^\\s*DROP\\s+INDEX') else
-            'ALTER' if index_queries is match('(?i)^\\s*ALTER\\s+INDEX') else
+            'CREATE' if index_queries | regex_search('(?i)^\\s*CREATE\\s+INDEX') else
+            'DROP' if index_queries | regex_search('(?i)^\\s*DROP\\s+INDEX') else
+            'ALTER' if index_queries | regex_search('(?i)^\\s*ALTER\\s+INDEX') else
             'UNKNOWN'
           }}
       debug:
-        msg: "The query is of type: {{ query_type }}" 
+        msg: "The query is of type: {{ query_type }}"
+
 
     - name: Run Couchbase query script
       shell: >
