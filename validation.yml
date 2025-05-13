@@ -25,8 +25,12 @@
         query_field_mapping: []
         query_field_list: []
 
-    
-    
+
+
+    - name: Print the received index query
+      debug:
+        msg: "Received query: {{ index_queries }}"
+
     - name: Categorize and print the type of Couchbase query
       vars:
         query_type: >-
@@ -38,7 +42,6 @@
           }}
       debug:
         msg: "The query is of type: {{ query_type }}"
-
 
     - name: Run Couchbase query script
       shell: >
