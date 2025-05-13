@@ -27,21 +27,11 @@
 
 
 
-    - name: Print the received index query
-      debug:
-        msg: "Received query: {{ index_queries }}"
-
-    - name: Categorize and print the type of Couchbase index query
+    - name: Categorize and print the type of Couchbase index queries
       vars:
-        query_type: >-
-          {{
-            'CREATE' if index_queries | regex_search('(?i)^\\s*CREATE\\s+(PRIMARY\\s+)?INDEX') else
-            'DROP' if index_queries | regex_search('(?i)^\\s*DROP\\s+INDEX') else
-            'ALTER' if index_queries | regex_search('(?i)^\\s*ALTER\\s+INDEX') else
-            'UNKNOWN'
-          }}
+        query_types: "{{ index_queries | map('regex_search', '^(CREATE|DROP|ALTER)', ignorecase=False) | list }}"
       debug:
-        msg: "The query is of type: {{ query_type }}"
+        msg: "{{ query_types }}"
 
     - name: Run Couchbase query script
       shell: >
