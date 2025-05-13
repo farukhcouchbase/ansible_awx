@@ -29,7 +29,7 @@
 
     - name: Categorize and print the type of Couchbase index queries
       vars:
-        query_types: "{{ index_queries | map('regex_search', '^\\s*(CREATE|DROP|ALTER)', ignorecase=False) | list }}"
+        query_type: "{{ index_queries | regex_search('^(CREATE|DROP|ALTER)', ignorecase=False) }}"
       debug:
         msg: "{{ query_types }}"
 
