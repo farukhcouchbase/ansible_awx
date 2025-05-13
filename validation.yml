@@ -43,6 +43,20 @@
       debug:
         msg: "The query is of type: {{ query_type }}"
 
+    - name: Categorize and print the type of Couchbase query
+      vars:
+        cleaned_query: "{{ index_queries | trim }}"
+        query_type: >-
+          {{
+            'CREATE' if cleaned_query | regex_search('(?i)^\\s*CREATE\\s+INDEX') else
+            'DROP' if cleaned_query | regex_search('(?i)^\\s*DROP\\s+INDEX') else
+            'ALTER' if cleaned_query | regex_search('(?i)^\\s*ALTER\\s+INDEX') else
+            'UNKNOWN'
+          }}
+      debug:
+        msg: "The query is of type: {{ query_type }}"
+
+
     - name: Run Couchbase query script
       shell: >
         {{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s "SELECT * FROM system:indexes;" > fields.json 2>&1
