@@ -28,6 +28,14 @@
         query_field_mapping: []
         query_field_list: []
 
+    - name: Extract bucket name from Couchbase index query
+      set_fact:
+        bucket_name: "{{ index_queries | regex_search('ON `([^`]+)`', '\\1') }}"
+
+    - name: Print the extracted bucket name
+      debug:
+        msg: "The extracted bucket name is: {{ bucket_name }}"    
+
     - name: Extract operation type from Couchbase index query
       vars:
         query_type: "{{ index_queries | regex_search('^(CREATE|DROP|ALTER)', ignorecase=False) }}"
