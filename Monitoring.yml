@@ -1,0 +1,17 @@
+ 
+- name: Validate and Create Couchbase Indexes
+  hosts: all
+  gather_facts: no
+  vars:
+    
+
+  tasks:
+    - name: Copy the disk error check script to remote host
+      copy:
+        src: /home/ubuntu/find-disk-write-error.sh
+        dest: /tmp/find-disk-write-error.sh
+        mode: '0755'
+      delegate_to: localhost
+
+    - name: Run the disk error check script on remote host
+      shell: /tmp/find-disk-write-error.sh
