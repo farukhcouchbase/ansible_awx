@@ -1,35 +1,10 @@
 ---
 - name: Deploy and run monitor_cluster.sh on worker node
-  hosts: all
-  become: true
-
+  hosts: all  # Make sure this group or host is defined in your inventory
+  become: true   # Elevate privileges to access user home directory
   tasks:
 
-    - name: Print current working directory on Ansible controller (debugging)
-      delegate_to: localhost
-      run_once: true
-      command: pwd
-      register: pwd_output
-
-    - name: Show the output of pwd
-      delegate_to: localhost
-      run_once: true
-      debug:
-        msg: "{{ pwd_output.stdout }}"
-
-    - name: List files in /home/ubuntu on Ansible controller (debugging)
-      delegate_to: localhost
-      run_once: true
-      command: ls -l /home/ubuntu
-      register: ls_output
-
-    - name: Show the output of ls
-      delegate_to: localhost
-      run_once: true
-      debug:
-        msg: "{{ ls_output.stdout_lines }}"
-
-    - name: Copy monitor_cluster.sh from control node to worker node
+    - name: Copy monitor_cluster.sh to /home/ubuntu
       copy:
         src: /home/ubuntu/monitor_cluster.sh
         dest: /home/ubuntu/monitor_cluster.sh
@@ -41,4 +16,3 @@
       become: true
       become_user: ubuntu
       command: /home/ubuntu/monitor_cluster.sh
-
