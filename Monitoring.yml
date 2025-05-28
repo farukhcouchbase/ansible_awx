@@ -1,13 +1,18 @@
-- name: Monitor the cluster and node
-  hosts: all
-  gather_facts: no
-
+---
+- name: Deploy and run monitor_cluster.sh on worker node
+  hosts: worker  # Make sure this group or host is defined in your inventory
+  become: true   # Elevate privileges to access user home directory
   tasks:
-    - name: Copy the disk error check script to remote host
+
+    - name: Copy monitor_cluster.sh to /home/ubuntu
       copy:
-        src: "{{ lookup('env','HOME') }}/monitor_cluster.sh"
+        src: /home/ubuntu/monitor_cluster.sh
         dest: /home/ubuntu/monitor_cluster.sh
+        owner: ubuntu
+        group: ubuntu
         mode: '0755'
 
-    - name: Run the disk error check script on remote host
-      shell: /home/ubuntu/monitor_cluster.sh
+    - name: Run monitor_cluster.sh as ubuntu user
+      become: true
+      become_user: ubuntu
+      command: /home/ubuntu/monitor_cluster.sh
