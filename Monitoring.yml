@@ -1,12 +1,26 @@
 ---
-- name: Copy monitor.sh to worker node home directory
+- name: Copy and run monitor.sh on the worker node
   hosts: all
   become: yes
+  vars:
+    monitor_username: "Admin"
+    monitor_password: "redhat"
+    monitor_cluster: "52.44.152.133"
+
   tasks:
-    - name: Copy monitor.sh to /home/ubuntu on the target node
+    - name: Copy monitor.sh to /home/ubuntu
       copy:
         src: "{{ playbook_dir }}/monitor.sh"
         dest: /home/ubuntu/monitor.sh
         mode: '0755'
         owner: ubuntu
         group: ubuntu
+
+    - name: Run monitor.sh with passed arguments
+      command: >
+        /home/ubuntu/monitor.sh
+        --username={{ monitor_username }}
+        --password={{ monitor_password }}
+        --cluster={{ monitor_cluster }}
+      args:
+        chdir: /home/ubuntu
