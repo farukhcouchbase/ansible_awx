@@ -1,5 +1,5 @@
 - name: Transfer script to worker node
-  hosts: worker_nodes
+  hosts: all
   become: true
   tasks:
     - name: Copy monitor.sh to /home/ubuntu/
