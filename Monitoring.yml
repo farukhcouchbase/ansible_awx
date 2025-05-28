@@ -1,10 +1,11 @@
-- name: Transfer script to worker node
+---
+- name: Deploy monitor script to worker node
   hosts: all
   become: true
   tasks:
     - name: Copy monitor.sh to /home/ubuntu/
       copy:
-        src: /tmp/monitor.sh
+        src: monitor.sh         # relative to project root
         dest: /home/ubuntu/monitor.sh
         owner: ubuntu
         group: ubuntu
