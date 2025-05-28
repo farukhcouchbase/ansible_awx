@@ -8,6 +8,7 @@
       copy:
         src: /home/ubuntu/monitor_cluster.sh
         dest: /home/ubuntu/monitor_cluster.sh
+        remote_src: yes
         owner: ubuntu
         group: ubuntu
         mode: '0755'
