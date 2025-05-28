@@ -1,20 +1,19 @@
 ---
-- name: Copy monitor_cluster.sh to remote host
-  hosts: all
+- name: Copy script from AWX container and send to worker node
+  hosts: localhost
+  tasks:
+    - name: Copy script from container to host
+      command: docker cp awx_task:/path/in/container/myscript.sh /tmp/myscript.sh
+      become: true
+
+- name: Transfer script to worker node
+  hosts: worker_nodes
   become: true
   tasks:
-    - name: Ensure destination directory exists
-      file:
-        path: /home/ubuntu 
-        state: directory
-        owner: ubuntu
-        group: ubuntu
-        mode: '0755'
-
-    - name: Copy monitor_cluster.sh to remote host
+    - name: Copy script to /home/ubuntu/
       copy:
-        src: /home/ubuntu/monitor_cluster.sh
-        dest: /home/ubuntu/monitor_cluster.sh
+        src: /tmp/myscript.sh
+        dest: /home/ubuntu/myscript.sh
         owner: ubuntu
         group: ubuntu
         mode: '0755'
