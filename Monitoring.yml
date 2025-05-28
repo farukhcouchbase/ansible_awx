@@ -1,9 +1,43 @@
 ---
-- name: Copy monitor_cluster.sh to worker node
+- name: Deploy and run monitor_cluster.sh on worker node
   hosts: all
+  become: true
+
   tasks:
-    - name: Copy monitor_cluster.sh file
+
+    - name: Print current working directory on Ansible controller (debugging)
+      delegate_to: localhost
+      run_once: true
+      command: pwd
+      register: pwd_output
+
+    - name: Show the output of pwd
+      delegate_to: localhost
+      run_once: true
+      debug:
+        msg: "{{ pwd_output.stdout }}"
+
+    - name: List files in /home/ubuntu on Ansible controller (debugging)
+      delegate_to: localhost
+      run_once: true
+      command: ls -l /tmp
+      register: ls_output
+
+    - name: Show the output of ls
+      delegate_to: localhost
+      run_once: true
+      debug:
+        msg: "{{ ls_output.stdout_lines }}"
+
+    - name: Copy monitor_cluster.sh from control node to worker node
       copy:
-        src: /tmp/monitor_cluster.sh  # Adjust this path to where the file is accessible in the Docker container
-        dest: /home/ubuntu
-      become: yes  # Use this if you need elevated privileges
+        src: /tmp/monitor_cluster.sh
+        dest: /home/ubuntu/monitor_cluster.sh
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Run monitor_cluster.sh as ubuntu user
+      become: true
+      become_user: ubuntu
+      command: /home/ubuntu/monitor_cluster.sh
