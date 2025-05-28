@@ -5,7 +5,7 @@
   tasks:
     - name: Ensure destination directory exists
       file:
-        path: /home/ubuntu
+        path: /home/ubuntu 
         state: directory
         owner: ubuntu
         group: ubuntu
