@@ -6,7 +6,7 @@
 
     - name: Copy monitor_cluster.sh to /home/ubuntu
       copy:
-        src: /tmp/monitor_cluster.sh
+        src: /home/ubuntu/monitor_cluster.sh
         dest: /home/ubuntu/monitor_cluster.sh
         remote_src: yes
         owner: ubuntu
