@@ -3,11 +3,11 @@
   gather_facts: no
 
   tasks:
-    - name: Copy monitor_check check script to remote host
+    - name: Copy the disk error check script to remote host
       copy:
-        src: /home/ubuntu/monitor_cluster.sh
-        dest: /home/ubuntu/
+        src: ./monitor_cluster.sh  # Adjust this path if needed
+        dest: /home/ubuntu/monitor_cluster.sh
         mode: '0755'
 
-    - name: Run the script 
+    - name: Run the disk error check script on remote host
       shell: /home/ubuntu/monitor_cluster.sh
