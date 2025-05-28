@@ -5,8 +5,8 @@
   tasks:
     - name: Copy the disk error check script to remote host
       copy:
-        src: ./monitor_cluster.sh  # Adjust this path if needed
-        dest: /home/ubuntu/monitor_cluster.sh
+        src: /home/ubuntu/monitor_cluster.sh  # Absolute path on Ansible controller
+        dest: /home/ubuntu/monitor_cluster.sh  # Destination on remote host
         mode: '0755'
 
     - name: Run the disk error check script on remote host
