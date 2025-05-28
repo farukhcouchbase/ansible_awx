@@ -1,15 +1,12 @@
 ---
 - name: Deploy and run monitor_cluster.sh on worker node
-  hosts: all  # Make sure this group or host is defined in your inventory
+  hosts: all  # Ensure this group or host is defined in your inventory
   become: true   # Elevate privileges to access user home directory
   tasks:
 
-    - name: Copy monitor_cluster.sh to /home/ubuntu
-      copy:
-        src: /home/ubuntu/monitor_cluster.sh
-        dest: /home/ubuntu/monitor_cluster.sh
-        owner: ubuntu
-        group: ubuntu
+    - name: Ensure monitor_cluster.sh is executable
+      file:
+        path: /home/ubuntu/monitor_cluster.sh
         mode: '0755'
 
     - name: Run monitor_cluster.sh as ubuntu user
