@@ -6,7 +6,7 @@
     - name: Copy monitor.sh to /home/ubuntu on the target node
       copy:
         src: "{{ playbook_dir }}/monitor.sh"
-        dest: /home/ubuntu/monitor.sh
+        dest: /home/ubuntu/cluster/monitor.sh
         mode: '0755'
         owner: ubuntu
         group: ubuntu
