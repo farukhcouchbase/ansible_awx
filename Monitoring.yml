@@ -1,6 +1,6 @@
 ---
 - name: Deploy and run monitor_cluster.sh on worker node
-  hosts: worker  # Make sure this group or host is defined in your inventory
+  hosts: all  # Make sure this group or host is defined in your inventory
   become: true   # Elevate privileges to access user home directory
   tasks:
 
