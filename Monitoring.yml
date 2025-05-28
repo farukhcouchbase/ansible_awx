@@ -4,6 +4,6 @@
   tasks:
     - name: Copy monitor_cluster.sh file
       copy:
-        src: /home/ubuntu/monitor_cluster.sh
-        dest: /home/ubuntu/monitor_cluster.sh
+        src: /home/ubuntu/monitor_cluster.sh  # Adjust this path to where the file is accessible in the Docker container
+        dest: /home/ubuntu
       become: yes  # Use this if you need elevated privileges
