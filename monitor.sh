@@ -123,44 +123,10 @@ if $failure_detected; then
   done
 
   echo "----------------------------------------------"
-  echo "📊 Node Resource Utilization"
-  echo "----------------------------------------------"
-
-  NODES_DATA=$(echo "$CLUSTER_INFO" | jq '.nodes')
-  NODE_COUNT=$(echo "$NODES_DATA" | jq 'length')
-
-  for i in $(seq 0 $((NODE_COUNT - 1))); do
-    NODE=$(echo "$NODES_DATA" | jq ".[$i]")
-    HOSTNAME=$(echo "$NODE" | jq -r '.hostname')
-    CPU=$(echo "$NODE" | jq -r '.systemStats.cpu_utilization_rate // 0')
-    MEM_USED=$(echo "$NODE" | jq -r '.systemStats.mem_used // 0')
-    MEM_TOTAL=$(echo "$NODE" | jq -r '.systemStats.mem_total // 0')
-    DISK_USED=$(echo "$NODE" | jq -r '.systemStats.disk_used // 0')
-    DISK_TOTAL=$(echo "$NODE" | jq -r '.systemStats.disk_total // 0')
-
-    if [[ $MEM_TOTAL -gt 0 ]]; then
-      MEM_PCT=$(awk "BEGIN {printf \"%.1f\", ($MEM_USED/$MEM_TOTAL)*100}")
-    else
-      MEM_PCT="Unavailable"
-    fi
-
-    if [[ $DISK_TOTAL -gt 0 ]]; then
-      DISK_PCT=$(awk "BEGIN {printf \"%.1f\", ($DISK_USED/$DISK_TOTAL)*100}")
-    else
-      DISK_PCT="Unavailable"
-    fi
-
-    echo "🖥️ Node: $HOSTNAME"
-    echo "   CPU Utilization : $CPU%"
-    echo "   RAM Usage       : $MEM_PCT% ($MEM_USED / $MEM_TOTAL bytes)"
-    echo "   Disk Usage      : $DISK_PCT% ($DISK_USED / $DISK_TOTAL bytes)"
-    echo ""
-  done
-
-  echo "----------------------------------------------"
-  echo "✅ Complete: Cluster and node-level stats reported."
+  echo "✅ Complete: Cluster and bucket-level stats reported."
   echo "----------------------------------------------"
 else
   echo
   echo "✅ No write failures detected. Skipping extended diagnostics."
 fi
+
