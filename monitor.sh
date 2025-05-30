@@ -6,7 +6,7 @@ WEBHOOK_URL="https://outlook.office.com/webhook/your-webhook-url-here"  # 🔁 R
 
 #KEYWORDS="vbucket.*corrupt|corrupt.*vbucket|vbucket.*fail|vbucket.*error|corruption detected|failed to open vbucket|cannot read vbucket|vbucket.*not valid"
 
-KEYWORDS="vbucket.malformed"
+KEYWORDS="vbucket.malformed" 
 
 echo "🔎 Scanning for vbucket corruption logs in memcached logs on node: $NODE_NAME"
 echo "==========================================================================="
