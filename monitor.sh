@@ -1,47 +1,79 @@
+#!/bin/bash
 
-- name: Scan for vbucket corruption logs on Couchbase nodes
-  hosts: all
-  become: true
-  vars:
-    log_dir: "/opt/couchbase/var/lib/couchbase/logs"
-    log_files_pattern: "memcached.log*"
-    keywords: "vbucket.*malform"
-  tasks:
+LOG_DIR="/opt/couchbase/var/lib/couchbase/logs"
+NODE_NAME=$(hostname)
+WEBHOOK_URL="https://outlook.office.com/webhook/your-webhook-url-here"  # 🔁 Replace with your real webhook URL
 
-    - name: Find matching log files
-      find:
-        paths: "{{ log_dir }}"
-        patterns: "{{ log_files_pattern }}"
-      register: log_files
+#KEYWORDS="vbucket.*corrupt|corrupt.*vbucket|vbucket.*fail|vbucket.*error|corruption detected|failed to open vbucket|cannot read vbucket|vbucket.*not valid"
 
-    - name: Scan each log file for vbucket corruption
-      block:
-        - name: Grep log file for corruption patterns
-          shell: |
-            if [[ "{{ item.path }}" == *.gz ]]; then
-              zgrep -iE "{{ keywords }}" "{{ item.path }}"
-            else
-              grep -iE "{{ keywords }}" "{{ item.path }}"
-            fi
-          args:
-            executable: /bin/bash
-          register: grep_results
-          failed_when: false
-          changed_when: false
+KEYWORDS="vbucket.malformed"
 
-        - name: Parse matched log lines
-          when: grep_results.stdout != ""
-          loop: "{{ grep_results.stdout_lines }}"
-          loop_control:
-            loop_var: log_line
-          vars:
-            vb_id: "{{ log_line | regex_search('vbucket[\\s#:-]*([0-9]+)', '\\1') }}"
-            node_in_log: "{{ log_line | regex_search('node-[0-9a-zA-Z._-]+') }}"
-          debug:
-            msg: |
-              ⚠️  Corruption Detected!
-              Log File   : {{ item.path }}
-              Node       : {{ node_in_log | default(inventory_hostname) }}
-              Vbucket ID : {{ vb_id | default('Unknown') }}
-              Log Line   : {{ log_line }}
-      loop: "{{ log_files.files }}"
+echo "🔎 Scanning for vbucket corruption logs in memcached logs on node: $NODE_NAME"
+echo "==========================================================================="
+
+FOUND=0
+
+send_teams_alert() {
+    local vb_id="$1"
+    local node="$2"
+    local log_line="$3"
+    local logfile="$4"
+
+    PAYLOAD=$(cat <<EOF
+{
+    "@type": "MessageCard",
+    "@context": "http://schema.org/extensions",
+    "summary": "⚠️ VBucket Corruption Alert",
+    "themeColor": "FF0000",
+    "title": "🚨 Corrupted VBucket Detected",
+    "sections": [{
+        "facts": [
+            { "name": "Node", "value": "$node" },
+            { "name": "VBucket ID", "value": "$vb_id" },
+            { "name": "Log File", "value": "$logfile" },
+            { "name": "Log Entry", "value": "$log_line" }
+        ],
+        "markdown": true
+    }]
+}
+EOF
+    )
+
+    curl -s -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK_URL" > /dev/null
+}
+
+for LOG in "$LOG_DIR"/memcached.log*; do
+    [[ ! -e "$LOG" ]] && continue
+
+    if [[ $LOG == *.gz ]]; then
+        MATCHES=$(sudo zgrep -iE "$KEYWORDS" "$LOG")
+    else
+        MATCHES=$(sudo grep -iE "$KEYWORDS" "$LOG")
+    fi
+
+    if [[ -n "$MATCHES" ]]; then
+        echo "✅ Matches found in $LOG"
+        echo "------------------------------------------------------------------------"
+
+        while IFS= read -r line; do
+            VB_ID=$(echo "$line" | grep -oE 'vbucket[[:space:]#:-]*[0-9]+' | grep -oE '[0-9]+')
+            NODE_IN_LOG=$(echo "$line" | grep -oE 'node-[0-9a-zA-Z._-]+')
+            NODE="${NODE_IN_LOG:-$NODE_NAME}"
+
+            echo "⚠️  Corruption Detected!"
+            echo "Log File   : $LOG"
+            echo "Node       : $NODE"
+            echo "VBucket ID : ${VB_ID:-Unknown}"
+            echo "Log Line   : $line"
+            echo "------------------------------------------------------------------------"
+
+            # Send Teams alert
+            send_teams_alert "${VB_ID:-Unknown}" "$NODE" "$line" "$LOG"
+            FOUND=1
+        done <<< "$MATCHES"
+    fi
+done
+
+[[ $FOUND -eq 0 ]] && echo "✅ No corruption logs found in memcached logs."
+
+echo "✅ Search completed."
