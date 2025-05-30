@@ -16,11 +16,15 @@
         owner: ubuntu
         group: ubuntu
 
-    - name: Run monitor.sh with passed arguments
-      command: >
-        /home/ubuntu/monitor.sh
-        --username={{ monitor_username }}
-        --password={{ monitor_password }}
-        --cluster={{ monitor_cluster }}
+    - name: Run monitor.sh script once
+      shell: /home/ubuntu/monitor.sh
       args:
         chdir: /home/ubuntu
+      become_user: ubuntu
+
+    - name: Add cron job to run monitor.sh every 10 minutes
+      cron:
+        name: "Run monitor.sh every 10 minutes"
+        user: ubuntu
+        job: "/home/ubuntu/monitor.sh"
+        minute: "*/10"
