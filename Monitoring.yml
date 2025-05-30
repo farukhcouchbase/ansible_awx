@@ -3,9 +3,7 @@
   hosts: all
   become: yes
   vars:
-    monitor_username: "Admin"
-    monitor_password: "redhat"
-    monitor_cluster: "52.44.152.133"
+  
 
   tasks:
     - name: Copy monitor.sh to /home/ubuntu
