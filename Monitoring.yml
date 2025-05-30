@@ -20,9 +20,4 @@
         chdir: /home/ubuntu
       become_user: ubuntu
 
-    - name: Add cron job to run monitor.sh every 10 minutes
-      cron:
-        name: "Run monitor.sh every 10 minutes"
-        user: ubuntu
-        job: "/home/ubuntu/monitor.sh"
-        minute: "*/10"
+    
