@@ -2,27 +2,38 @@
 - name: Run Couchbase couch_check commands
   hosts: all
   become: yes
+  vars:
+    output_dir: "/home/ubuntu"
+    output_file: "output_couch_check_all.txt"
+    couch_check_path: "/opt/couchbase/bin"
+    couch_data_dir: "{{ couch_check_path }}/var/lib/couchbase/data/{{ dataset | default('travel-sample') }}"
+    executables:
+      - couch_check
+      - couch_check_all.sh
+
   tasks:
-    - name: Create output file placeholder
-      shell: mkdir -p "{{ output_dir | default('/home/ubuntu') }}" && touch output_couch_check_all.txt
-      args:
-        chdir: /home/ubuntu
-
-    # - name: Uncompress couch_check.gz
-    #   shell: |
-    #     cd /home/ubuntu
-    #     gunzip -f couch_check.gz
-
-    - name: Make couch_check and couch_check_all.sh executable
+    - name: Ensure output directory exists and touch output file
       file:
-        path: "{{ item }}"
+        path: "{{ output_dir }}"
+        state: directory
         mode: '0755'
-      loop:
-        - /opt/couchbase/bin/couch_check
-        - /opt/couchbase/bin/couch_check_all.sh
 
-    - name: Run couch_check_all.sh on travel-sample .couch files
+    - name: Initialize output file
+      file:
+        path: "{{ output_dir }}/{{ output_file }}"
+        state: touch
+        mode: '0644'
+
+    - name: Make couch_check executables executable
+      file:
+        path: "{{ couch_check_path }}/{{ item }}"
+        mode: '0755'
+      loop: "{{ executables }}"
+
+    - name: Run couch_check_all.sh on .couch files in {{ dataset | default('travel-sample') }}
       shell: |
-        export COUCH_CHECK_PATH=/opt/couchbase/bin
-        cd /opt/couchbase/var/lib/couchbase/data/travel-sample
-        /opt/couchbase/bin/couch_check_all.sh *.couch > /home/ubuntu/output_couch_check_all.txt
+        export COUCH_CHECK_PATH={{ couch_check_path }}
+        cd "{{ couch_data_dir }}"
+        "{{ couch_check_path }}/couch_check_all.sh" *.couch > "{{ output_dir }}/{{ output_file }}"
+      args:
+        chdir: "{{ output_dir }}"
