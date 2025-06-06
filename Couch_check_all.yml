@@ -32,9 +32,4 @@
         path: /opt/couchbase/bin/couch_check_all.sh
         mode: '0755'
 
-    - name: Execute couch_check_all.sh on .couch files
-      shell: |
-        export COUCH_CHECK_PATH=/opt/couchbase/bin
-        /opt/couchbase/bin/couch_check_all.sh *.couch > /home/ubuntu/output_couch_check_all.txt
-      args:
-        chdir: /opt/couchbase/var/lib/couchbase/data/travel-sample
+    
