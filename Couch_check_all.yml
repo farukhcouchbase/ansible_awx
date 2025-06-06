@@ -8,10 +8,10 @@
       args:
         chdir: /home/ubuntu
 
-    - name: Uncompress couch_check.gz
-      shell: |
-        cd /home/ubuntu
-        gunzip -f couch_check.gz
+    # - name: Uncompress couch_check.gz
+    #   shell: |
+    #     cd /home/ubuntu
+    #     gunzip -f couch_check.gz
 
     - name: Make couch_check and couch_check_all.sh executable
       file:
