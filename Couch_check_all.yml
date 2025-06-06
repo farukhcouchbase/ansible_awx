@@ -1,36 +1,42 @@
 ---
-- name: Automate Couchbase Checks
+- name: Automate Couchbase Check Scripts
   hosts: all
-  become: true
+  become: yes
   tasks:
 
-    - name: Ensure /home/ubuntu directory exists
+    - name: Ensure output file exists
       file:
-        path: /home/ubuntu
-        state: directory
+        path: /home/ubuntu/output_couch_check_all.txt
+        state: touch
         owner: ubuntu
         group: ubuntu
-        mode: '0755'
+        mode: '0644'
 
     - name: Move couch_check_all.sh to /opt/couchbase/bin/
-      command: mv couch_check_all.sh /opt/couchbase/bin/
+      command: mv /home/ubuntu/couch_check_all.sh /opt/couchbase/bin/couch_check_all.sh
       args:
-        chdir: /home/ubuntu
+        creates: /opt/couchbase/bin/couch_check_all.sh
 
     - name: Move couch_check to /opt/couchbase/bin/
-      command: mv couch_check /opt/couchbase/bin/
+      command: mv /home/ubuntu/couch_check /opt/couchbase/bin/couch_check
       args:
-        chdir: /home/ubuntu
+        creates: /opt/couchbase/bin/couch_check
 
-    - name: Make couch_check executable
+    - name: Set execute permission on couch_check
       file:
         path: /opt/couchbase/bin/couch_check
         mode: '0755'
+        state: file
 
-    - name: Make couch_check_all.sh executable
+    - name: Set execute permission on couch_check_all.sh
       file:
         path: /opt/couchbase/bin/couch_check_all.sh
         mode: '0755'
+        state: file
 
-    
-
+    - name: Execute couch_check_all.sh script
+      shell: |
+        export COUCH_CHECK_PATH=/opt/couchbase/bin
+        /opt/couchbase/bin/couch_check_all.sh *.couch > /home/ubuntu/output_couch_check_all.txt
+      args:
+        chdir: /opt/couchbase/var/lib/couchbase/data/travel-sample
