@@ -32,11 +32,5 @@
         path: /opt/couchbase/bin/couch_check_all.sh
         mode: '0755'
 
-    - name: Run couch_check_all.sh in travel-sample directory
-      ansible.builtin.shell: >
-        /opt/couchbase/bin/couch_check_all.sh *.couch > /home/ubuntu/output_couch_check_all.txt
-      args:
-        chdir: /opt/couchbase/var/lib/couchbase/data/travel-sample
-      environment:
-        COUCH_CHECK_PATH: /opt/couchbase/bin
+    
 
