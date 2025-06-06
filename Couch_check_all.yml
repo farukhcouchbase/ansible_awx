@@ -13,7 +13,7 @@
 
     - name: Move couch_check to Couchbase bin directory
       copy:
-        src: couch_check
+        src: /home/ubuntu/couch_check
         dest: /opt/couchbase/bin/couch_check
         mode: '0755'
         owner: couchbase
@@ -21,7 +21,7 @@
 
     - name: Move couch_check_all.sh to Couchbase bin directory
       copy:
-        src: couch_check_all.sh
+        src:  /home/ubuntu/couch_check_all.sh
         dest: /opt/couchbase/bin/couch_check_all.sh
         mode: '0755'
         owner: couchbase
