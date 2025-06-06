@@ -1,39 +1,37 @@
 ---
-- name: Run Couchbase couch_check commands
+- name: Run Couchbase check scripts
   hosts: all
-  become: yes
-  vars:
-    output_dir: "/home/ubuntu"
-    output_file: "output_couch_check_all.txt"
-    couch_check_path: "/opt/couchbase/bin"
-    couch_data_dir: "{{ couch_check_path }}/var/lib/couchbase/data/{{ dataset | default('travel-sample') }}"
-    executables:
-      - couch_check
-      - couch_check_all.sh
-
+  become: true
   tasks:
-    - name: Ensure output directory exists and touch output file
+    - name: Create output directory
       file:
-        path: "{{ output_dir }}"
+        path: /home/ubuntu
         state: directory
+        owner: ubuntu
+        group: ubuntu
         mode: '0755'
 
-    - name: Initialize output file
-      file:
-        path: "{{ output_dir }}/{{ output_file }}"
-        state: touch
-        mode: '0644'
-
-    - name: Make couch_check executables executable
-      file:
-        path: "{{ couch_check_path }}/{{ item }}"
+    - name: Move couch_check to Couchbase bin directory
+      copy:
+        src: couch_check
+        dest: /opt/couchbase/bin/couch_check
         mode: '0755'
-      loop: "{{ executables }}"
+        owner: couchbase
+        group: couchbase
 
-    - name: Run couch_check_all.sh on .couch files in {{ dataset | default('travel-sample') }}
+    - name: Move couch_check_all.sh to Couchbase bin directory
+      copy:
+        src: couch_check_all.sh
+        dest: /opt/couchbase/bin/couch_check_all.sh
+        mode: '0755'
+        owner: couchbase
+        group: couchbase
+
+    - name: Run couch_check_all.sh on .couch files
       shell: |
-        export COUCH_CHECK_PATH={{ couch_check_path }}
-        cd "{{ couch_data_dir }}"
-        "{{ couch_check_path }}/couch_check_all.sh" *.couch > "{{ output_dir }}/{{ output_file }}"
+        export COUCH_CHECK_PATH=/opt/couchbase/bin
+        cd /opt/couchbase/var/lib/couchbase/data/travel-sample
+        /opt/couchbase/bin/couch_check_all.sh *.couch > /home/ubuntu/output_couch_check_all.txt
       args:
-        chdir: "{{ output_dir }}"
+        executable: /bin/bash
+      become_user: couchbase
