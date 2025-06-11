@@ -1,42 +1,21 @@
 ---
-- name: Automate Couchbase Check Scripts
+- name: Run Couchbase Check Script
   hosts: all
   become: yes
   tasks:
 
-    - name: Ensure output file exists
-      file:
-        path: /home/ubuntu/output_couch_check_all.txt
-        state: touch
-        owner: ubuntu
-        group: ubuntu
-        mode: '0644'
-
-    - name: Move couch_check_all.sh to /opt/couchbase/bin/
-      command: mv /home/ubuntu/couch_check_all.sh /opt/couchbase/bin/couch_check_all.sh
-      args:
-        creates: /opt/couchbase/bin/couch_check_all.sh
-
-    - name: Move couch_check to /opt/couchbase/bin/
-      command: mv /home/ubuntu/couch_check /opt/couchbase/bin/couch_check
-      args:
-        creates: /opt/couchbase/bin/couch_check
-
-    - name: Set execute permission on couch_check
-      file:
-        path: /opt/couchbase/bin/couch_check
+    - name: Make couch_check76 executable
+      ansible.builtin.file:
+        path: /opt/couchbase/bin/couch_check76
         mode: '0755'
-        state: file
 
-    - name: Set execute permission on couch_check_all.sh
-      file:
-        path: /opt/couchbase/bin/couch_check_all.sh
+    - name: Make couch_check_all76.sh executable
+      ansible.builtin.file:
+        path: /opt/couchbase/bin/couch_check_all76.sh
         mode: '0755'
-        state: file
 
-    - name: Execute couch_check_all.sh script
-      shell: |
-        export COUCH_CHECK_PATH=/opt/couchbase/bin
-        /opt/couchbase/bin/couch_check_all.sh *.couch > /home/ubuntu/output_couch_check_all.txt
-      args:
-        chdir: /opt/couchbase/var/lib/couchbase/data/travel-sample
+    - name: Run couch_check_all76.sh with environment variable and arguments
+      ansible.builtin.shell: >
+        /opt/couchbase/bin/couch_check_all76.sh /opt/couchbase/var/lib/couchbase/data/travel-sample/*.couch > /home/ubuntu/output.txt 
+      environment:
+        COUCH_CHECK_PATH: /opt/couchbase/bin
