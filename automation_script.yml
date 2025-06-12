@@ -13,12 +13,6 @@
         owner: ubuntu
         group: ubuntu
 
-    - name: Run couch_check_all.sh script once
-      shell: /home/ubuntu/couch_check_all.sh >  /home/ubuntu/couch_check_all.txt
-      args:
-        chdir: /home/ubuntu
-      become_user: ubuntu
-
     - name: Copy path.sh to /home/ubuntu
       copy:
         src: "{{ playbook_dir }}/path.sh"
