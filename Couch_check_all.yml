@@ -1,76 +1,48 @@
 ---
-- name: Setup Couchbase check scripts and monitoring
+- name: Copy and run monitor.sh on the worker node
   hosts: all
   become: yes
-  vars:
-    couchbase_bin_path: /opt/couchbase/bin
-    couchbase_data_path: /opt/couchbase/var/lib/couchbase/data/travel-sample
-    couch_check_zips:
-      - couch_check72.zip
-      - couch_check76.zip
-    github_script_url: "https://raw.githubusercontent.com/your-org/your-repo/main/couch_check_all.sh"
-    local_monitor_script: "{{ playbook_dir }}/monitor.sh"
-    remote_monitor_path: /home/ubuntu/monitor.sh
-    couch_check_script_temp: /home/ubuntu/couch_check_all.sh
+  vars: {}
 
   tasks:
-    - name: Ensure unzip is installed
-      package:
-        name: unzip
-        state: present
-
-    - name: Copy couch_check zip files to Couchbase bin directory
+    - name: Copy couch_check_all.sh to /home/ubuntu
       copy:
-        src: "{{ item }}"
-        dest: "{{ couchbase_bin_path }}/"
-        mode: '0644'
-      loop: "{{ couch_check_zips }}"
-
-    - name: Download couch_check_all.sh from GitHub
-      get_url:
-        url: "{{ github_script_url }}"
-        dest: "{{ couch_check_script_temp }}"
+        src: "{{ playbook_dir }}/couch_check_all.sh"
+        dest: /home/ubuntu/couch_check_all.sh
         mode: '0755'
         owner: ubuntu
         group: ubuntu
 
-    - name: Move couch_check_all.sh to Couchbase bin directory
-      command: mv "{{ couch_check_script_temp }}" "{{ couchbase_bin_path }}/"
-      become_user: root
+    - name: Run couch_check_all.sh script once
+      shell: /home/ubuntu/couch_check_all.sh >  /home/ubuntu/couch_check_all.txt
+      args:
+        chdir: /home/ubuntu
+      become_user: ubuntu
 
-    - name: Unzip couch_check72
-      unarchive:
-        src: "{{ couchbase_bin_path }}/couch_check72.zip"
-        dest: "{{ couchbase_bin_path }}"
-        remote_src: yes
-
-    - name: Unzip couch_check76
-      unarchive:
-        src: "{{ couchbase_bin_path }}/couch_check76.zip"
-        dest: "{{ couchbase_bin_path }}"
-        remote_src: yes
-
-    - name: Make couch_check scripts executable
-      file:
-        path: "{{ couchbase_bin_path }}/{{ item }}"
-        mode: '0755'
-        state: file
-      loop:
-        - couch_check72
-        - couch_check76
-        - couch_check_all.sh
-
-    - name: Copy monitor.sh to /home/ubuntu
+    - name: Copy path.sh to /home/ubuntu
       copy:
-        src: "{{ local_monitor_script }}"
-        dest: "{{ remote_monitor_path }}"
+        src: "{{ playbook_dir }}/path.sh"
+        dest: /home/ubuntu/path.sh
         mode: '0755'
         owner: ubuntu
         group: ubuntu
 
-    - name: Run couch_check_all.sh on travel-sample couch files
-      shell: |
-        cd {{ couchbase_data_path }}
-        {{ couchbase_bin_path }}/couch_check_all.sh *.couch.*
-      environment:
-        COUCH_CHECK_PATH: "{{ couchbase_bin_path }}"
+    - name: Run path.sh script once
+      shell: /home/ubuntu/path.sh > /home/ubuntu/path.txt
+      args:
+        chdir: /home/ubuntu
+      become_user: ubuntu
+
+    - name: Copy env.sh to /home/ubuntu
+      copy:
+        src: "{{ playbook_dir }}/env.sh"
+        dest: /home/ubuntu/env.sh
+        mode: '0755'
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Run env.sh script once
+      shell: /home/ubuntu/env.sh >  /home/ubuntu/env.txt
+      args:
+        chdir: /home/ubuntu
+      become_user: ubuntu
