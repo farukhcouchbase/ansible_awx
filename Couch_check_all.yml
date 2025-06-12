@@ -1,21 +1,76 @@
 ---
-- name: Run Couchbase Check Script
+- name: Setup Couchbase check scripts and monitoring
   hosts: all
   become: yes
+  vars:
+    couchbase_bin_path: /opt/couchbase/bin
+    couchbase_data_path: /opt/couchbase/var/lib/couchbase/data/travel-sample
+    couch_check_zips:
+      - couch_check72.zip
+      - couch_check76.zip
+    github_script_url: "https://raw.githubusercontent.com/your-org/your-repo/main/couch_check_all.sh"
+    local_monitor_script: "{{ playbook_dir }}/monitor.sh"
+    remote_monitor_path: /home/ubuntu/monitor.sh
+    couch_check_script_temp: /home/ubuntu/couch_check_all.sh
+
   tasks:
+    - name: Ensure unzip is installed
+      package:
+        name: unzip
+        state: present
 
-    - name: Make couch_check76 executable
-      ansible.builtin.file:
-        path: /opt/couchbase/bin/couch_check76
+    - name: Copy couch_check zip files to Couchbase bin directory
+      copy:
+        src: "{{ item }}"
+        dest: "{{ couchbase_bin_path }}/"
+        mode: '0644'
+      loop: "{{ couch_check_zips }}"
+
+    - name: Download couch_check_all.sh from GitHub
+      get_url:
+        url: "{{ github_script_url }}"
+        dest: "{{ couch_check_script_temp }}"
         mode: '0755'
+        owner: ubuntu
+        group: ubuntu
 
-    - name: Make couch_check_all76.sh executable
-      ansible.builtin.file:
-        path: /opt/couchbase/bin/couch_check_all76.sh
+    - name: Move couch_check_all.sh to Couchbase bin directory
+      command: mv "{{ couch_check_script_temp }}" "{{ couchbase_bin_path }}/"
+      become_user: root
+
+    - name: Unzip couch_check72
+      unarchive:
+        src: "{{ couchbase_bin_path }}/couch_check72.zip"
+        dest: "{{ couchbase_bin_path }}"
+        remote_src: yes
+
+    - name: Unzip couch_check76
+      unarchive:
+        src: "{{ couchbase_bin_path }}/couch_check76.zip"
+        dest: "{{ couchbase_bin_path }}"
+        remote_src: yes
+
+    - name: Make couch_check scripts executable
+      file:
+        path: "{{ couchbase_bin_path }}/{{ item }}"
         mode: '0755'
+        state: file
+      loop:
+        - couch_check72
+        - couch_check76
+        - couch_check_all.sh
 
-    - name: Run couch_check_all76.sh with environment variable and arguments
-      ansible.builtin.shell: >
-        /opt/couchbase/bin/couch_check_all76.sh /opt/couchbase/var/lib/couchbase/data/travel-sample/*.couch > /home/ubuntu/output.txt 
+    - name: Copy monitor.sh to /home/ubuntu
+      copy:
+        src: "{{ local_monitor_script }}"
+        dest: "{{ remote_monitor_path }}"
+        mode: '0755'
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Run couch_check_all.sh on travel-sample couch files
+      shell: |
+        cd {{ couchbase_data_path }}
+        {{ couchbase_bin_path }}/couch_check_all.sh *.couch.*
       environment:
-        COUCH_CHECK_PATH: /opt/couchbase/bin
+        COUCH_CHECK_PATH: "{{ couchbase_bin_path }}"
