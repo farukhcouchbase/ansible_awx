@@ -1,23 +1,38 @@
----
-- name: Copy and run monitor.sh on the worker node
-  hosts: all
-  become: yes
-  vars:
-  
+#!/bin/bash
 
-  tasks:
-    - name: Copy monitor.sh to /home/ubuntu
-      copy:
-        src: "{{ playbook_dir }}/monitor.sh"
-        dest: /home/ubuntu/monitor.sh
-        mode: '0755'
-        owner: ubuntu
-        group: ubuntu
+# Exit if any command fails
+set -e
 
-    - name: Run monitor.sh script once
-      shell: /home/ubuntu/monitor.sh
-      args:
-        chdir: /home/ubuntu
-      become_user: ubuntu
 
-    
+if /opt/couchbase/bin/couchbase-server --version | grep "7.2"; then
+  # Iterate through all provided filenames
+  for file in "$@"; do
+      # Run couch_check on the file and capture exit code
+      if ! $COUCH_CHECK_PATH/couch_check72 "$file"; then
+          # Check if filename matches *.couch.* pattern and extract first part
+          if [[ $file =~ ^([0-9]+)\.couch\. ]]; then
+              echo "Error with vb:${BASH_REMATCH[1]}"
+          else
+              echo "Error checking file: $file"
+          fi
+      fi
+  done
+fi
+
+if /opt/couchbase/bin/couchbase-server --version | grep "7.6"; then
+  # Iterate through all provided filenames
+  for file in "$@"; do
+      # Run couch_check on the file and capture exit code
+      if ! $COUCH_CHECK_PATH/couch_check76 "$file"; then
+          # Check if filename matches *.couch.* pattern and extract first part
+          if [[ $file =~ ^([0-9]+)\.couch\. ]]; then
+              echo "Error with vb:${BASH_REMATCH[1]}"
+          else
+              echo "Error checking file: $file"
+          fi
+      fi
+  done
+fi
+
+
+echo "done"
