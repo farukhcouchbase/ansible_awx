@@ -10,4 +10,4 @@ export COUCH_CHECK_PATH=/opt/couchbase/bin
 
 cd /opt/couchbase/bin/
 
-./couch_check_all.sh /opt/couchbase/var/lib/couchbase/data/travel-sample/* > /home/ubuntu/couch_check_all.txt 2>&1
+./couch_check_all.sh /opt/couchbase/var/lib/couchbase/data/travel-sample/*.couch.* > /home/ubuntu/couch_check_all.txt 2>&1
