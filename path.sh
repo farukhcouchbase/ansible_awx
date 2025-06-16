@@ -50,6 +50,7 @@ buckets_endpoint="$base_url/pools/default"
 ## storage_info : JSON object containing information about storage paths.
 ##                Extracted using jq from the /nodes/self endpoint.
 storage_info=$(curl -s -u "$username:$password" "$storage_endpoint" | jq '.storage')
+hostname_info=$(curl -s -u "$username:$password" "$storage_endpoint" | jq '.hostname')
 
 ## bucket_list : JSON array containing names of all buckets in the default pool.
 ##               Extracted using jq from the /pools/default endpoint.
@@ -58,25 +59,10 @@ bucket_list=$(curl -s -u "$username:$password" "$buckets_endpoint" | jq '.bucket
 ## ---------------------------------------------------------
 ## Output the parsed information to the console
 ## ---------------------------------------------------------
-echo "Following are the path and bucket list:"
-echo "---- Storage Paths ----"
-echo "$storage_info"
-echo "---- Bucket List ----"
-echo "$bucket_list"
 
 
-
-DATA_DIR="/opt/couchbase/var/lib/couchbase/data"
-
-for dir in "$DATA_DIR"/*; do
-  # Only enter if it's a directory and not a symlink or special file
-  if [ -d "$dir" ]; then
-    echo "Storage of $dir:"
-    ls "$dir"
-    echo "---------------------------"
-  fi
-done
-
+echo "--------------- Hostname -------------------"
+echo $hostname_info
 
 
 
@@ -96,3 +82,38 @@ else
   echo "Directory $DATA_DIR does not exist."
   exit 1
 fi
+
+
+
+
+
+#!/usr/bin/env bash
+# Traverse Couchbase data buckets, skipping names that start with '@'
+
+DATA_DIR="/opt/couchbase/var/lib/couchbase/data"
+
+# Bail out early if the target directory is missing
+if [[ ! -d "$DATA_DIR" ]]; then
+  echo "ERROR: $DATA_DIR does not exist."
+  exit 1
+fi
+
+# Jump into the data directory
+cd "$DATA_DIR" || { echo "Cannot cd to $DATA_DIR"; exit 1; }
+
+# Iterate over immediate sub‑directories
+for dir in */ ; do
+  # Strip trailing slash for a clean name
+  name="${dir%/}"
+
+  # Skip anything that begins with '@'
+  [[ $name == @* ]] && continue
+
+  # Enter the directory in a subshell so the outer loop stays in DATA_DIR
+  (
+    cd "$dir" || exit        # change into the bucket directory
+    echo "Now inside: $PWD"  # placeholder — do whatever you need here
+    # Example command: ls -lh
+    # Add more operations as required
+  )
+done
