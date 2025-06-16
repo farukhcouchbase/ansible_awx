@@ -45,22 +45,4 @@
       ansible.builtin.shell: cat /home/ubuntu/couch_check_all.txt
       register: couch_check
 
-    - name: Print couch_check_all.txt content
-      ansible.builtin.debug:
-        msg: "{{ couch_check.stdout }}"
-
-    - name: Read env.txt
-      ansible.builtin.shell: cat /home/ubuntu/env.txt
-      register: env_file
-
-    - name: Print env.txt content
-      ansible.builtin.debug:
-        msg: "{{ env_file.stdout }}"
-
-    - name: Read path.txt
-      ansible.builtin.shell: cat /home/ubuntu/path.txt
-      register: path_file
-
-    - name: Print path.txt content
-      ansible.builtin.debug:
-        msg: "{{ path_file.stdout }}"  
+    
