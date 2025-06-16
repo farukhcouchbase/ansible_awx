@@ -1,8 +1,12 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
-# Run couch_check_all.sh against every Couchbase bucket directory.
-# - Skips any bucket whose directory name starts with '@'.
-# - Creates a separate log file for each bucket under /home/ubuntu.
+# For every Couchbase bucket directory, perform **exactly** the sequence you
+# demonstrated:
+#   cd /opt/couchbase/bin
+#   export COUCH_CHECK_PATH=/opt/couchbase/bin
+#   echo $COUCH_CHECK_PATH
+#   ./couch_check_all.sh /opt/couchbase/var/lib/couchbase/data/<bucket>/ *.couch*
+# Redirect all output (stdout + stderr) to a per‑bucket log under /home/ubuntu.
 # -----------------------------------------------------------------------------
 
 BIN_DIR="/opt/couchbase/bin"                            # location of check scripts
@@ -14,16 +18,13 @@ sudo chmod +x "$BIN_DIR"/couch_check72 \
              "$BIN_DIR"/couch_check76 \
              "$BIN_DIR"/couch_check_all.sh
 
-# Make the path visible to couch_check_all.sh, in case it spawns sub‑checks
-export COUCH_CHECK_PATH="$BIN_DIR"
-
-# Bail out early if the data directory is missing
+# Verify data directory exists
 if [[ ! -d "$DATA_DIR" ]]; then
-  echo "ERROR: $DATA_DIR does not exist."
+  echo "ERROR: $DATA_DIR does not exist." >&2
   exit 1
 fi
 
-# Traverse immediate sub‑directories (i.e., the buckets)
+# Loop over immediate sub‑directories (bucket names)
 for bucket_dir in "$DATA_DIR"/*/; do
   bucket_name="${bucket_dir%/}"        # strip trailing slash
   bucket_name="${bucket_name##*/}"     # leave just the directory name
@@ -31,18 +32,18 @@ for bucket_dir in "$DATA_DIR"/*/; do
   # Skip dirs that start with '@'
   [[ $bucket_name == @* ]] && continue
 
-  # Run the check inside a subshell so we stay rooted at DATA_DIR
-  (
-    cd "$bucket_dir" || {
-      echo "Cannot cd to $bucket_dir"
-      exit 1
-    }
+  echo "Processing bucket: $bucket_name"
 
-    echo "Running couch_check_all.sh in $PWD"
-    # Scan all .couch.* files in the current bucket dir
-    "$BIN_DIR"/couch_check_all.sh "$PWD"/*.couch.* \
+  # Run the commands exactly as requested inside a subshell
+  (
+    cd "$BIN_DIR" || { echo "Cannot cd to $BIN_DIR" >&2; exit 1; }
+
+    export COUCH_CHECK_PATH="$BIN_DIR"
+    echo "$COUCH_CHECK_PATH"  # for visibility, as per the requirement
+
+    ./couch_check_all.sh "$DATA_DIR/$bucket_name/" *.couch* \
       > "$OUT_DIR/couch_check_all_${bucket_name}.txt" 2>&1
   )
 done
 
-
+echo "All bucket checks completed. Logs are under $OUT_DIR."
