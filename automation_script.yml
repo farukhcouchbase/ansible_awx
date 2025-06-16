@@ -1,5 +1,5 @@
 ---
-- name: Copy and run monitor.sh on the worker node
+- name: Script to Run couch_check_all.sh
   hosts: all
   become: yes
   vars: {}
