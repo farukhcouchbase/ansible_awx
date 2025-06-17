@@ -1,119 +1,105 @@
-#!/bin/bash
+#!/usr/bin/env bash
+###############################################################################
+# Couchbase Info Fetcher (annotated)
+# ----------------------------------
+# This script connects to a locally‑running Couchbase Server (default
+# http://localhost:8091) and collects information about:
+#   • The node hostname and storage paths (via the REST API)
+#   • The list of buckets (via the REST API)
+#   • The set of bucket directories present on disk
+#
+# It demonstrates two complementary discovery techniques:
+#   1. Querying the official REST endpoints (authoritative while the service
+#      is up)
+#   2. Walking the underlying data directory on the file‑system (useful when
+#      the service is down or when you want to inspect raw files).
+#
+# Prerequisites:
+#   * Couchbase Server up and listening on 8091
+#   * `curl` for HTTP requests
+#   * `jq` for JSON parsing ( https://stedolan.github.io/jq/ )
+#
+# Usage:
+#   chmod +x couchbase_info_explained.sh
+#   ./couchbase_info_explained.sh
+###############################################################################
 
-################################################################################
-## Script: Couchbase Info Fetcher
-## Description:
-##   This script connects to a Couchbase Server running locally and retrieves
-##   information about the storage paths and list of buckets.
-## 
-## Usage:
-##   Ensure `jq` is installed and Couchbase is running on localhost:8091.
-##   Update username and password if necessary.
-##
-## Dependencies:
-##   - curl: for making HTTP requests
-##   - jq: for parsing JSON responses
-################################################################################
+## ---------------------------------------------------------------------------
+## 1) Configuration
+## ---------------------------------------------------------------------------
+# Administrator credentials – adjust if you use a different account.
+CB_USERNAME="Admin"
+CB_PASSWORD="redhat"
 
-## -------------------------------
-## Credentials for Couchbase Admin
-## -------------------------------
-## username : Admin username for HTTP Basic Auth
-## password : Corresponding password for the Admin
-username="Admin"
-password="redhat"
+# Root REST URL for the local node
+CB_HOST="http://localhost:8091"
 
-## -------------------------------
-## Base URL of Couchbase Server
-## -------------------------------
-## base_url : Root URL used for all Couchbase REST API requests
-base_url="http://localhost:8091"
+# On‑disk data directory laid down by Couchbase; modify if you changed the
+# installation path or used cbbackupmgr‑style restores.
+CB_DATA_DIR="/opt/couchbase/var/lib/couchbase/data"
 
-## ---------------------------------------------------------
-## Couchbase REST API endpoints used in this script
-## ---------------------------------------------------------
+## ---------------------------------------------------------------------------
+## 2) Helper functions
+## ---------------------------------------------------------------------------
 
-## storage_endpoint : API endpoint to get the node-specific configuration,
-##                    including storage paths and disk information.
-##                    (/nodes/self returns data about the local node)
-storage_endpoint="$base_url/nodes/self"
+# die <msg>
+# ----
+# Print an error message to stderr and quit with a non‑zero status.
+die () { echo "ERROR: $*" >&2; exit 1; }
 
-## buckets_endpoint : API endpoint to get general information about the Couchbase
-##                    cluster, including list of buckets in the pool.
-##                    (/pools/default gives details about the default cluster pool)
-buckets_endpoint="$base_url/pools/default"
+# rest_get <endpoint>
+# ----
+# Convenience wrapper around curl for authenticated GET requests so the main
+# script reads more clearly.
+rest_get () {
+  local endpoint="$1"
+  curl -s -u "$CB_USERNAME:$CB_PASSWORD" "$CB_HOST$endpoint"
+}
 
-## ---------------------------------------------------------
-## Fetch data from Couchbase REST APIs and parse with jq
-## ---------------------------------------------------------
+## ---------------------------------------------------------------------------
+## 3) Gather info over the REST API
+## ---------------------------------------------------------------------------
 
-## storage_info : JSON object containing information about storage paths.
-##                Extracted using jq from the /nodes/self endpoint.
-storage_info=$(curl -s -u "$username:$password" "$storage_endpoint" | jq '.storage')
-hostname_info=$(curl -s -u "$username:$password" "$storage_endpoint" | jq '.hostname')
+# `/nodes/self` gives node‑specific details such as host name and storage.
+node_json=$(rest_get /nodes/self) || die "Cannot reach Couchbase REST API."
 
-## bucket_list : JSON array containing names of all buckets in the default pool.
-##               Extracted using jq from the /pools/default endpoint.
-bucket_list=$(curl -s -u "$username:$password" "$buckets_endpoint" | jq '.bucketNames')
+hostname=$(echo "$node_json" | jq -r '.hostname')
+storage_json=$(echo "$node_json"  | jq '.storage')
 
-## ---------------------------------------------------------
-## Output the parsed information to the console
-## ---------------------------------------------------------
+# `/pools/default` offers cluster‑wide information including bucket names.
+buckets_json=$(rest_get /pools/default)
+rest_bucket_names=$(echo "$buckets_json" | jq -r '.bucketNames[]')
 
+## ---------------------------------------------------------------------------
+## 4) Output section
+## ---------------------------------------------------------------------------
 
-echo "--------------- Hostname -------------------"
-echo $hostname_info
+echo "==== Couchbase node: $hostname ===="
+echo
+echo "---- Storage configuration (as reported by REST) ----"
+echo "$storage_json" | jq .
+echo
+echo "---- Buckets (via REST) ----"
+printf '%s\n' $rest_bucket_names
+echo
 
+## ---------------------------------------------------------------------------
+## 5) Optional: validate buckets by walking the data directory
+## ---------------------------------------------------------------------------
 
+echo "---- Buckets (detected on‑disk under $CB_DATA_DIR) ----"
+if [[ -d "$CB_DATA_DIR" ]]; then
+  # Iterate over immediate sub‑directories; ignore Couchbase metadata dirs
+  for dir in "$CB_DATA_DIR"/*/ ; do
+    bucket="${dir%/}"
+    bucket="${bucket##*/}"       # trim parent path
 
-echo "----------- List Of The Bucket -------------"
+    # Skip any directory whose name begins with '@' (Couchbase uses such dirs
+    # for internal metadata like @attachments or @index).
+    [[ $bucket == @* ]] && continue
 
-DATA_DIR="/opt/couchbase/var/lib/couchbase/data"
-
-# Check if the directory exists
-if [ -d "$DATA_DIR" ]; then
-  for item in "$DATA_DIR"/*; do
-    basename=$(basename "$item")
-    if [[ "$basename" != @* ]]; then
-      echo "$basename"
-    fi
+    printf '%s\n' "$bucket"
   done
 else
-  echo "Directory $DATA_DIR does not exist."
-  exit 1
+  echo "Directory $CB_DATA_DIR does not exist on this host."
 fi
-
-
-
-
-
-#!/usr/bin/env bash
-# Traverse Couchbase data buckets, skipping names that start with '@'
-
-DATA_DIR="/opt/couchbase/var/lib/couchbase/data"
-
-# Bail out early if the target directory is missing
-if [[ ! -d "$DATA_DIR" ]]; then
-  echo "ERROR: $DATA_DIR does not exist."
-  exit 1
-fi
-
-# Jump into the data directory
-cd "$DATA_DIR" || { echo "Cannot cd to $DATA_DIR"; exit 1; }
-
-# Iterate over immediate sub‑directories
-for dir in */ ; do
-  # Strip trailing slash for a clean name
-  name="${dir%/}"
-
-  # Skip anything that begins with '@'
-  [[ $name == @* ]] && continue
-
-  # Enter the directory in a subshell so the outer loop stays in DATA_DIR
-  (
-    cd "$dir" || exit        # change into the bucket directory
-    echo "Now inside: $PWD"  # placeholder — do whatever you need here
-    # Example command: ls -lh
-    # Add more operations as required
-  )
-done
