@@ -1,105 +1,101 @@
 #!/usr/bin/env bash
-###############################################################################
-# Couchbase Info Fetcher (annotated)
-# ----------------------------------
-# This script connects to a locally‑running Couchbase Server (default
-# http://localhost:8091) and collects information about:
-#   • The node hostname and storage paths (via the REST API)
-#   • The list of buckets (via the REST API)
-#   • The set of bucket directories present on disk
 #
-# It demonstrates two complementary discovery techniques:
-#   1. Querying the official REST endpoints (authoritative while the service
-#      is up)
-#   2. Walking the underlying data directory on the file‑system (useful when
-#      the service is down or when you want to inspect raw files).
+# get_index_path.sh
 #
-# Prerequisites:
-#   * Couchbase Server up and listening on 8091
-#   * `curl` for HTTP requests
-#   * `jq` for JSON parsing ( https://stedolan.github.io/jq/ )
+# 1. Fetch Couchbase node’s index_path
+# 2. List buckets (directories inside index_path that do NOT start with "@")
+# 3. Make couch_check helper scripts executable, export COUCH_CHECK_PATH
+# 4. Execute couch_check_all.sh on each bucket’s *.couch.* files
 #
-# Usage:
-#   chmod +x couchbase_info_explained.sh
-#   ./couchbase_info_explained.sh
-###############################################################################
+# USAGE
+#   ./get_index_path.sh [HOST] [PORT] [USER] [PASS]
+#
+# DEFAULTS
+#   HOST: localhost
+#   PORT: 8091
+#   USER: Admin
+#   PASS: redhat
+#
+# EXAMPLE
+#   ./get_index_path.sh 52.44.152.133 8091 Admin redhat
+#
 
-## ---------------------------------------------------------------------------
-## 1) Configuration
-## ---------------------------------------------------------------------------
-# Administrator credentials – adjust if you use a different account.
-CB_USERNAME="Admin"
-CB_PASSWORD="redhat"
+set -euo pipefail
 
-# Root REST URL for the local node
-CB_HOST="http://localhost:8091"
+HOST="${1:-localhost}"
+PORT="${2:-8091}"
+USER="${3:-Admin}"
+PASS="${4:-redhat}"
 
-# On‑disk data directory laid down by Couchbase; modify if you changed the
-# installation path or used cbbackupmgr‑style restores.
-CB_DATA_DIR="/opt/couchbase/var/lib/couchbase/data"
+URL="http://${HOST}:${PORT}/nodes/self"
 
-## ---------------------------------------------------------------------------
-## 2) Helper functions
-## ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- #
+# 1. Fetch the index_path (handles both modern & legacy Couchbase JSON layouts)
+# --------------------------------------------------------------------------- #
+INDEX_PATH=$(
+  curl -s -u "${USER}:${PASS}" "${URL}" |
+  jq -r '(.storage.hdd[0].index_path // .index_path)'
+)
 
-# die <msg>
-# ----
-# Print an error message to stderr and quit with a non‑zero status.
-die () { echo "ERROR: $*" >&2; exit 1; }
+if [[ -z "${INDEX_PATH}" || "${INDEX_PATH}" == "null" ]]; then
+  echo "ERROR: index_path not found in ${URL}" >&2
+  exit 1
+fi
 
-# rest_get <endpoint>
-# ----
-# Convenience wrapper around curl for authenticated GET requests so the main
-# script reads more clearly.
-rest_get () {
-  local endpoint="$1"
-  curl -s -u "$CB_USERNAME:$CB_PASSWORD" "$CB_HOST$endpoint"
-}
+echo "###### INDEX PATH ######"
+echo "${INDEX_PATH}"
+echo ""
 
-## ---------------------------------------------------------------------------
-## 3) Gather info over the REST API
-## ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- #
+# 2. List buckets (sub‑directories) under the index_path, skipping "@*"
+#    Store them in an array for later processing
+# --------------------------------------------------------------------------- #
+declare -a BUCKETS=()
 
-# `/nodes/self` gives node‑specific details such as host name and storage.
-node_json=$(rest_get /nodes/self) || die "Cannot reach Couchbase REST API."
+if ! cd "${INDEX_PATH}"; then
+  echo "ERROR: Cannot cd to ${INDEX_PATH}" >&2
+  exit 1
+fi
 
-hostname=$(echo "$node_json" | jq -r '.hostname')
-storage_json=$(echo "$node_json"  | jq '.storage')
+echo "##### List of the Buckets ######"
+for dir in */ ; do
+  dir="${dir%/}"        # remove trailing slash
+  [[ "${dir}" == @* ]] && continue
+  echo "${dir}"
+  BUCKETS+=("${dir}")
+done
+echo ""
 
-# `/pools/default` offers cluster‑wide information including bucket names.
-buckets_json=$(rest_get /pools/default)
-rest_bucket_names=$(echo "$buckets_json" | jq -r '.bucketNames[]')
+# --------------------------------------------------------------------------- #
+# 3. Ensure couch_check helper scripts are executable & set environment var
+# --------------------------------------------------------------------------- #
+COUCHBIN="/opt/couchbase/bin"
 
-## ---------------------------------------------------------------------------
-## 4) Output section
-## ---------------------------------------------------------------------------
+if cd "${COUCHBIN}" 2>/dev/null; then
+  echo "##### Setting permissions for couch_check helpers in ${COUCHBIN} #####"
+  for f in couch_check72 couch_check76 couch_check_all.sh; do
+    [[ -f "${f}" ]] || { echo "WARNING: ${f} not found" >&2; continue; }
+    sudo chmod +x "${f}" 2>/dev/null || true
+    echo "Made ${f} executable"
+  done
+  export COUCH_CHECK_PATH="${COUCHBIN}"
+  echo "Exported COUCH_CHECK_PATH=${COUCH_CHECK_PATH}"
+else
+  echo "WARNING: ${COUCHBIN} not found; skipping couch_check permission steps" >&2
+  exit 1
+fi
+echo ""
 
-echo "==== Couchbase node: $hostname ===="
-echo
-echo "---- Storage configuration (as reported by REST) ----"
-echo "$storage_json" | jq .
-echo
-echo "---- Buckets (via REST) ----"
-printf '%s\n' $rest_bucket_names
-echo
-
-## ---------------------------------------------------------------------------
-## 5) Optional: validate buckets by walking the data directory
-## ---------------------------------------------------------------------------
-
-echo "---- Buckets (detected on‑disk under $CB_DATA_DIR) ----"
-if [[ -d "$CB_DATA_DIR" ]]; then
-  # Iterate over immediate sub‑directories; ignore Couchbase metadata dirs
-  for dir in "$CB_DATA_DIR"/*/ ; do
-    bucket="${dir%/}"
-    bucket="${bucket##*/}"       # trim parent path
-
-    # Skip any directory whose name begins with '@' (Couchbase uses such dirs
-    # for internal metadata like @attachments or @index).
-    [[ $bucket == @* ]] && continue
-
-    printf '%s\n' "$bucket"
+# --------------------------------------------------------------------------- #
+# 4. Execute couch_check_all.sh over each bucket’s *.couch.* files
+# --------------------------------------------------------------------------- #
+if [[ -x "${COUCHBIN}/couch_check_all.sh" ]]; then
+  echo "##### Running couch_check_all.sh for each bucket #####"
+  for dir in "${BUCKETS[@]}"; do
+    TARGET_PATH="${INDEX_PATH}/${dir}/*.couch.*"
+    echo "→ ${dir}: ${TARGET_PATH}"
+    "${COUCHBIN}/couch_check_all.sh" ${TARGET_PATH}
   done
 else
-  echo "Directory $CB_DATA_DIR does not exist on this host."
+  echo "ERROR: couch_check_all.sh not executable — skipping checks" >&2
 fi
