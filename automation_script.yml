@@ -39,13 +39,4 @@
         # Assumes path.txt does NOT contain passwords.
         msg: "{{ path_file_content.content | b64decode }}"
 
-    - name: Show path.txt exactly as on the host
-      become_user: ubuntu
-      command: cat path.txt
-      args:
-        chdir: "{{ ubuntu_home }}"
-      register: path_out
-
-    - name: Display cat output
-      debug:
-        msg: "{{ path_out.stdout }}"
+    
