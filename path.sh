@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 #
-# get_index_path.sh
+# couch_index_check.sh — integrity checker for Couchbase index files
 #
-# 1. Fetch Couchbase node’s index_path
-# 2. List buckets (directories inside index_path that do NOT start with "@")
-# 3. Make couch_check helper scripts executable, export COUCH_CHECK_PATH
-# 4. Execute couch_check_all.sh on each bucket’s *.couch.* files
+# 1. Discover the node’s index_path
+# 2. Enumerate bucket directories under it (skip those that begin with "@")
+# 3. Make the couch_check helper scripts executable (try sudo if needed)
+# 4. Run the appropriate couch_check on every *.couch.* file in every bucket
+# 5. Flag any corruption and list the nodes that hold the affected bucket
 #
 # USAGE
-#   ./get_index_path.sh [HOST] [PORT] [USER] [PASS]
+#   ./couch_index_check.sh [HOST] [PORT] [USER] [PASS]
 #
 # DEFAULTS
 #   HOST: localhost
@@ -16,86 +17,144 @@
 #   USER: Admin
 #   PASS: redhat
 #
-# EXAMPLE
-#   ./get_index_path.sh 52.44.152.133 8091 Admin redhat
-#
+# Notes:
+#   - Requires curl and jq in $PATH.
+#   - Tested on Couchbase Server 7.0 to 7.6 (legacy layouts also supported).
+#   - Designed for Bash 4-compatible shells with set -euo pipefail semantics.
 
 set -euo pipefail
 
+###############################################################################
+# 0. Parameters & constants
+###############################################################################
 HOST="${1:-localhost}"
 PORT="${2:-8091}"
 USER="${3:-Admin}"
 PASS="${4:-redhat}"
 
+COUCHBIN="/opt/couchbase/bin"
+export COUCH_CHECK_PATH="${COUCHBIN}"   # couch_check_all.sh relies on this
+
+###############################################################################
+# Prerequisite checks
+###############################################################################
+for cmd in curl jq; do
+  command -v "$cmd" >/dev/null || { echo "ERROR: $cmd not found"; exit 1; }
+done
+
+###############################################################################
+# 1. Fetch index_path from /nodes/self
+###############################################################################
 URL="http://${HOST}:${PORT}/nodes/self"
+INDEX_PATH=$(curl -s -u "${USER}:${PASS}" "${URL}" \
+  | jq -r '(.storage.hdd[0].index_path // .index_path)')
 
-# --------------------------------------------------------------------------- #
-# 1. Fetch the index_path (handles both modern & legacy Couchbase JSON layouts)
-# --------------------------------------------------------------------------- #
-INDEX_PATH=$(
-  curl -s -u "${USER}:${PASS}" "${URL}" |
-  jq -r '(.storage.hdd[0].index_path // .index_path)'
-)
-
-if [[ -z "${INDEX_PATH}" || "${INDEX_PATH}" == "null" ]]; then
+[[ -z "${INDEX_PATH}" || "${INDEX_PATH}" == "null" ]] && {
   echo "ERROR: index_path not found in ${URL}" >&2
   exit 1
-fi
+}
 
-echo "###### INDEX PATH ######"
-echo "${INDEX_PATH}"
+echo "INDEX PATH: ${INDEX_PATH}"
 echo ""
 
-# --------------------------------------------------------------------------- #
-# 2. List buckets (sub‑directories) under the index_path, skipping "@*"
-#    Store them in an array for later processing
-# --------------------------------------------------------------------------- #
+###############################################################################
+# 2. List bucket directories (excluding those that start with "@")
+###############################################################################
 declare -a BUCKETS=()
 
-if ! cd "${INDEX_PATH}"; then
-  echo "ERROR: Cannot cd to ${INDEX_PATH}" >&2
-  exit 1
-fi
+cd "${INDEX_PATH}"
 
-echo "##### List of the Buckets ######"
+echo "Buckets to scan:"
 for dir in */ ; do
-  dir="${dir%/}"        # remove trailing slash
+  dir="${dir%/}"
   [[ "${dir}" == @* ]] && continue
-  echo "${dir}"
+  echo "- ${dir}"
   BUCKETS+=("${dir}")
 done
+[[ ${#BUCKETS[@]} -eq 0 ]] && { echo "No buckets found. Exiting."; exit 0; }
 echo ""
 
-# --------------------------------------------------------------------------- #
-# 3. Ensure couch_check helper scripts are executable & set environment var
-# --------------------------------------------------------------------------- #
-COUCHBIN="/opt/couchbase/bin"
-
-if cd "${COUCHBIN}" 2>/dev/null; then
-  echo "##### Setting permissions for couch_check helpers in ${COUCHBIN} #####"
+###############################################################################
+# 3. Ensure couch_check helpers are present and executable
+###############################################################################
+echo "Verifying couch_check tools in ${COUCHBIN}"
+(cd "${COUCHBIN}" || { echo "ERROR: cannot cd to ${COUCHBIN}"; exit 1; }
   for f in couch_check72 couch_check76 couch_check_all.sh; do
-    [[ -f "${f}" ]] || { echo "WARNING: ${f} not found" >&2; continue; }
-    sudo chmod +x "${f}" 2>/dev/null || true
-    echo "Made ${f} executable"
+    [[ -f "${f}" ]] || { echo "ERROR: ${f} not found"; exit 1; }
+    [[ -x "${f}" ]] || {
+      if chmod +x "${f}" 2>/dev/null; then
+        echo "Made ${f} executable"
+      elif command -v sudo >/dev/null; then
+        echo "Attempting to set executable permissions using sudo for ${f}"
+        sudo chmod +x "${f}"
+      else
+        echo "ERROR: cannot set +x on ${f} (need root or sudo)" >&2
+        exit 1
+      fi
+    }
   done
-  export COUCH_CHECK_PATH="${COUCHBIN}"
-  echo "Exported COUCH_CHECK_PATH=${COUCH_CHECK_PATH}"
-else
-  echo "WARNING: ${COUCHBIN} not found; skipping couch_check permission steps" >&2
-  exit 1
-fi
+)
 echo ""
 
-# --------------------------------------------------------------------------- #
-# 4. Execute couch_check_all.sh over each bucket’s *.couch.* files
-# --------------------------------------------------------------------------- #
-if [[ -x "${COUCHBIN}/couch_check_all.sh" ]]; then
-  echo "##### Running couch_check_all.sh for each bucket #####"
-  for dir in "${BUCKETS[@]}"; do
-    TARGET_PATH="${INDEX_PATH}/${dir}/*.couch.*"
-    echo "→ ${dir}: ${TARGET_PATH}"
-    "${COUCHBIN}/couch_check_all.sh" ${TARGET_PATH}
-  done
-else
-  echo "ERROR: couch_check_all.sh not executable — skipping checks" >&2
-fi
+###############################################################################
+# 4. Detect server version and determine couch_check helper
+###############################################################################
+SERVER_VERSION="$("${COUCHBIN}/couchbase-server" --version | awk '{print $NF}')"
+case "${SERVER_VERSION}" in
+  7.2*) USE_CHECK="couch_check72" ;;
+  7.6*) USE_CHECK="couch_check76" ;;
+  *)    USE_CHECK="(via couch_check_all.sh)" ;;
+esac
+echo "Detected Couchbase Server version ${SERVER_VERSION}. Using check tool: ${USE_CHECK}"
+echo ""
+
+###############################################################################
+# 5. Run checks and analyze results
+###############################################################################
+shopt -s nullglob
+
+for bucket in "${BUCKETS[@]}"; do
+  bucket_path="${INDEX_PATH}/${bucket}"
+  files=( "${bucket_path}"/*.couch.* )
+
+  if (( ${#files[@]} == 0 )); then
+    echo "No *.couch.* files found in bucket: ${bucket}"
+    echo ""
+    continue
+  fi
+
+  echo "Checking bucket: ${bucket}"
+
+  set +e
+  output=$(cd "${COUCHBIN}" && ./couch_check_all.sh "${files[@]}" 2>&1)
+  exit_code=$?
+  set -e
+
+  echo "${output}"
+
+  if (( exit_code != 0 )) || echo "${output}" | grep -qE 'Error checking file:|Error with vb:'; then
+    echo "Corruption detected in bucket '${bucket}'"
+    echo "Retrieving node hostnames for bucket '${bucket}'"
+
+    node_json=$(curl -s -u "${USER}:${PASS}" \
+      "http://${HOST}:${PORT}/pools/default/buckets/${bucket}/nodes")
+
+    hostnames=$(echo "${node_json}" \
+      | jq -r '.nodes[]?.hostname // .servers[]?.hostname')
+
+    if [[ -n "${hostnames}" ]]; then
+      echo "Bucket '${bucket}' resides on the following nodes:"
+      echo "${hostnames}" | sed 's/^/  - /'
+    else
+      echo "Unable to parse hostnames from API response."
+    fi
+  else
+    echo "Bucket '${bucket}' passed integrity checks."
+  fi
+
+  echo ""
+done
+
+echo "All buckets processed. Script completed successfully."
+
+exit 0
