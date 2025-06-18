@@ -3,9 +3,12 @@
   hosts: all
   become: true
 
+  # No hard‑coded secrets. These variables will be set at launch
+  # via the AWX Survey (prompt type “Password” for couch_pass).
+  #   – couch_user
+  #   – couch_pass
+
   vars:
-    USER: "{{ couch_user }}"
-    PASS: "{{ couch_pass }}"
     ubuntu_home: "/home/ubuntu"
 
   tasks:
@@ -17,11 +20,14 @@
         owner: ubuntu
         group: ubuntu
 
-    - name: Run path.sh script as ubuntu user
+    - name: Run path.sh script as ubuntu user, injecting DB creds
       become_user: ubuntu
       shell: ./path.sh > path.txt
       args:
         chdir: "{{ ubuntu_home }}"
+      environment:
+        COUCH_USER: "{{ couch_user }}"
+        COUCH_PASS: "{{ couch_pass }}"
 
     - name: Read path.txt contents
       slurp:
@@ -30,6 +36,7 @@
 
     - name: Print path.txt contents
       debug:
+        # Assumes path.txt does NOT contain passwords.
         msg: "{{ path_file_content.content | b64decode }}"
 
     - name: Show path.txt exactly as on the host
