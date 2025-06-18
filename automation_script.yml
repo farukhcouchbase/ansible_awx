@@ -10,7 +10,7 @@
 
   vars:
     ubuntu_home: "/home/ubuntu"
-    COUCHBIN="{{ couch }}"
+    COUCHBIN: "{{ couch }}"       # ← space after the colon
 
   tasks:
     - name: Copy path.sh to ubuntu's home directory
@@ -39,5 +39,3 @@
       debug:
         # Assumes path.txt does NOT contain passwords.
         msg: "{{ path_file_content.content | b64decode }}"
-
-    
