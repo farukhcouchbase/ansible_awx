@@ -10,6 +10,7 @@
 
   vars:
     ubuntu_home: "/home/ubuntu"
+    COUCHBIN="{{ couch }}"
 
   tasks:
     - name: Copy path.sh to ubuntu's home directory
