@@ -8,32 +8,49 @@
 # 4. Run the appropriate couch_check on every *.couch.* file in every bucket
 # 5. Flag any corruption and list the nodes that hold the affected bucket
 #
-# USAGE
-#   ./couch_index_check.sh [HOST] [PORT] [USER] [PASS]
-#
-# DEFAULTS
-#   HOST: localhost
-#   PORT: 8091
-#   USER: Admin
-#   PASS: redhat
+# USAGE (any combination)
+#   COUCH_USER=<user> COUCH_PASS=<pass> [HOST=<host>] [PORT=<port>] ./couch_index_check.sh
+#   ./couch_index_check.sh <host> <port> <user> <pass>
 #
 # Notes:
 #   - Requires curl and jq in $PATH.
 #   - Tested on Couchbase Server 7.0 to 7.6 (legacy layouts also supported).
-#   - Designed for Bash 4-compatible shells with set -euo pipefail semantics.
+#   - Designed for Bash 4‑compatible shells with set -euo pipefail semantics.
 
 set -euo pipefail
 
 ###############################################################################
-# 0. Parameters & constants
+# 0. Parameters & constants  (NO hard‑coded user or password)
 ###############################################################################
-HOST="${1:-localhost}"
-PORT="${2:-8091}"
-USER="${3:-Admin}"
-PASS="${4:-redhat}"
+
+usage() {
+cat <<EOF
+Usage:
+  COUCH_USER=<user> COUCH_PASS=<pass> [HOST=<host>] [PORT=<port>] $0
+  or:
+  $0 <host> <port> <user> <pass>
+
+Environment variables override positional parameters.
+EOF
+}
+
+# Helper: ensure a variable is set
+need() {
+  local val="$1" name="$2"
+  [[ -n "$val" ]] || { echo "ERROR: $name is required"; usage; exit 1; }
+}
+
+# Get values: env‑vars first, then positional parameters, then (only for host/port) safe defaults
+HOST="${HOST:-${1:-localhost}}"
+PORT="${PORT:-${2:-8091}}"
+USER="${COUCH_USER:-${3-}}"
+PASS="${COUCH_PASS:-${4-}}"
+
+need "$USER" "COUCH_USER (env) or argument #3"
+need "$PASS" "COUCH_PASS (env) or argument #4"
 
 COUCHBIN="/opt/couchbase/bin"
-export COUCH_CHECK_PATH="${COUCHBIN}"   # couch_check_all.sh relies on this
+export COUCH_CHECK_PATH="$COUCHBIN"   # couch_check_all.sh relies on this
 
 ###############################################################################
 # Prerequisite checks
@@ -78,7 +95,8 @@ echo ""
 # 3. Ensure couch_check helpers are present and executable
 ###############################################################################
 echo "Verifying couch_check tools in ${COUCHBIN}"
-(cd "${COUCHBIN}" || { echo "ERROR: cannot cd to ${COUCHBIN}"; exit 1; }
+(
+  cd "${COUCHBIN}" || { echo "ERROR: cannot cd to ${COUCHBIN}"; exit 1; }
   for f in couch_check72 couch_check76 couch_check_all.sh; do
     [[ -f "${f}" ]] || { echo "ERROR: ${f} not found"; exit 1; }
     [[ -x "${f}" ]] || {
