@@ -31,4 +31,4 @@
 
     - name: Print path.txt contents
       debug:
-        msg: "{{ path_file_content.content | b64decode }}"
+        msg: "{{ path_file_content.content | b64decode | from_json }}"
