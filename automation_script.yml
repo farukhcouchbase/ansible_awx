@@ -3,14 +3,13 @@
   hosts: all
   become: true
 
-  # No hard‑coded secrets. These variables will be set at launch
-  # via the AWX Survey (prompt type “Password” for couch_pass).
-  #   – couch_user
-  #   – couch_pass
+  # Variables expected from AWX Survey:
+  #   – couch_user (type: Password)
+  #   – couch_pass (type: Password)
+  #   – couch      (host/bin path or similar)
 
   vars:
     ubuntu_home: "/home/ubuntu"
-    COUCHBIN: "{{ couch }}"       # ← space after the colon
 
   tasks:
     - name: Copy path.sh to ubuntu's home directory
@@ -29,6 +28,7 @@
       environment:
         COUCH_USER: "{{ couch_user }}"
         COUCH_PASS: "{{ couch_pass }}"
+        couch: "{{ couch }}"  # ← Make sure this matches the shell script
 
     - name: Read path.txt contents
       slurp:
@@ -37,5 +37,5 @@
 
     - name: Print path.txt contents
       debug:
-        # Assumes path.txt does NOT contain passwords.
+        # Assumes path.txt does NOT contain secrets.
         msg: "{{ path_file_content.content | b64decode }}"
