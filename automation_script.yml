@@ -23,3 +23,12 @@
         ./path.sh > path.txt
       args:
         chdir: "{{ ubuntu_home }}"
+
+    - name: Read path.txt contents
+      slurp:
+        src: "{{ ubuntu_home }}/path.txt"
+      register: path_file_content
+
+    - name: Print path.txt contents
+      debug:
+        msg: "{{ path_file_content.content | b64decode }}"
