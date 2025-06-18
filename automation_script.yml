@@ -31,4 +31,4 @@
 
     - name: Print path.txt contents
       debug:
-        path_lines: "{{ path_file_content.content | b64decode | splitlines }}"
+        path_lines: "{{ path_file_content.content | b64decode  }}"
