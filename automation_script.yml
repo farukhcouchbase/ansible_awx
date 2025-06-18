@@ -4,8 +4,6 @@
   become: true
 
   vars:
-    HOST: "{{ couch_host }}"
-    PORT: "{{ couch_port }}"
     USER: "{{ couch_user }}"
     PASS: "{{ couch_pass }}"
 
