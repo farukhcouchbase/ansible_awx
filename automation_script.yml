@@ -6,19 +6,20 @@
   vars:
     USER: "{{ couch_user }}"
     PASS: "{{ couch_pass }}"
+    ubuntu_home: "/home/ubuntu"
 
   tasks:
-    - name: Copy path.sh to user's home directory
+    - name: Copy path.sh to ubuntu's home directory
       copy:
         src: "{{ playbook_dir }}/path.sh"
-        dest: "{{ ansible_env.HOME }}/path.sh"  # reliably get home directory
+        dest: "{{ ubuntu_home }}/path.sh"
         mode: "0755"
         owner: ubuntu
         group: ubuntu
 
-    - name: Run path.sh script once
+    - name: Run path.sh script as ubuntu user
       become_user: ubuntu
       shell: |
         ./path.sh > path.txt
       args:
-        chdir: "{{ ansible_env.HOME }}"
+        chdir: "{{ ubuntu_home }}"
