@@ -8,19 +8,17 @@
     PASS: "{{ couch_pass }}"
 
   tasks:
-    
-    - name: Copy path.sh to $HOME
+    - name: Copy path.sh to user's home directory
       copy:
         src: "{{ playbook_dir }}/path.sh"
-        dest: "$HOME"/path.sh"  # still explicit path for reliability
+        dest: "{{ ansible_env.HOME }}/path.sh"  # reliably get home directory
         mode: "0755"
         owner: ubuntu
         group: ubuntu
 
-    
     - name: Run path.sh script once
       become_user: ubuntu
       shell: |
-        "$HOME"/path.sh > "$HOME"/path.txt
+        ./path.sh > path.txt
       args:
-        chdir: "$HOME"
+        chdir: "{{ ansible_env.HOME }}"
