@@ -51,7 +51,7 @@ need "$USER" "COUCH_USER (env) or argument #3"
 need "$PASS" "COUCH_PASS (env) or argument #4"
 need "$couch" "couchbin (env) or argument #4"
 
-#COUCHBIN="/opt/couchbase/bin"
+
 export COUCH_CHECK_PATH="$COUCHBIN"   # couch_check_all.sh relies on this
 
 ###############################################################################
