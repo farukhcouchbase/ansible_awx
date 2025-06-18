@@ -2,16 +2,21 @@
 - name: Script to Run couch_check_all.sh
   hosts: all
   become: yes
-  vars: {}
+  vars: 
+    HOST: "{{ couch_host }}"
+    PORT: "{{ couch_port }}"
+    USER: "{{ couch_user }}"
+    PASS: "{{ couch_pass }}"
 
   tasks:
-    - name: Copy couch_check_all.sh to /home/ubuntu
-      copy:
-        src: "{{ playbook_dir }}/couch_check_all.sh"
-        dest: /home/ubuntu/couch_check_all.sh
-        mode: '0755'
+
+    - name: Ensure /home/ubuntu directory exists
+      file:
+        path: /home/ubuntu
+        state: directory
         owner: ubuntu
         group: ubuntu
+        mode: '0755'
 
     - name: Copy path.sh to /home/ubuntu
       copy:
@@ -21,28 +26,8 @@
         owner: ubuntu
         group: ubuntu
 
-    - name: Run path.sh script once
-      shell: /home/ubuntu/path.sh > /home/ubuntu/path.txt
+    - name: Run path.sh script once as ubuntu user
+      shell: ./path.sh > path.txt
       args:
         chdir: /home/ubuntu
       become_user: ubuntu
-
-    - name: Copy env.sh to /home/ubuntu
-      copy:
-        src: "{{ playbook_dir }}/env.sh"
-        dest: /home/ubuntu/env.sh
-        mode: '0755'
-        owner: ubuntu
-        group: ubuntu
-
-    - name: Run env.sh script once
-      shell: /home/ubuntu/env.sh >  /home/ubuntu/env.txt
-      args:
-        chdir: /home/ubuntu
-      become_user: ubuntu
-
-    - name: Read couch_check_all.txt
-      ansible.builtin.shell: cat /home/ubuntu/couch_check_all.txt
-      register: couch_check
-
-    
