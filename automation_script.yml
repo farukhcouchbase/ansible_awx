@@ -10,21 +10,16 @@
     PASS: "{{ couch_pass }}"
 
   tasks:
-    # ------------------------------------------------------------------
-    # Copy path.sh into the ubuntu user's home directory
-    # ------------------------------------------------------------------
+    
     - name: Copy path.sh to $HOME
       copy:
         src: "{{ playbook_dir }}/path.sh"
-        dest: "/home/ubuntu/path.sh"  # still explicit path for reliability
+        dest: "$HOME"/path.sh"  # still explicit path for reliability
         mode: "0755"
         owner: ubuntu
         group: ubuntu
 
-    # ------------------------------------------------------------------
-    # Execute path.sh once, capturing its output to path.txt
-    # Using $HOME so we don't hard‑code /home/ubuntu in the command
-    # ------------------------------------------------------------------
+    
     - name: Run path.sh script once
       become_user: ubuntu
       shell: |
