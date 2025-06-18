@@ -45,11 +45,13 @@ HOST="${HOST:-${1:-localhost}}"
 PORT="${PORT:-${2:-8091}}"
 USER="${COUCH_USER:-${3-}}"
 PASS="${COUCH_PASS:-${4-}}"
+COUCHBIN="${couch:-${5-}}"
 
 need "$USER" "COUCH_USER (env) or argument #3"
 need "$PASS" "COUCH_PASS (env) or argument #4"
+need "$couch" "couchbin (env) or argument #4"
 
-COUCHBIN="/opt/couchbase/bin"
+#COUCHBIN="/opt/couchbase/bin"
 export COUCH_CHECK_PATH="$COUCHBIN"   # couch_check_all.sh relies on this
 
 ###############################################################################
