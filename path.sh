@@ -65,15 +65,15 @@ done
 # 1. Fetch index_path from /nodes/self
 ###############################################################################
 URL="http://${HOST}:${PORT}/nodes/self"
-INDEX_PATH=$(curl -s -u "${USER}:${PASS}" "${URL}" \
-  | jq -r '(.storage.hdd[0].index_path // .index_path)')
+PATH=$(curl -s -u "${USER}:${PASS}" "${URL}" \
+  | jq -r '(.storage.hdd[0].path // .path)')
 
-[[ -z "${INDEX_PATH}" || "${INDEX_PATH}" == "null" ]] && {
-  echo "ERROR: index_path not found in ${URL}" >&2
+[[ -z "${PATH}" || "${PATH}" == "null" ]] && {
+  echo "ERROR: path not found in ${URL}" >&2
   exit 1
 }
 
-echo "INDEX PATH: ${INDEX_PATH}"
+echo "PATH: ${PATH}"
 echo ""
 
 ###############################################################################
@@ -81,7 +81,7 @@ echo ""
 ###############################################################################
 declare -a BUCKETS=()
 
-cd "${INDEX_PATH}"
+cd "${PATH}"
 
 echo "Buckets to scan:"
 for dir in */ ; do
