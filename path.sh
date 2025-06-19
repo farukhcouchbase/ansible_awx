@@ -2,11 +2,11 @@
 #
 # couch_index_check.sh — integrity checker for Couchbase index files
 #
-# 1. Discover the node’s PATH
+# 1. Discover the node’s index_path
 # 2. Enumerate bucket directories under it (skip those that begin with "@")
 # 3. Make the couch_check helper scripts executable (try sudo if needed)
 # 4. Run the appropriate couch_check on every *.couch.* file in every bucket
-# 5. **NEW** Run a one‑shot integrity scan over all index files in the tmp directory
+# 5. Flag any corruption and list the nodes that hold the affected bucket
 #
 # USAGE (any combination)
 #   COUCH_USER=<user> COUCH_PASS=<pass> [HOST=<host>] [PORT=<port>] ./couch_index_check.sh
@@ -15,7 +15,7 @@
 # Notes:
 #   - Requires curl and jq in $PATH.
 #   - Tested on Couchbase Server 7.0 to 7.6 (legacy layouts also supported).
-#   - Designed for Bash 4‑compatible shells with set -euo pipefail semantics.
+#   - Designed for Bash 4‑compatible shells with set -euo pipefail semantics.
 
 set -euo pipefail
 
@@ -49,7 +49,10 @@ COUCHBIN="${couch:-${5-}}"
 
 need "$USER" "COUCH_USER (env) or argument #3"
 need "$PASS" "COUCH_PASS (env) or argument #4"
-need "$COUCHBIN" "couchbin (env) or argument #5"
+need "$couch" "couchbin (env) or argument #4"
+
+
+export COUCH_CHECK_PATH="$COUCHBIN"   # couch_check_all.sh relies on this
 
 ###############################################################################
 # Prerequisite checks
@@ -59,30 +62,18 @@ for cmd in curl jq; do
 done
 
 ###############################################################################
-# 1. Fetch PATH from /nodes/self
+# 1. Fetch index_path from /nodes/self
 ###############################################################################
-URL="http://${HOST}:${PORT}/nodes/self"
-PATH=$(curl -s -u "${USER}:${PASS}" "${URL}" \
-  | jq -r '(.storage.hdd[0].path // .path)')
-
-[[ -z "${PATH}" || "${PATH}" == "null" ]] && {
-  echo "ERROR: PATH not found in ${URL}" >&2
-  exit 1
-}
-
-echo "PATH: ${PATH}"
-echo ""
-
 URL="http://${HOST}:${PORT}/nodes/self"
 INDEX_PATH=$(curl -s -u "${USER}:${PASS}" "${URL}" \
   | jq -r '(.storage.hdd[0].index_path // .index_path)')
 
 [[ -z "${INDEX_PATH}" || "${INDEX_PATH}" == "null" ]] && {
-  echo "ERROR: INDEX_PATH not found in ${URL}" >&2
+  echo "ERROR: index_path not found in ${URL}" >&2
   exit 1
 }
 
-echo "INDEX_PATH: ${INDEX_PATH}"
+echo "INDEX PATH: ${INDEX_PATH}"
 echo ""
 
 ###############################################################################
@@ -90,7 +81,7 @@ echo ""
 ###############################################################################
 declare -a BUCKETS=()
 
-cd "${PATH}"
+cd "${INDEX_PATH}"
 
 echo "Buckets to scan:"
 for dir in */ ; do
@@ -138,19 +129,52 @@ echo "Detected Couchbase Server version ${SERVER_VERSION}. Using check tool: ${U
 echo ""
 
 ###############################################################################
-# 5. Run checks (single pass over tmp directory)
+# 5. Run checks and analyze results
 ###############################################################################
-# NOTE: This stage was changed per request. Instead of iterating bucket‑by‑bucket
-# we now perform a one‑shot integrity scan of *all* index files located in the
-# Couchbase tmp directory.
+shopt -s nullglob
 
-export COUCH_CHECK_PATH="/opt/couchbase/bin"
-cd /opt/couchbase/var/lib/couchbase/tmp/ || { echo "ERROR: cannot cd to /opt/couchbase/var/lib/couchbase/tmp/"; exit 1; }
+for bucket in "${BUCKETS[@]}"; do
+  bucket_path="${INDEX_PATH}/${bucket}"
+  files=( "${bucket_path}"/*.couch.* )
 
-echo "Running couch_check_all.sh against all *.couch.* files in /opt/couchbase/var/lib/couchbase/tmp/"
+  if (( ${#files[@]} == 0 )); then
+    echo "No *.couch.* files found in bucket: ${bucket}"
+    echo ""
+    continue
+  fi
 
-/opt/couchbase/bin/couch_check_all.sh *.couch.*
+  echo "Checking bucket: ${bucket}"
 
-echo "Integrity scan completed."
+  set +e
+  output=$(cd "${COUCHBIN}" && ./couch_check_all.sh "${files[@]}" 2>&1)
+  exit_code=$?
+  set -e
+
+  echo "${output}"
+
+  if (( exit_code != 0 )) || echo "${output}" | grep -qE 'Error checking file:|Error with vb:'; then
+    echo "Corruption detected in bucket '${bucket}'"
+    echo "Retrieving node hostnames for bucket '${bucket}'"
+
+    node_json=$(curl -s -u "${USER}:${PASS}" \
+      "http://${HOST}:${PORT}/pools/default/buckets/${bucket}/nodes")
+
+    hostnames=$(echo "${node_json}" \
+      | jq -r '.nodes[]?.hostname // .servers[]?.hostname')
+
+    if [[ -n "${hostnames}" ]]; then
+      echo "Bucket '${bucket}' resides on the following nodes:"
+      echo "${hostnames}" | sed 's/^/  - /'
+    else
+      echo "Unable to parse hostnames from API response."
+    fi
+  else
+    echo "Bucket '${bucket}' passed integrity checks."
+  fi
+
+  echo ""
+done
+
+echo "All buckets processed. Script completed successfully."
 
 exit 0
