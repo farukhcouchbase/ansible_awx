@@ -146,7 +146,7 @@ for bucket in "${BUCKETS[@]}"; do
   echo "Checking bucket: ${bucket}"
 
   set +e
-  output=$(cd "${COUCHBIN}" && ./couch_check_all.sh "${files[@]}" 2>&1)
+  output=$(cd "${INDEX_PATH}" && ${COUCHBIN}/couch_check_all.sh  "${files[@]}" 2>&1)
   exit_code=$?
   set -e
 
