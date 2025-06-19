@@ -66,7 +66,7 @@ done
 ###############################################################################
 URL="http://${HOST}:${PORT}/nodes/self"
 INDEX_PATH=$(curl -s -u "${USER}:${PASS}" "${URL}" \
-  | jq -r '(.storage.hdd[0].index_path // .index_path)')
+  | jq -r '(.storage.hdd[0].path // .path)')
 
 [[ -z "${INDEX_PATH}" || "${INDEX_PATH}" == "null" ]] && {
   echo "ERROR: index_path not found in ${URL}" >&2
