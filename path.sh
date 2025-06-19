@@ -2,7 +2,7 @@
 #
 # couch_index_check.sh — integrity checker for Couchbase index files
 #
-# 1. Discover the node’s index_path
+# 1. Discover the node’s PATH
 # 2. Enumerate bucket directories under it (skip those that begin with "@")
 # 3. Make the couch_check helper scripts executable (try sudo if needed)
 # 4. Run the appropriate couch_check on every *.couch.* file in every bucket
@@ -62,14 +62,14 @@ for cmd in curl jq; do
 done
 
 ###############################################################################
-# 1. Fetch index_path from /nodes/self
+# 1. Fetch PATH from /nodes/self
 ###############################################################################
 URL="http://${HOST}:${PORT}/nodes/self"
 PATH=$(curl -s -u "${USER}:${PASS}" "${URL}" \
   | jq -r '(.storage.hdd[0].path // .path)')
 
 [[ -z "${PATH}" || "${PATH}" == "null" ]] && {
-  echo "ERROR: index_path not found in ${URL}" >&2
+  echo "ERROR: PATH not found in ${URL}" >&2
   exit 1
 }
 
@@ -81,7 +81,7 @@ echo ""
 ###############################################################################
 declare -a BUCKETS=()
 
-cd "${INDEX_PATH}"
+cd "${PATH}"
 
 echo "Buckets to scan:"
 for dir in */ ; do
@@ -134,7 +134,7 @@ echo ""
 shopt -s nullglob
 
 for bucket in "${BUCKETS[@]}"; do
-  bucket_path="${INDEX_PATH}/${bucket}"
+  bucket_path="${PATH}/${bucket}"
   files=( "${bucket_path}"/*.couch.* )
 
   if (( ${#files[@]} == 0 )); then
