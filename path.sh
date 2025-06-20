@@ -1,180 +1,148 @@
 #!/usr/bin/env bash
 #
-# couch_index_check.sh — integrity checker for Couchbase index files
+# couchbase_health_check.sh
 #
-# 1. Discover the node’s index_path
-# 2. Enumerate bucket directories under it (skip those that begin with "@")
-# 3. Make the couch_check helper scripts executable (try sudo if needed)
-# 4. Run the appropriate couch_check on every *.couch.* file in every bucket
-# 5. Flag any corruption and list the nodes that hold the affected bucket
+# Scans Couchbase *.couch.* files for corruption (per bucket), skips buckets
+# whose names begin with '@', and prints the node hostnames of any buckets
+# that show corruption.
 #
-# USAGE (any combination)
-#   COUCH_USER=<user> COUCH_PASS=<pass> [HOST=<host>] [PORT=<port>] ./couch_index_check.sh
-#   ./couch_index_check.sh <host> <port> <user> <pass>
+# Variable precedence  (highest → lowest)
+#   1. Positional args     ($1 HOST, $2 PORT, $3 USER, $4 PASS)
+#   2. Environment vars    (CB_HOST, CB_PORT, CB_USER, CB_PASS)
+#   3. Defaults            (localhost, 8091, ---, ---)
 #
-# Notes:
-#   - Requires curl and jq in $PATH.
-#   - Tested on Couchbase Server 7.0 to 7.6 (legacy layouts also supported).
-#   - Designed for Bash 4‑compatible shells with set -euo pipefail semantics.
+# Usage examples:
+#   export CB_HOST=52.44.152.133 CB_PORT=8091 CB_USER=Admin CB_PASS=redhat
+#   ./couchbase_health_check.sh
+#
+#   ./couchbase_health_check.sh 52.44.152.133 8091 Admin redhat
+#
+#   export CB_HOST=10.0.0.10; ./couchbase_health_check.sh "" "" Admin redhat
+#
+# Requirements:
+#   curl, jq, Couchbase binaries in /opt/couchbase/bin
+#
+# Author: <your name>
+# Date: 2025‑06‑20
 
 set -euo pipefail
+IFS=$'\n\t'
 
 ###############################################################################
-# 0. Parameters & constants  (NO hard‑coded user or password)
+# 1. Parameter / environment handling
 ###############################################################################
+CB_HOST="${1:-${CB_HOST:-localhost}}"
+CB_PORT="${2:-${CB_PORT:-8091}}"
+CB_USER="${3:-${CB_USER-}}"
+CB_PASS="${4:-${CB_PASS-}}"
+CB_PROTO="http"
+CB_ENDPOINT="/nodes/self"
 
-usage() {
-cat <<EOF
-Usage:
-  COUCH_USER=<user> COUCH_PASS=<pass> [HOST=<host>] [PORT=<port>] $0
-  or:
-  $0 <host> <port> <user> <pass>
+if [[ -z "$CB_USER" || -z "$CB_PASS" ]]; then
+  cat <<EOF >&2
+Error: Couchbase credentials are required.
 
-Environment variables override positional parameters.
+Provide them either:
+  • Positional args 3 and 4   → USER PASS
+  • Environment vars          → CB_USER CB_PASS
+
+Usage: $0 [HOST [PORT [USER [PASS]]]]
 EOF
-}
-
-# Helper: ensure a variable is set
-need() {
-  local val="$1" name="$2"
-  [[ -n "$val" ]] || { echo "ERROR: $name is required"; usage; exit 1; }
-}
-
-# Get values: env‑vars first, then positional parameters, then (only for host/port) safe defaults
-HOST="${HOST:-${1:-localhost}}"
-PORT="${PORT:-${2:-8091}}"
-USER="${COUCH_USER:-${3-}}"
-PASS="${COUCH_PASS:-${4-}}"
-COUCHBIN="${couch:-${5-}}"
-
-need "$USER" "COUCH_USER (env) or argument #3"
-need "$PASS" "COUCH_PASS (env) or argument #4"
-need "$couch" "couchbin (env) or argument #4"
-
-
-export COUCH_CHECK_PATH="$COUCHBIN"   # couch_check_all.sh relies on this
+  exit 2
+fi
 
 ###############################################################################
-# Prerequisite checks
+# 2. Binary location
 ###############################################################################
-for cmd in curl jq; do
-  command -v "$cmd" >/dev/null || { echo "ERROR: $cmd not found"; exit 1; }
-done
+export COUCH_CHECK_PATH="/opt/couchbase/bin"
 
 ###############################################################################
-# 1. Fetch index_path from /nodes/self
+# 3. Discover data & index paths from REST API
 ###############################################################################
-URL="http://${HOST}:${PORT}/nodes/self"
-INDEX_PATH=$(curl -s -u "${USER}:${PASS}" "${URL}" \
-  | jq -r '(.storage.hdd[0].path // .path)')
+CB_URL="${CB_PROTO}://${CB_HOST}:${CB_PORT}${CB_ENDPOINT}"
+JSON_RESPONSE=$(curl -sf -u "${CB_USER}:${CB_PASS}" "${CB_URL}")
 
-[[ -z "${INDEX_PATH}" || "${INDEX_PATH}" == "null" ]] && {
-  echo "ERROR: index_path not found in ${URL}" >&2
-  exit 1
-}
+DATA_PATH=$(jq -r '.storage.hdd[0].path'        <<<"$JSON_RESPONSE")
+INDEX_PATH=$(jq -r '.storage.hdd[0].index_path' <<<"$JSON_RESPONSE")
 
-echo "INDEX PATH: ${INDEX_PATH}"
-echo ""
+printf "Discovered paths:\n  Data  : %s\n  Index : %s\n\n" \
+       "$DATA_PATH" "$INDEX_PATH"
 
 ###############################################################################
-# 2. List bucket directories (excluding those that start with "@")
+# 4. Determine couch_check binary
 ###############################################################################
-declare -a BUCKETS=()
-
-cd "${INDEX_PATH}"
-
-echo "Buckets to scan:"
-for dir in */ ; do
-  dir="${dir%/}"
-  [[ "${dir}" == @* ]] && continue
-  echo "- ${dir}"
-  BUCKETS+=("${dir}")
-done
-[[ ${#BUCKETS[@]} -eq 0 ]] && { echo "No buckets found. Exiting."; exit 0; }
-echo ""
-
-###############################################################################
-# 3. Ensure couch_check helpers are present and executable
-###############################################################################
-echo "Verifying couch_check tools in ${COUCHBIN}"
-(
-  cd "${COUCHBIN}" || { echo "ERROR: cannot cd to ${COUCHBIN}"; exit 1; }
-  for f in couch_check72 couch_check76 couch_check_all.sh; do
-    [[ -f "${f}" ]] || { echo "ERROR: ${f} not found"; exit 1; }
-    [[ -x "${f}" ]] || {
-      if chmod +x "${f}" 2>/dev/null; then
-        echo "Made ${f} executable"
-      elif command -v sudo >/dev/null; then
-        echo "Attempting to set executable permissions using sudo for ${f}"
-        sudo chmod +x "${f}"
-      else
-        echo "ERROR: cannot set +x on ${f} (need root or sudo)" >&2
-        exit 1
-      fi
-    }
-  done
-)
-echo ""
-
-###############################################################################
-# 4. Detect server version and determine couch_check helper
-###############################################################################
-SERVER_VERSION="$("${COUCHBIN}/couchbase-server" --version | awk '{print $NF}')"
-case "${SERVER_VERSION}" in
-  7.2*) USE_CHECK="couch_check72" ;;
-  7.6*) USE_CHECK="couch_check76" ;;
-  *)    USE_CHECK="(via couch_check_all.sh)" ;;
+SERVER_VERSION_RAW=$(/opt/couchbase/bin/couchbase-server --version)
+case "$SERVER_VERSION_RAW" in
+  *" 7.2"* ) CHECK_BIN="couch_check72" ;;
+  *" 7.6"* ) CHECK_BIN="couch_check76" ;;
+  *        ) echo "Unsupported Couchbase version:" >&2
+             echo "$SERVER_VERSION_RAW" >&2
+             exit 1 ;;
 esac
-echo "Detected Couchbase Server version ${SERVER_VERSION}. Using check tool: ${USE_CHECK}"
-echo ""
+echo "Using checker: $COUCH_CHECK_PATH/$CHECK_BIN"
+echo
 
 ###############################################################################
-# 5. Run checks and analyze results
+# 5. Structures to track corrupted buckets
 ###############################################################################
-shopt -s nullglob
+declare -A CORRUPTED_BUCKETS
 
-for bucket in "${BUCKETS[@]}"; do
-  bucket_path="${INDEX_PATH}/${bucket}"
-  files=( "${bucket_path}"/*.couch.* )
+run_checks() {
+  local files=("$@")
+  [ ${#files[@]} -gt 0 ] || return 0
 
-  if (( ${#files[@]} == 0 )); then
-    echo "No *.couch.* files found in bucket: ${bucket}"
-    echo ""
-    continue
-  fi
-
-  echo "Checking bucket: ${bucket}"
-
-  set +e
-  output=$(cd "${COUCHBIN}" && ./couch_check_all.sh "${files[@]}" 2>&1)
-  exit_code=$?
-  set -e
-
-  echo "${output}"
-
-  if (( exit_code != 0 )) || echo "${output}" | grep -qE 'Error checking file:|Error with vb:'; then
-    echo "Corruption detected in bucket '${bucket}'"
-    echo "Retrieving node hostnames for bucket '${bucket}'"
-
-    node_json=$(curl -s -u "${USER}:${PASS}" \
-      "http://${HOST}:${PORT}/pools/default/buckets/${bucket}/nodes")
-
-    hostnames=$(echo "${node_json}" \
-      | jq -r '.nodes[]?.hostname // .servers[]?.hostname')
-
-    if [[ -n "${hostnames}" ]]; then
-      echo "Bucket '${bucket}' resides on the following nodes:"
-      echo "${hostnames}" | sed 's/^/  - /'
-    else
-      echo "Unable to parse hostnames from API response."
+  local corrupted=0
+  for file in "${files[@]}"; do
+    if ! "${COUCH_CHECK_PATH}/${CHECK_BIN}" "$file"; then
+      corrupted=1
+      if [[ $(basename "$file") =~ ^([0-9]+)\.couch\. ]]; then
+        echo "Error with vb:${BASH_REMATCH[1]} (file: $file)" >&2
+      else
+        echo "Error checking file: $file" >&2
+      fi
     fi
-  else
-    echo "Bucket '${bucket}' passed integrity checks."
-  fi
+  done
+  (( corrupted )) && CORRUPTED_BUCKETS["$BUCKET_NAME"]=1
+}
 
-  echo ""
+###############################################################################
+# 6. Iterate bucket directories
+###############################################################################
+for ROOT in "$DATA_PATH" "$INDEX_PATH"; do
+  echo "Scanning root: $ROOT"
+  for BUCKET_DIR in "$ROOT"/*; do
+    [[ -d "$BUCKET_DIR" ]] || continue
+    BUCKET_NAME="${BUCKET_DIR##*/}"
+
+    # silently skip system buckets
+    [[ "$BUCKET_NAME" == @* ]] && continue
+
+    echo "  Checking bucket: $BUCKET_NAME"
+    shopt -s nullglob
+    FILE_LIST=("$BUCKET_DIR"/*.couch.*)
+    shopt -u nullglob
+
+    run_checks "${FILE_LIST[@]}"
+  done
+  echo
 done
 
-echo "All buckets processed. Script completed successfully."
+###############################################################################
+# 7. Final summary
+###############################################################################
+if (( ${#CORRUPTED_BUCKETS[@]} > 0 )); then
+  echo "====== Corrupted Buckets and Their Node Hosts ======"
+  for bucket in "${!CORRUPTED_BUCKETS[@]}"; do
+    echo "Bucket: $bucket"
+    curl -s -u "${CB_USER}:${CB_PASS}" \
+         "${CB_PROTO}://${CB_HOST}:${CB_PORT}/pools/default/buckets/${bucket}/nodes" \
+      | jq -r '.servers[].hostname' \
+      | cut -d: -f1 \
+      | sed 's/^/  • /'
+    echo
+  done
+else
+  echo "✅ No corruption found in any bucket."
+fi
 
-exit 0
+echo "Done."
