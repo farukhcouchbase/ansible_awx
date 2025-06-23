@@ -2,65 +2,72 @@
 #
 # couchbase_health_check.sh
 #
-# Scans Couchbase *.couch.* files for corruption (per bucket), skips buckets
-# whose names begin with '@', and prints the node hostnames of any buckets
-# that show corruption.
+# Scans Couchbase *.couch.* files on the **local** node for corruption.
 #
-# Variable precedence  (highest → lowest)
-#   1. Positional args     ($1 HOST, $2 PORT, $3 USER, $4 PASS)
-#   2. Environment vars    (CB_HOST, CB_PORT, CB_USER, CB_PASS)
-#   3. Defaults            (localhost, 8091, ---, ---)
+# Environment variables (set via AWX survey or export):
+#   CB_USER  : Admin username (default: Admin)
+#   CB_PASS  : Admin password (default: redhat)
 #
-# Usage examples:
-#   export CB_HOST=52.44.152.133 CB_PORT=8091 CB_USER=Admin CB_PASS=redhat
-#   ./couchbase_health_check.sh
+# CLI flags (optional):
+#   --data   : Scan only DATA_PATH (KV files)
+#   --index  : Scan only INDEX_PATH (index/FTS checkpoint files)
+#   --both   : Scan both paths (default)
 #
-#   ./couchbase_health_check.sh 52.44.152.133 8091 Admin redhat
-#
-#   export CB_HOST=10.0.0.10; ./couchbase_health_check.sh "" "" Admin redhat
-#
-# Requirements:
-#   curl, jq, Couchbase binaries in /opt/couchbase/bin
-#
-# Author: <your name>
-# Date: 2025‑06‑20
+# Author : <your name>
+# Updated: 2025-06-23
 
 set -euo pipefail
 IFS=$'\n\t'
 
 ###############################################################################
-# 1. Parameter / environment handling
+# 0. Option parsing ───────────────────────────────────────────────────────────
 ###############################################################################
-CB_HOST="${1:-${CB_HOST:-localhost}}"
-CB_PORT="${2:-${CB_PORT:-8091}}"
-CB_USER="${3:-${CB_USER-}}"
-CB_PASS="${4:-${CB_PASS-}}"
-CB_PROTO="http"
-CB_ENDPOINT="/nodes/self"
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [--data | --index | --both]
 
-if [[ -z "$CB_USER" || -z "$CB_PASS" ]]; then
-  cat <<EOF >&2
-Error: Couchbase credentials are required.
+  --data     Scan only the KV data directory (DATA_PATH)
+  --index    Scan only the index directory (INDEX_PATH)
+  --both     Scan both directories (default)
 
-Provide them either:
-  • Positional args 3 and 4   → USER PASS
-  • Environment vars          → CB_USER CB_PASS
-
-Usage: $0 [HOST [PORT [USER [PASS]]]]
+Only two environment variables are respected:
+  CB_USER  : Couchbase admin user   (default Admin)
+  CB_PASS  : Couchbase admin passwd (default redhat)
 EOF
-  exit 2
-fi
+  exit 1
+}
+
+SCAN_TARGET="both"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --data)   SCAN_TARGET="data"  ;;
+    --index)  SCAN_TARGET="index" ;;
+    --both)   SCAN_TARGET="both"  ;;
+    -h|--help) usage ;;
+    *) echo "Unknown flag: $1" >&2; usage ;;
+  esac
+  shift
+done
 
 ###############################################################################
-# 2. Binary location
+# 1. Fixed configuration (only user/pass are overridable)
 ###############################################################################
+CB_USER="${CB_USER:-Admin}"
+CB_PASS="${CB_PASS:-redhat}"
+CB_HOST="127.0.0.1"       # always localhost
+CB_PORT="8091"
+CB_ENDPOINT="/nodes/self"
+CB_PROTO="http"
+
+# Location of couch_checkXX binaries
 export COUCH_CHECK_PATH="/opt/couchbase/bin"
 
 ###############################################################################
-# 3. Discover data & index paths from REST API
+# 2. Discover data & index paths from REST API
 ###############################################################################
 CB_URL="${CB_PROTO}://${CB_HOST}:${CB_PORT}${CB_ENDPOINT}"
-JSON_RESPONSE=$(curl -sf -u "${CB_USER}:${CB_PASS}" "${CB_URL}")
+JSON_RESPONSE=$(curl -s -u "${CB_USER}:${CB_PASS}" "${CB_URL}")
 
 DATA_PATH=$(jq -r '.storage.hdd[0].path'        <<<"$JSON_RESPONSE")
 INDEX_PATH=$(jq -r '.storage.hdd[0].index_path' <<<"$JSON_RESPONSE")
@@ -69,32 +76,31 @@ printf "Discovered paths:\n  Data  : %s\n  Index : %s\n\n" \
        "$DATA_PATH" "$INDEX_PATH"
 
 ###############################################################################
-# 4. Determine couch_check binary
+# 3. Select the correct couch_check binary
 ###############################################################################
 SERVER_VERSION_RAW=$(/opt/couchbase/bin/couchbase-server --version)
-case "$SERVER_VERSION_RAW" in
-  *" 7.2"* ) CHECK_BIN="couch_check72" ;;
-  *" 7.6"* ) CHECK_BIN="couch_check76" ;;
-  *        ) echo "Unsupported Couchbase version:" >&2
-             echo "$SERVER_VERSION_RAW" >&2
-             exit 1 ;;
-esac
-echo "Using checker: $COUCH_CHECK_PATH/$CHECK_BIN"
-echo
+CHECK_BIN=""
+
+if   echo "$SERVER_VERSION_RAW" | grep -qE " 7\.2"; then
+  CHECK_BIN="couch_check72"
+elif echo "$SERVER_VERSION_RAW" | grep -qE " 7\.6"; then
+  CHECK_BIN="couch_check76"
+else
+  echo "Unsupported Couchbase version detected:" >&2
+  echo "$SERVER_VERSION_RAW" >&2
+  exit 1
+fi
+
+printf "Using checker binary: %s/%s\n\n" "$COUCH_CHECK_PATH" "$CHECK_BIN"
 
 ###############################################################################
-# 5. Structures to track corrupted buckets
+# 4. Helper to run couch_check and capture errors
 ###############################################################################
-declare -A CORRUPTED_BUCKETS
-
 run_checks() {
-  local files=("$@")
-  [ ${#files[@]} -gt 0 ] || return 0
-
-  local corrupted=0
-  for file in "${files[@]}"; do
+  local error_found=0
+  for file in "$@"; do
     if ! "${COUCH_CHECK_PATH}/${CHECK_BIN}" "$file"; then
-      corrupted=1
+      error_found=1
       if [[ $(basename "$file") =~ ^([0-9]+)\.couch\. ]]; then
         echo "Error with vb:${BASH_REMATCH[1]} (file: $file)" >&2
       else
@@ -102,47 +108,64 @@ run_checks() {
       fi
     fi
   done
-  (( corrupted )) && CORRUPTED_BUCKETS["$BUCKET_NAME"]=1
+  return $error_found
 }
 
 ###############################################################################
-# 6. Iterate bucket directories
+# 5. Build the list of roots to scan
 ###############################################################################
-for ROOT in "$DATA_PATH" "$INDEX_PATH"; do
+ROOTS=()
+case "$SCAN_TARGET" in
+  data)  ROOTS+=("$DATA_PATH") ;;
+  index) ROOTS+=("$INDEX_PATH") ;;
+  both)  ROOTS+=("$DATA_PATH" "$INDEX_PATH") ;;
+  *)     echo "Invalid scan target: $SCAN_TARGET" >&2; exit 1 ;;
+esac
+
+# Remove duplicates in case both paths are identical
+ROOTS=($(printf "%s\n" "${ROOTS[@]}" | awk '!seen[$0]++'))
+
+###############################################################################
+# 6. Print summary and scan
+###############################################################################
+case "$SCAN_TARGET" in
+  data)  echo "▶ Scanning the vBuckets of **Data Service** (DATA_PATH)" ;;
+  index) echo "▶ Scanning the vBuckets of **Index Service** (INDEX_PATH)" ;;
+  both)  echo "▶ Scanning the vBuckets of both **Data** and **Index Services**" ;;
+esac
+echo
+
+last_corrupt_bucket=""
+
+for ROOT in "${ROOTS[@]}"; do
   echo "Scanning root: $ROOT"
   for BUCKET_DIR in "$ROOT"/*; do
-    [[ -d "$BUCKET_DIR" ]] || continue
+    [ -d "$BUCKET_DIR" ] || continue
     BUCKET_NAME="${BUCKET_DIR##*/}"
 
-    # silently skip system buckets
-    [[ "$BUCKET_NAME" == @* ]] && continue
+    # Skip system buckets
+    if [[ "$BUCKET_NAME" == @* ]]; then
+      echo "  Skipping system bucket: $BUCKET_NAME"
+      continue
+    fi
 
     echo "  Checking bucket: $BUCKET_NAME"
+
     shopt -s nullglob
     FILE_LIST=("$BUCKET_DIR"/*.couch.*)
     shopt -u nullglob
 
-    run_checks "${FILE_LIST[@]}"
+    if run_checks "${FILE_LIST[@]}"; then
+      echo "  ✔ No issues detected in bucket: $BUCKET_NAME"
+    else
+      last_corrupt_bucket="$BUCKET_NAME"
+      echo "  ✖ Corruption detected in bucket: $BUCKET_NAME" >&2
+    fi
   done
   echo
 done
 
 ###############################################################################
-# 7. Final summary
+# 7. Placeholder for future node-lookup logic
 ###############################################################################
-if (( ${#CORRUPTED_BUCKETS[@]} > 0 )); then
-  echo "====== Corrupted Buckets and Their Node Hosts ======"
-  for bucket in "${!CORRUPTED_BUCKETS[@]}"; do
-    echo "Bucket: $bucket"
-    curl -s -u "${CB_USER}:${CB_PASS}" \
-         "${CB_PROTO}://${CB_HOST}:${CB_PORT}/pools/default/buckets/${bucket}/nodes" \
-      | jq -r '.servers[].hostname' \
-      | cut -d: -f1 \
-      | sed 's/^/  • /'
-    echo
-  done
-else
-  echo "✅ No corruption found in any bucket."
-fi
-
-echo "Done."
+# TODO: Use REST API to fetch node info for \$last_corrupt_bucket if required.
