@@ -1,41 +1,41 @@
 ---
-- name: Run path.sh across all hosts
-  hosts: all
-  become: true
-
-  # Variables expected from AWX Survey:
-  #   – couch_user (type: Password)
-  #   – couch_pass (type: Password)
-  #   – couch      (host/bin path or similar)
+- name: Couchbase corruption scan (local node)
+  hosts: all         # inventory group with the target nodes
+  gather_facts: false
 
   vars:
-    ubuntu_home: "/home/ubuntu"
+    script_name: path.sh
+    ubuntu_home: "/home/ubuntu"     # adjust if the home dir differs
 
   tasks:
-    - name: Copy path.sh to ubuntu's home directory
+
+    # 1 ▸ Copy the script to the remote node
+    - name: Copy {{ script_name }} to ubuntu's home
       copy:
-        src: "{{ playbook_dir }}/path.sh"
-        dest: "{{ ubuntu_home }}/path.sh"
+        src: "{{ playbook_dir }}/{{ script_name }}"
+        dest: "{{ ubuntu_home }}/{{ script_name }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    # 2 ▸ Ensure the script is executable (belt-and-braces)
+    - name: Make {{ script_name }} executable
+      become: true
+      file:
+        path: "{{ ubuntu_home }}/{{ script_name }}"
         mode: "0755"
         owner: ubuntu
         group: ubuntu
 
-    - name: Run path.sh script as ubuntu user, injecting DB creds
+    # 3 ▸ Run the script with the flag chosen in the AWX survey
+    - name: Run {{ script_name }} with chosen flag
+      become: true
       become_user: ubuntu
-      shell: ./path.sh > path.txt
+      shell: |
+        ./{{ script_name }} --{{ scan_flag | default('both') }} \
+          > path.txt
       args:
         chdir: "{{ ubuntu_home }}"
       environment:
-        COUCH_USER: "{{ couch_user }}"
-        COUCH_PASS: "{{ couch_pass }}"
-        couch: "{{ couch }}"  # ← Make sure this matches the shell script
-
-    - name: Read path.txt contents
-      slurp:
-        src: "{{ ubuntu_home }}/path.txt"
-      register: path_file_content
-
-    - name: Print path.txt contents
-      debug:
-        # Assumes path.txt does NOT contain secrets.
-        msg: "{{ path_file_content.content | b64decode }}"
+        CB_USER: "{{ couch_user }}"
+        CB_PASS: "{{ couch_pass }}"
