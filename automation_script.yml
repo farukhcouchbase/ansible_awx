@@ -33,7 +33,7 @@
       become_user: ubuntu
       shell: |
         ./{{ script_name }} --{{ scan_flag | default('both') }} \
-          > path.txt
+          > path.txt 2>&1
       args:
         chdir: "{{ ubuntu_home }}"
       environment:
