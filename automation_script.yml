@@ -40,18 +40,24 @@
         CB_USER: "{{ couch_user }}"
         CB_PASS: "{{ couch_pass }}"
 
-    # 4 ▸ Read the output from path.txt into a variable
-    - name: Read path.txt content
+    # 4 ▸ Extract last 10 lines of output to path2.txt
+    - name: Extract last 10 lines of path.txt to path2.txt
       become: true
       become_user: ubuntu
-      shell: cat path.txt
+      shell: tail -n 10 path.txt > path2.txt
       args:
         chdir: "{{ ubuntu_home }}"
-      register: path_output
 
-    # 5 ▸ Print first 20 lines of script output to terminal
+    # 5 ▸ Read the output from path2.txt into a variable
+    - name: Read path2.txt content
+      become: true
+      become_user: ubuntu
+      shell: cat path2.txt
+      args:
+        chdir: "{{ ubuntu_home }}"
+      register: path2_output
+
+    # 6 ▸ Print first 20 lines of script output to terminal
     - name: Print first 20 lines of script output
       debug:
-        msg: "{{ path_output.stdout_lines[:-1] }}"
-
-  
+        msg: "{{ path2_output.stdout_lines[:-1] }}"
