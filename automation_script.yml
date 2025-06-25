@@ -52,12 +52,6 @@
     # 5 ▸ Print first 20 lines of script output to terminal
     - name: Print first 20 lines of script output
       debug:
-        msg: "{{ path_output.stdout_lines[:-5] }}"
+        msg: "{{ path_output.stdout_lines[:-1] }}"
 
-    # 6 ▸ Fetch the full path.txt to the control node
-    - name: Fetch full path.txt to control node
-      become: true
-      fetch:
-        src: "{{ ubuntu_home }}/path.txt"
-        dest: "./path_output/{{ inventory_hostname }}.txt"
-        flat: yes
+  
