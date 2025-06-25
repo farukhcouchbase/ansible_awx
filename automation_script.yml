@@ -48,21 +48,16 @@
       args:
         chdir: "{{ ubuntu_home }}"
 
-
-    # 5 ▸ Print contents of path2.txt
-    - name: Display contents of path2.txt
+    # 5 ▸ Read the output from path2.txt into a variable
+    - name: Read path2.txt content
       become: true
       become_user: ubuntu
       shell: cat path2.txt
       args:
         chdir: "{{ ubuntu_home }}"
-      register: path2_contents
+      register: path2_output
 
-    - name: Show path2.txt output
+    # 6 ▸ Print first 20 lines of script output to terminal
+    - name: Print first 20 lines of script output
       debug:
-        msg: "{{ path2_contents.stdout }}"
-    
-
-    
-
-    
+        msg: "{{ path2_output.stdout_lines[:-1] }}"
