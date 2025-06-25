@@ -5,7 +5,7 @@
 
   vars:
     script_name: path.sh
-    ubuntu_home: "/home/ubuntu"
+    ubuntu_home: "/home/ubuntu"     # adjust if the home dir differs
 
   tasks:
 
@@ -40,7 +40,7 @@
         CB_USER: "{{ couch_user }}"
         CB_PASS: "{{ couch_pass }}"
 
-    # 4 ▸ Display the output from path.txt
+    # 4 ▸ Display the output from path.txt (full content)
     - name: Show output from path.txt
       become: true
       become_user: ubuntu
@@ -51,4 +51,12 @@
 
     - name: Print script output
       debug:
-        msg: "{{ path_output.stdout }}"
+        var: path_output.stdout_lines
+
+    # 5 ▸ (Optional) Fetch the path.txt to the control node for complete logs
+    - name: Fetch path.txt to control node
+      become: true
+      fetch:
+        src: "{{ ubuntu_home }}/path.txt"
+        dest: "./path_output/{{ inventory_hostname }}.txt"
+        flat: yes
