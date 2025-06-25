@@ -1,11 +1,11 @@
 ---
 - name: Couchbase corruption scan (local node)
-  hosts: all         # inventory group with the target nodes
+  hosts: all
   gather_facts: false
 
   vars:
     script_name: path.sh
-    ubuntu_home: "/home/ubuntu"     # adjust if the home dir differs
+    ubuntu_home: "/home/ubuntu"
 
   tasks:
 
@@ -39,3 +39,16 @@
       environment:
         CB_USER: "{{ couch_user }}"
         CB_PASS: "{{ couch_pass }}"
+
+    # 4 ▸ Display the output from path.txt
+    - name: Show output from path.txt
+      become: true
+      become_user: ubuntu
+      shell: cat path.txt
+      args:
+        chdir: "{{ ubuntu_home }}"
+      register: path_output
+
+    - name: Print script output
+      debug:
+        msg: "{{ path_output.stdout }}"
