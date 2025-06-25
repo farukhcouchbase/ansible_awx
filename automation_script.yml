@@ -40,8 +40,8 @@
         CB_USER: "{{ couch_user }}"
         CB_PASS: "{{ couch_pass }}"
 
-    # 4 ▸ Display the output from path.txt (full content)
-    - name: Show output from path.txt
+    # 4 ▸ Read the output from path.txt into a variable
+    - name: Read path.txt content
       become: true
       become_user: ubuntu
       shell: cat path.txt
@@ -49,12 +49,13 @@
         chdir: "{{ ubuntu_home }}"
       register: path_output
 
-    - name: Print script output
+    # 5 ▸ Print first 20 lines of script output to terminal
+    - name: Print first 20 lines of script output
       debug:
-        var: path_output.stdout_lines
+        msg: "{{ path_output.stdout_lines[:20] }}"
 
-    # 5 ▸ (Optional) Fetch the path.txt to the control node for complete logs
-    - name: Fetch path.txt to control node
+    # 6 ▸ Fetch the full path.txt to the control node
+    - name: Fetch full path.txt to control node
       become: true
       fetch:
         src: "{{ ubuntu_home }}/path.txt"
