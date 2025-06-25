@@ -48,6 +48,21 @@
       args:
         chdir: "{{ ubuntu_home }}"
 
+
+    # 5 ▸ Print contents of path2.txt
+    - name: Display contents of path2.txt
+      become: true
+      become_user: ubuntu
+      shell: cat path2.txt
+      args:
+        chdir: "{{ ubuntu_home }}"
+      register: path2_contents
+
+    - name: Show path2.txt output
+      debug:
+        msg: "{{ path2_contents.stdout }}"
+    
+
     
 
     
