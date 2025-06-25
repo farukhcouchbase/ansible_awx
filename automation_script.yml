@@ -48,13 +48,6 @@
       args:
         chdir: "{{ ubuntu_home }}"
 
-    # 5 ▸ Read the output from path2.txt into a variable
-    - name: Read path2.txt content
-      become: true
-      become_user: ubuntu
-      shell: cat path2.txt
-      args:
-        chdir: "{{ ubuntu_home }}"
-      register: path2_output
+    
 
     
