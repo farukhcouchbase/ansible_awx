@@ -38,7 +38,7 @@
 
     - name: Extract operation type from Couchbase index query
       vars:
-        query_type: "{{ index_queries | regex_search('^(CREATE|DROP|ALTER)', ignorecase=False) }}"
+        query_type: "{{ index_queries | regex_search('^(CREATE|DROP|ALTER)', ignorecase=True) }}"
       debug:
         msg: >-
           {% if query_type is not none %}
