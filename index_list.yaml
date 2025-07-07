@@ -1,11 +1,20 @@
 ---
 - name: Get Couchbase indexes and save to file
-  hosts: all
+  hosts: couchbase_servers
   become: true
+  vars:
+    couchbase_user: "Admin"
+    couchbase_pass: "redhat"
+    couchbase_url: "http://localhost:8093"
   tasks:
     - name: Run cbq to get index list
       shell: >
-        /opt/couchbase/bin/cbq -u Admin -p redhat -e http://localhost:8093
+        /opt/couchbase/bin/cbq
+        -u {{ couchbase_user }}
+        -p {{ couchbase_pass }}
+        -e {{ couchbase_url }}
         -script "SELECT * FROM system:indexes;" > /tmp/index_list.txt
       args:
         executable: /bin/bash
+
+    
