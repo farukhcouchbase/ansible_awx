@@ -3,8 +3,6 @@
   hosts: all
   become: true
   vars:
-    couchbase_user: "Admin"
-    couchbase_pass: "redhat"
     couchbase_url: "http://localhost:8093"
   tasks:
     - name: Run cbq to get index list
