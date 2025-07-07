@@ -17,4 +17,11 @@
       args:
         executable: /bin/bash
 
+    - name: Read contents of index_list.txt
+      command: cat /home/ubuntu/index_list.txt
+      register: index_output
+
+    - name: Print index content to output
+      debug:
+        msg: "{{ index_output.stdout }}"
     
