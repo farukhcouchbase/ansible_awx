@@ -4,6 +4,8 @@
   become: true
   vars:
     couchbase_url: "http://localhost:8093"
+    couchbase_user: ""
+    couchbase_pass: ""
   tasks:
     - name: Run cbq to get index list
       shell: >
