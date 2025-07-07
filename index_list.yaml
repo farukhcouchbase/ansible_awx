@@ -1,6 +1,6 @@
 ---
 - name: Get Couchbase indexes and save to file
-  hosts: couchbase_servers
+  hosts: all
   become: true
   vars:
     couchbase_user: "Admin"
