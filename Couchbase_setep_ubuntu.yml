@@ -1,1 +1,24 @@
+---
+- name: Install Couchbase Server Community Edition
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Download Couchbase release .deb package
+      ansible.builtin.get_url:
+        url: https://packages.couchbase.com/releases/couchbase-release/couchbase-release-1.0-noarch.deb
+        dest: /tmp/couchbase-release-1.0-noarch.deb
+
+    - name: Install Couchbase release package
+      ansible.builtin.apt:
+        deb: /tmp/couchbase-release-1.0-noarch.deb
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Couchbase Server Community Edition
+      ansible.builtin.apt:
+        name: couchbase-server-community
+        state: present
 
