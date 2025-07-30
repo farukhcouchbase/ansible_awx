@@ -22,3 +22,13 @@
         name: couchbase-server-community
         state: present
 
+    - name: Enable Couchbase Server to start at boot
+      ansible.builtin.service:
+        name: couchbase-server
+        enabled: yes
+
+    - name: Start Couchbase Server
+      ansible.builtin.service:
+        name: couchbase-server
+        state: started   
+
