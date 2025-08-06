@@ -1,0 +1,90 @@
+---
+- name: Install and Configure Couchbase Cluster
+  hosts: all
+  become: yes
+  vars:
+    couchbase_admin_user: Administrator
+    couchbase_admin_pass: password
+    couchbase_cluster_name: MyCluster
+    couchbase_services: data,index,query
+    couchbase_ram_quota: 1024
+    couchbase_index_ram_quota: 256
+    couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
+    primary_node: "{{ groups['all'][0] }}"  # First host in the group is the primary
+
+  tasks:
+    - name: Download Couchbase release .deb package
+      ansible.builtin.get_url:
+        url: https://packages.couchbase.com/releases/couchbase-release/couchbase-release-1.0-noarch.deb
+        dest: /tmp/couchbase-release-1.0-noarch.deb
+
+    - name: Install Couchbase release package
+      ansible.builtin.apt:
+        deb: /tmp/couchbase-release-1.0-noarch.deb
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Couchbase Server Community Edition
+      ansible.builtin.apt:
+        name: couchbase-server-community
+        state: present
+
+    - name: Enable and start Couchbase service
+      ansible.builtin.service:
+        name: couchbase-server
+        enabled: yes
+        state: started
+
+    - name: Wait for Couchbase service to be available
+      ansible.builtin.wait_for:
+        port: 8091
+        host: 127.0.0.1
+        timeout: 60
+
+- name: Initialize Cluster and Add Nodes
+  hosts: "{{ groups['all'][0] }}"  # Run only on primary node
+  become: yes
+  vars:
+    couchbase_admin_user: Administrator
+    couchbase_admin_pass: password
+    couchbase_cluster_name: MyCluster
+    couchbase_services: data,index,query
+    couchbase_ram_quota: 1024
+    couchbase_index_ram_quota: 256
+    couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
+
+  tasks:
+    - name: Initialize Couchbase cluster
+      ansible.builtin.command: >
+        {{ couchbase_cli_path }} cluster-init
+        --cluster 127.0.0.1
+        --cluster-username {{ couchbase_admin_user }}
+        --cluster-password {{ couchbase_admin_pass }}
+        --services {{ couchbase_services }}
+        --cluster-ramsize {{ couchbase_ram_quota }}
+        --cluster-index-ramsize {{ couchbase_index_ram_quota }}
+        --cluster-name {{ couchbase_cluster_name }}
+      args:
+        creates: /opt/couchbase/var/lib/couchbase/config/config.dat
+
+    - name: Add other nodes to the cluster
+      ansible.builtin.command: >
+        {{ couchbase_cli_path }} server-add
+        --cluster 127.0.0.1
+        --username {{ couchbase_admin_user }}
+        --password {{ couchbase_admin_pass }}
+        --server-add {{ hostvars[item].ansible_host }}
+        --server-add-username {{ couchbase_admin_user }}
+        --server-add-password {{ couchbase_admin_pass }}
+        --services {{ couchbase_services }}
+      loop: "{{ groups['all'][1:] }}"
+      when: groups['all'] | length > 1
+
+    - name: Rebalance the cluster
+      ansible.builtin.command: >
+        {{ couchbase_cli_path }} rebalance
+        --cluster 127.0.0.1
+        --username {{ couchbase_admin_user }}
+        --password {{ couchbase_admin_pass }}
