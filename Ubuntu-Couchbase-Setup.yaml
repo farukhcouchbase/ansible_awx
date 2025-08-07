@@ -1,7 +1,7 @@
 ---
 - name: Install and Configure Couchbase Cluster
   hosts: all
-  beoome: yes
+  become: yes
   vars:
     couchbase_admin_user: Administrator
     couchbase_admin_pass: password
