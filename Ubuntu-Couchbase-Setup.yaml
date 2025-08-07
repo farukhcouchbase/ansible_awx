@@ -1,8 +1,6 @@
 ---
 - name: Install and Configure Couchbase Cluster
   hosts: all
-  become: yes
-  gather_facts: yes  # Ensures ansible_host and ansible_default_ipv4 are available
   vars:
     couchbase_admin_user: Administrator
     couchbase_admin_pass: password
@@ -47,8 +45,7 @@
 
 - name: Initialize Cluster and Add Nodes
   hosts: "{{ groups['all'][0] }}"
-  become: yes
-  gather_facts: yes
+  
   vars:
     couchbase_admin_user: Administrator
     couchbase_admin_pass: password
