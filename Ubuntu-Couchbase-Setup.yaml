@@ -2,6 +2,7 @@
 - name: Install and Configure Couchbase Cluster
   hosts: all
   become: yes
+  gather_facts: yes  # Ensures ansible_host and ansible_default_ipv4 are available
   vars:
     couchbase_admin_user: Administrator
     couchbase_admin_pass: password
@@ -10,7 +11,7 @@
     couchbase_ram_quota: 1024
     couchbase_index_ram_quota: 256
     couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
-    primary_node: "{{ groups['all'][0] }}"  # First host in the group is the primary
+    primary_node: "{{ groups['all'][0] }}"
 
   tasks:
     - name: Download Couchbase release .deb package
@@ -40,12 +41,14 @@
     - name: Wait for Couchbase service to be available
       ansible.builtin.wait_for:
         port: 8091
-        host: 127.0.0.1
+        host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
         timeout: 60
 
+
 - name: Initialize Cluster and Add Nodes
-  hosts: "{{ groups['all'][0] }}"  # Run only on primary node
+  hosts: "{{ groups['all'][0] }}"
   become: yes
+  gather_facts: yes
   vars:
     couchbase_admin_user: Administrator
     couchbase_admin_pass: password
@@ -56,6 +59,11 @@
     couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
 
   tasks:
+    - name: Check if cluster is already initialized
+      ansible.builtin.stat:
+        path: /opt/couchbase/var/lib/couchbase/config/config.dat
+      register: cluster_init_flag
+
     - name: Initialize Couchbase cluster
       ansible.builtin.command: >
         {{ couchbase_cli_path }} cluster-init
@@ -66,8 +74,7 @@
         --cluster-ramsize {{ couchbase_ram_quota }}
         --cluster-index-ramsize {{ couchbase_index_ram_quota }}
         --cluster-name {{ couchbase_cluster_name }}
-      args:
-        creates: /opt/couchbase/var/lib/couchbase/config/config.dat
+      when: not cluster_init_flag.stat.exists
 
     - name: Add other nodes to the cluster
       ansible.builtin.command: >
@@ -75,7 +82,7 @@
         --cluster 127.0.0.1
         --username {{ couchbase_admin_user }}
         --password {{ couchbase_admin_pass }}
-        --server-add {{ hostvars[item].ansible_host }}
+        --server-add {{ hostvars[item].ansible_host | default(item) }}
         --server-add-username {{ couchbase_admin_user }}
         --server-add-password {{ couchbase_admin_pass }}
         --services {{ couchbase_services }}
