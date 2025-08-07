@@ -6,7 +6,7 @@
     couchbase_admin_user: Administrator
     couchbase_admin_pass: password
     couchbase_cluster_name: MyCluster
-    couchbase_services: index
+    couchbase_services: data 
     couchbase_ram_quota: 1024
     couchbase_index_ram_quota: 256
     couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
