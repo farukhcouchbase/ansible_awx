@@ -56,25 +56,24 @@
     couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
 
   tasks:
-- name: Check if cluster is already initialized by running server-list
-  ansible.builtin.command: >
-    "{{ couchbase_cli_path }} server-list
-    -c 127.0.0.1
-    -u {{ couchbase_admin_user }}
-    -p {{ couchbase_admin_pass }}"
-  register: cluster_check
-  failed_when: false
-  changed_when: false
+    - name: Check if cluster is already initialized by running server-list
+      ansible.builtin.command: >
+        "{{ couchbase_cli_path }} server-list
+        -c 127.0.0.1
+        -u {{ couchbase_admin_user }}
+        -p {{ couchbase_admin_pass }}"
+      register: cluster_check
+      failed_when: false
+      changed_when: false
 
-- name: Initialize Couchbase cluster
-  ansible.builtin.command: >
-    "{{ couchbase_cli_path }} cluster-init
-    --cluster 127.0.0.1
-    --cluster-username {{ couchbase_admin_user }}
-    --cluster-password {{ couchbase_admin_pass }}
-    --services {{ couchbase_services }}
-    --cluster-ramsize {{ couchbase_ram_quota }}
-    --cluster-index-ramsize {{ couchbase_index_ram_quota }}
-    --cluster-name {{ couchbase_cluster_name }}"
-  when: cluster_check.rc != 0
-
+    - name: Initialize Couchbase cluster
+      ansible.builtin.command: >
+        "{{ couchbase_cli_path }} cluster-init
+        --cluster 127.0.0.1
+        --cluster-username {{ couchbase_admin_user }}
+        --cluster-password {{ couchbase_admin_pass }}
+        --services {{ couchbase_services }}
+        --cluster-ramsize {{ couchbase_ram_quota }}
+        --cluster-index-ramsize {{ couchbase_index_ram_quota }}
+        --cluster-name {{ couchbase_cluster_name }}"
+      when: cluster_check.rc != 0
