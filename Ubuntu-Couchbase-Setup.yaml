@@ -56,10 +56,10 @@
     couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
 
   tasks:
-    - name: Check if cluster is already initialized
-      ansible.builtin.stat:
-        path: /opt/couchbase/var/lib/couchbase/config/config.dat
-      register: cluster_init_flag
+    # - name: Check if cluster is already initialized
+    #   ansible.builtin.stat:
+    #     path: /opt/couchbase/var/lib/couchbase/config/config.dat
+    #   register: cluster_init_flag
 
     - name: Initialize Couchbase cluster
       ansible.builtin.command: >
