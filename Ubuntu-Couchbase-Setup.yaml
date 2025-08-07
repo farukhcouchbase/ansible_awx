@@ -45,7 +45,7 @@
 
 
 - name: Initialize Cluster and Add Nodes
-  hosts: "{{ groups['all'][0] }}"
+  hosts: all
   become: yes 
   
   vars:
