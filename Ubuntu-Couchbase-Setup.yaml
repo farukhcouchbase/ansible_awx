@@ -43,11 +43,9 @@
         host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
         timeout: 60
 
-
 - name: Initialize Cluster and Add Nodes
   hosts: all
-  become: yes 
-  
+  become: yes
   vars:
     couchbase_admin_user: Administrator
     couchbase_admin_pass: password
@@ -65,32 +63,12 @@
 
     - name: Initialize Couchbase cluster
       ansible.builtin.command: >
-        {{ couchbase_cli_path }} cluster-init
+        "{{ couchbase_cli_path }} cluster-init
         --cluster 127.0.0.1
         --cluster-username {{ couchbase_admin_user }}
         --cluster-password {{ couchbase_admin_pass }}
         --services {{ couchbase_services }}
         --cluster-ramsize {{ couchbase_ram_quota }}
         --cluster-index-ramsize {{ couchbase_index_ram_quota }}
-        --cluster-name {{ couchbase_cluster_name }}
+        --cluster-name {{ couchbase_cluster_name }}"
       when: not cluster_init_flag.stat.exists
-
-    # - name: Add other nodes to the cluster
-    #   ansible.builtin.command: >
-    #     {{ couchbase_cli_path }} server-add
-    #     --cluster 127.0.0.1
-    #     --username {{ couchbase_admin_user }}
-    #     --password {{ couchbase_admin_pass }}
-    #     --server-add {{ hostvars[item].ansible_host | default(item) }}
-    #     --server-add-username {{ couchbase_admin_user }}
-    #     --server-add-password {{ couchbase_admin_pass }}
-    #     --services {{ couchbase_services }}
-    #   loop: "{{ groups['all'][1:] }}"
-    #   when: groups['all'] | length > 1
-
-    # - name: Rebalance the cluster
-    #   ansible.builtin.command: >
-    #     {{ couchbase_cli_path }} rebalance
-    #     --cluster 127.0.0.1
-    #     --username {{ couchbase_admin_user }}
-    #     --password {{ couchbase_admin_pass }}
