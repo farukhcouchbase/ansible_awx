@@ -28,7 +28,7 @@
 
     - name: Install Couchbase Server Community Edition
       ansible.builtin.apt:
-        name: couchbase-server-community
+        name: couchbase-server
         state: present
 
     - name: Enable and start Couchbase service
