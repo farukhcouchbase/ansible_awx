@@ -6,7 +6,7 @@
     couchbase_admin_user: Administrator
     couchbase_admin_pass: password
     couchbase_cluster_name: MyCluster
-    couchbase_services: data 
+    couchbase_services: data
     couchbase_ram_quota: 1024
     couchbase_index_ram_quota: 256
     couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
@@ -42,3 +42,35 @@
         port: 8091
         host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
         timeout: 60
+
+    - name: Initialize primary node (only on primary)
+      ansible.builtin.command: >
+        {{ couchbase_cli_path }} cluster-init
+        --cluster {{ ansible_host | default(inventory_hostname) }}
+        --cluster-username {{ couchbase_admin_user }}
+        --cluster-password {{ couchbase_admin_pass }}
+        --cluster-name {{ couchbase_cluster_name }}
+        --services {{ couchbase_services }}
+        --cluster-ramsize {{ couchbase_ram_quota }}
+        --cluster-index-ramsize {{ couchbase_index_ram_quota }}
+      when: inventory_hostname == primary_node
+
+    - name: Add node to Couchbase cluster (skip primary)
+      ansible.builtin.command: >
+        {{ couchbase_cli_path }} server-add
+        --cluster {{ hostvars[primary_node].ansible_host | default(primary_node) }}
+        --username {{ couchbase_admin_user }}
+        --password {{ couchbase_admin_pass }}
+        --server-add {{ ansible_host | default(inventory_hostname) }}
+        --server-add-username {{ couchbase_admin_user }}
+        --server-add-password {{ couchbase_admin_pass }}
+        --services {{ couchbase_services }}
+      when: inventory_hostname != primary_node
+
+    - name: Rebalance Couchbase cluster (run only on primary)
+      ansible.builtin.command: >
+        {{ couchbase_cli_path }} rebalance
+        --cluster {{ hostvars[primary_node].ansible_host | default(primary_node) }}
+        --username {{ couchbase_admin_user }}
+        --password {{ couchbase_admin_pass }}
+      when: inventory_hostname == primary_node
