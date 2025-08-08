@@ -1,4 +1,4 @@
----
+
 - name: Install and Configure Couchbase Cluster
   hosts: all
   become: yes
@@ -15,7 +15,7 @@
   tasks:
     - name: Download Couchbase release .deb package
       ansible.builtin.get_url:
-        url: https://packages.couchbase.com/releases/couchbase-release/couchbase-release-1.0-noarch.deb
+        url: [https://packages.couchbase.com/releases/couchbase-release/couchbase-release-1.0-noarch.deb](https://packages.couchbase.com/releases/couchbase-release/couchbase-release-1.0-noarch.deb)
         dest: /tmp/couchbase-release-1.0-noarch.deb
 
     - name: Install Couchbase release package
@@ -43,7 +43,31 @@
         host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
         timeout: 60
 
-    
+- name: Initialize Cluster and Add Nodes
+  hosts: all
+  become: yes
+  vars:
+    couchbase_admin_user: Administrator
+    couchbase_admin_pass: password
+    couchbase_cluster_name: MyCluster
+    couchbase_services: data
+    couchbase_ram_quota: 1024
+    couchbase_index_ram_quota: 256
+    couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
+    primary_node: "{{ groups['all'][0] }}"
+    couchbase_server_add_user: Administrator
+    couchbase_server_add_password: password
+    couchbase_server_add_services: data
+
+  tasks:
+    - name: Check if cluster is already initialized by running server-list
+      ansible.builtin.command: >
+        {{ couchbase_cli_path }} server-list
+        -c 127.0.0.1
+        -u {{ couchbase_admin_user }}
+        -p {{ couchbase_admin_pass }}
+      register: cluster_check
+      failed_when: false
 
     - name: Add node to Couchbase cluster (skip primary)
       ansible.builtin.command: >
@@ -52,10 +76,12 @@
         --username {{ couchbase_admin_user }}
         --password {{ couchbase_admin_pass }}
         --server-add {{ ansible_host | default(inventory_hostname) }}
-        --server-add-username {{ couchbase_admin_user }}
-        --server-add-password {{ couchbase_admin_pass }}
-        --services {{ couchbase_services }}
-      when: inventory_hostname != primary_node
+        --server-add-username {{ couchbase_server_add_user }}
+        --server-add-password {{ couchbase_server_add_password }}
+        --services {{ couchbase_server_add_services }}
+      when:
+        - inventory_hostname != primary_node
+        - cluster_check.rc != 0
 
     - name: Rebalance Couchbase cluster (run only on primary)
       ansible.builtin.command: >
@@ -63,4 +89,6 @@
         --cluster {{ hostvars[primary_node].ansible_host | default(primary_node) }}
         --username {{ couchbase_admin_user }}
         --password {{ couchbase_admin_pass }}
-      when: inventory_hostname == primary_node
+      when:
+        - inventory_hostname == primary_node
+        - cluster_check.rc != 0
