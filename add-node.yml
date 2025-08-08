@@ -1,0 +1,44 @@
+---
+- name: Install and Configure Couchbase Cluster
+  hosts: all
+  become: yes
+  vars:
+    couchbase_admin_user: Administrator
+    couchbase_admin_pass: password
+    couchbase_cluster_name: MyCluster
+    couchbase_services: data 
+    couchbase_ram_quota: 1024
+    couchbase_index_ram_quota: 256
+    couchbase_cli_path: /opt/couchbase/bin/couchbase-cli
+    primary_node: "{{ groups['all'][0] }}"
+
+  tasks:
+    - name: Download Couchbase release .deb package
+      ansible.builtin.get_url:
+        url: https://packages.couchbase.com/releases/couchbase-release/couchbase-release-1.0-noarch.deb
+        dest: /tmp/couchbase-release-1.0-noarch.deb
+
+    - name: Install Couchbase release package
+      ansible.builtin.apt:
+        deb: /tmp/couchbase-release-1.0-noarch.deb
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Couchbase Server Community Edition
+      ansible.builtin.apt:
+        name: couchbase-server
+        state: present
+
+    - name: Enable and start Couchbase service
+      ansible.builtin.service:
+        name: couchbase-server
+        enabled: yes
+        state: started
+
+    - name: Wait for Couchbase service to be available
+      ansible.builtin.wait_for:
+        port: 8091
+        host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+        timeout: 60
