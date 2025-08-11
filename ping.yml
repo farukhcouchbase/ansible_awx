@@ -1,17 +1,16 @@
 ---
-- name: Bootstrap Ubuntu EC2 instance and verify with ping
+- name: Bootstrap Ubuntu EC2 instance for Ansible
   hosts: all
   become: yes
-  gather_facts: false
+  gather_facts: false  # skip facts before Python is ready
 
   tasks:
-    - name: Install Python3 and pip3 using raw
-      raw: apt-get update && apt-get install -y python3 python3-pip
+    - name: Install Python 3, pip, and dependencies via apt
+      raw: |
+        apt-get update && \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-pip python3-six python3-setuptools python3-wheel
 
-    - name: Install six using raw (so Ansible modules can run)
-      raw: pip3 install six setuptools wheel
-
-    - name: Gather facts now that Python and six are installed
+    - name: Gather facts now that Python and dependencies are installed
       setup:
 
     - name: Verify connectivity with Ansible ping
