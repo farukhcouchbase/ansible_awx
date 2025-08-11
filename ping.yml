@@ -1,10 +1,23 @@
 ---
-- hosts: all
-  gather_facts: no
+- name: Bootstrap Ubuntu EC2 instance and verify with ping
+  hosts: all
+  become: yes
+  gather_facts: false  # Skip facts until Python is installed
+
   tasks:
-
     - name: Install Python 3 and pip
-      raw: sudo apt-get update && sudo apt-get install -y python3 python3-pip
+      raw: apt-get update && apt-get install -y python3 python3-pip
 
-    - name: Ping EC2
+    - name: Gather facts now that Python is installed
+      setup:
+
+    - name: Install Python packages required for Ansible
+      pip:
+        name:
+          - six
+          - setuptools
+          - wheel
+        executable: pip3
+
+    - name: Verify connectivity with Ansible ping
       ansible.builtin.ping:
