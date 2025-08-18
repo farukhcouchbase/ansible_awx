@@ -1,0 +1,62 @@
+- name: Couchbase Index Creation with Resource Check
+  hosts: 34.233.0.93
+  vars:
+    couchbase_host: "127.0.0.1"
+    couchbase_admin: "Admin"
+    couchbase_password: "redhat"
+    mail_to: "ritikredhat@gmail.com"
+    mail_from: "ritik.lodha.cn@gmail.com"
+
+  tasks:
+    - name: Get Couchbase cluster stats
+      uri:
+        url: "http://{{ couchbase_host }}:8091/pools/default"
+        method: GET
+        user: "{{ couchbase_admin }}"
+        password: "{{ couchbase_password }}"
+        force_basic_auth: yes
+        return_content: yes
+      register: cb_stats
+
+    - name: Parse node stats (using first node for demo)
+      set_fact:
+        cpu_util: "{{ cb_stats.json.nodes[0].systemStats.cpu_utilization | float }}"
+        mem_total: "{{ cb_stats.json.nodes[0].memoryTotal | float }}"
+        mem_free: "{{ cb_stats.json.nodes[0].memoryFree | float }}"
+        disk_total: "{{ cb_stats.json.nodes[0].diskTotal | float }}"
+        disk_free: "{{ cb_stats.json.nodes[0].diskFree | float }}"
+
+    - name: Calculate memory and disk utilization %
+      set_fact:
+        mem_util: "{{ (1 - (mem_free / mem_total)) * 100 | float }}"
+        disk_util: "{{ (1 - (disk_free / disk_total)) * 100 | float }}"
+
+    - name: Fail if utilization > 75%
+      fail:
+        msg: >
+          Blocking index creation - Utilization limits exceeded.
+          CPU={{ cpu_util|round(1) }}%, MEM={{ mem_util|round(1) }}%, DISK={{ disk_util|round(1) }}%
+      when: cpu_util > 75 or mem_util > 75 or disk_util > 75
+
+    - name: Send email alert if threshold exceeded
+      mail:
+        host: smtp.yourcompany.com
+        port: 25
+        from: "{{ mail_from }}"
+        to: "{{ mail_to }}"
+        subject: "Couchbase Index Creation Blocked"
+        body: >
+          Index creation was blocked due to high utilization:
+          CPU={{ cpu_util|round(1) }}%, MEM={{ mem_util|round(1) }}%, DISK={{ disk_util|round(1) }}%.
+      when: cpu_util > 75 or mem_util > 75 or disk_util > 75
+
+    - name: Run index creation only if healthy
+      command: >
+        couchbase-cli n1ql-query -c {{ couchbase_host }}:8091
+        -u {{ couchbase_admin }} -p {{ couchbase_password }}
+        --statement="CREATE INDEX idx_sample ON `bucket`(field);"
+      when: cpu_util <= 75 and mem_util <= 75 and disk_util <= 75
+
+
+
+
