@@ -4,7 +4,7 @@
   gather_facts: no
 
   vars:
-    couchbase_url: "http://34.233.0.93:8091//pools/default"
+    couchbase_url: "http://34.233.0.93:8091//pools/default"   # Changed to localhost
     couchbase_user: "Admin"       # 🔑 Update to your Couchbase admin
     couchbase_pass: "redhat"      # 🔑 Update to your Couchbase admin password
 
@@ -24,7 +24,7 @@
         return_content: yes
       register: clusterinfo
 
-    - name: Extract Index Memory Quota
+    - name: Extract Index Memory Quota (MB)
       set_fact:
         index_quota: "{{ clusterinfo.json.indexMemoryQuota | int }}"   # MB value
 
@@ -51,13 +51,13 @@
             (
               (index_usage_results[0] | int) /
               ((index_quota | int) * 1024 * 1024)
-            ) * 100
-            if (index_usage_results | length) > 0 else 0
+            ) * 100.0
+            if (index_usage_results | length) > 0 else 0.0
           }}
 
     - name: Debug | Show calculated usage percent
       debug:
-        msg: "Index usage percent = {{ usage_percent | round(2) }} % (Quota={{ index_quota }} MB)"
+        msg: "Index usage percent = {{ usage_percent | float | round(2) }} % (Quota={{ index_quota | int }} MB)"
 
     - name: Compute blocking condition
       set_fact:
@@ -74,7 +74,7 @@
 
     - name: Fail if usage exceeds threshold or unhealthy node found
       fail:
-        msg: "Blocking index creation: Index usage at {{ usage_percent | round(2) }}% (Quota={{ index_quota }} MB)"
+        msg: "Blocking index creation: Index usage at {{ usage_percent | float | round(2) }}% (Quota={{ index_quota | int }} MB)"
       when: block_triggered | bool
 
     - name: Send alert email if block triggered
@@ -88,8 +88,8 @@
           Couchbase monitoring detected that index service usage exceeded threshold
           or index node is unhealthy.
 
-          Current Usage: {{ usage_percent | round(2) }}%
-          Quota: {{ index_quota }} MB
+          Current Usage: {{ usage_percent | float | round(2) }}%
+          Quota: {{ index_quota | int }} MB
 
           Action: Index Creation BLOCKED
       when: block_triggered | bool
