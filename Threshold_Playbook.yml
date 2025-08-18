@@ -21,7 +21,7 @@
         return_content: yes
       register: cb_stats
 
-    - name: Debug cluster stats (optional)
+    - name: Debug cluster stats (first node) - optional
       debug:
         var: cb_stats.json.nodes[0]
       when: cb_stats.json.nodes is defined
@@ -29,18 +29,18 @@
     - name: Parse node stats (first node)
       set_fact:
         cpu_util: "{{ (cb_stats.json.nodes[0].systemStats.cpu_utilization_rate
-                      | default(cb_stats.json.nodes[0].systemStats.cpu_utilization)
-                      | default(cb_stats.json.nodes[0].interestingStats.cpu_utilization_rate)
-                      | default(0)) | float }}"
-        mem_total: "{{ (cb_stats.json.nodes[0].memoryTotal | default(1)) | float }}"
-        mem_free: "{{ (cb_stats.json.nodes[0].memoryFree  | default(0)) | float }}"
-        disk_total: "{{ (cb_stats.json.nodes[0].diskTotal | default(1)) | float }}"
-        disk_free: "{{ (cb_stats.json.nodes[0].diskFree  | default(0)) | float }}"
+                        | default(cb_stats.json.nodes[0].systemStats.cpu_utilization)
+                        | default(cb_stats.json.nodes[0].interestingStats.cpu_utilization_rate)
+                        | default(0)) | float }}"
+        mem_total: "{{ cb_stats.json.nodes[0].memoryTotal | default(1) }}"
+        mem_free: "{{ cb_stats.json.nodes[0].memoryFree  | default(0) }}"
+        disk_total: "{{ cb_stats.json.nodes[0].diskTotal | default(1) }}"
+        disk_free: "{{ cb_stats.json.nodes[0].diskFree  | default(0) }}"
 
     - name: Calculate memory and disk utilization %
       set_fact:
-        mem_util: "{{ (1 - (mem_free / mem_total)) * 100 }}"
-        disk_util: "{{ (1 - (disk_free / disk_total)) * 100 }}"
+        mem_util: "{{ (1 - (mem_free | float / mem_total | float)) * 100 }}"
+        disk_util: "{{ (1 - (disk_free | float / disk_total | float)) * 100 }}"
 
     - name: Fail and notify if utilization > 75%
       block:
