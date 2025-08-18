@@ -5,7 +5,7 @@
 
   vars:
     couchbase_url: "http://34.233.0.93:8091/pools/default"
-    couchbase_user: "admin"
+    couchbase_user: "Admin"
     couchbase_pass: "redhat"
     alert_email_from: "couchbase-alerts@company.com"
     alert_email_to: "db-team@company.com"
