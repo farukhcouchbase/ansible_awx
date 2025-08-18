@@ -52,9 +52,9 @@
     - name: Show utilization results
       debug:
         msg:
-          - "CPU: {{ cpu_util | round(2) }}%"
-          - "Memory Utilization: {{ mem_util | round(2) }}%"
-          - "Disk Utilization: {{ disk_util | round(2) }}%"
+          - "CPU: {{ (cpu_util | float) | round(2) }}%"
+          - "Memory Utilization: {{ (mem_util | float) | round(2) }}%"
+          - "Disk Utilization: {{ (disk_util | float) | round(2) }}%"
 
     - name: Fail and notify if utilization > thresholds
       block:
@@ -67,16 +67,16 @@
             subject: "Couchbase Index Creation Blocked"
             body: >
               Index creation was blocked due to high utilization:
-              CPU={{ cpu_util | round(1) }}%,
-              MEM={{ mem_util | round(1) }}%,
-              DISK={{ disk_util | round(1) }}%.
+              CPU={{ (cpu_util | float) | round(1) }}%,
+              MEM={{ (mem_util | float) | round(1) }}%,
+              DISK={{ (disk_util | float) | round(1) }}%.
         - name: Fail the play
           fail:
             msg: >
               Blocking index creation - Utilization limits exceeded.
-              CPU={{ cpu_util | round(1) }}%,
-              MEM={{ mem_util | round(1) }}%,
-              DISK={{ disk_util | round(1) }}%
+              CPU={{ (cpu_util | float) | round(1) }}%,
+              MEM={{ (mem_util | float) | round(1) }}%,
+              DISK={{ (disk_util | float) | round(1) }}%
       when: cpu_util > cpu_threshold or mem_util > mem_threshold or disk_util > disk_threshold
 
     - name: Run index creation only if healthy
