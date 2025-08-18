@@ -77,11 +77,15 @@
               CPU={{ (cpu_util | float) | round(1) }}%,
               MEM={{ (mem_util | float) | round(1) }}%,
               DISK={{ (disk_util | float) | round(1) }}%
-      when: cpu_util > cpu_threshold or mem_util > mem_threshold or disk_util > disk_threshold
+      when: (cpu_util | float) > cpu_threshold 
+            or (mem_util | float) > mem_threshold 
+            or (disk_util | float) > disk_threshold
 
     - name: Run index creation only if healthy
       command: >
         couchbase-cli n1ql-query -c {{ couchbase_host }}:8091
         -u {{ couchbase_admin }} -p {{ couchbase_password }}
         --statement="CREATE INDEX idx_sample ON `bucket`(field);"
-      when: cpu_util <= cpu_threshold and mem_util <= mem_threshold and disk_util <= disk_threshold
+      when: (cpu_util | float) <= cpu_threshold 
+            and (mem_util | float) <= mem_threshold 
+            and (disk_util | float) <= disk_threshold
