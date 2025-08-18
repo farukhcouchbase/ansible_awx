@@ -1,12 +1,13 @@
 ---
 - name: Couchbase Index Resource Guard
-  hosts: 34.233.0.93
+  hosts: localhost
   gather_facts: no
 
   vars:
     couchbase_url: "http://34.233.0.93:8091/pools/default"
-    couchbase_user: "Admin"
-    couchbase_pass: "redhat"
+    couchbase_user: "Admin"       # 👈 Update with your actual admin user
+    couchbase_pass: "redhat"  # 👈 Update with your actual admin password
+
     alert_email_from: "couchbase-alerts@company.com"
     alert_email_to: "db-team@company.com"
     alert_smtp_host: "smtp.company.com"
@@ -39,15 +40,25 @@
             | list
           }}
 
+    - name: Debug | Show raw index usage results per node
+      debug:
+        var: index_usage_results
+
     - name: Evaluate index usage percent
       set_fact:
         usage_percent: "{{ (index_usage_results[0] / (index_quota * 1024 * 1024)) * 100 if index_usage_results|length > 0 else 0 }}"
 
-    - name: Fail if usage exceeds 75% or unhealthy nodes
+    - name: Debug | Show calculated usage percent
+      debug:
+        msg: "Index usage percent = {{ usage_percent | round(2) }} % (Quota={{index_quota}} MB)"
+
+    - name: Fail if usage exceeds 75% or unhealthy index node found
       fail:
         msg: "Blocking index creation: Index usage at {{ usage_percent | round(2) }}% (Quota={{index_quota}} MB)"
       when: usage_percent | float >= 75 or
-            (clusterinfo.json.nodes | selectattr('services','contains','index') | selectattr('status','ne','healthy') | list | length > 0)
+            (clusterinfo.json.nodes |
+              selectattr('services','contains','index') |
+              selectattr('status','ne','healthy') | list | length > 0)
 
     - name: Send alert email if block triggered
       mail:
@@ -62,7 +73,9 @@
 
           Current Usage: {{ usage_percent | round(2) }}%
           Quota: {{ index_quota }} MB
-          Action: Index Creation BLOCKED
 
+          Action: Index Creation BLOCKED
       when: usage_percent | float >= 75 or
-            (clusterinfo.json.nodes | selectattr('services','contains','index') | selectattr('status','ne','healthy') | list | length > 0)
+            (clusterinfo.json.nodes |
+              selectattr('services','contains','index') |
+              selectattr('status','ne','healthy') | list | length > 0)
