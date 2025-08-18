@@ -49,6 +49,13 @@
           {{ (1 - (disk_free | float / disk_total | float)) * 100
              if (disk_total | float) > 0 else 0 }}
 
+    - name: Show utilization results
+      debug:
+        msg:
+          - "CPU: {{ cpu_util | round(2) }}%"
+          - "Memory Utilization: {{ mem_util | round(2) }}%"
+          - "Disk Utilization: {{ disk_util | round(2) }}%"
+
     - name: Fail and notify if utilization > thresholds
       block:
         - name: Send email alert if threshold exceeded
