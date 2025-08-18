@@ -5,8 +5,8 @@
 
   vars:
     couchbase_url: "http://34.233.0.93:8091/pools/default"
-    couchbase_user: "Admin"       # 👈 Update with your actual admin user
-    couchbase_pass: "redhat"  # 👈 Update with your actual admin password
+    couchbase_user: "Admin"       # 🔑 Update to your Couchbase admin
+    couchbase_pass: "redhat"  # 🔑 Update to your Couchbase admin password
 
     alert_email_from: "couchbase-alerts@company.com"
     alert_email_to: "db-team@company.com"
@@ -26,7 +26,7 @@
 
     - name: Extract Index Memory Quota
       set_fact:
-        index_quota: "{{ clusterinfo.json.indexMemoryQuota }}"
+        index_quota: "{{ clusterinfo.json.indexMemoryQuota | int }}"   # ✅ Force int
 
     - name: Calculate index usage per node
       set_fact:
@@ -50,11 +50,11 @@
 
     - name: Debug | Show calculated usage percent
       debug:
-        msg: "Index usage percent = {{ usage_percent | round(2) }} % (Quota={{index_quota}} MB)"
+        msg: "Index usage percent = {{ usage_percent | round(2) }} % (Quota={{ index_quota }} MB)"
 
     - name: Fail if usage exceeds 75% or unhealthy index node found
       fail:
-        msg: "Blocking index creation: Index usage at {{ usage_percent | round(2) }}% (Quota={{index_quota}} MB)"
+        msg: "Blocking index creation: Index usage at {{ usage_percent | round(2) }}% (Quota={{ index_quota }} MB)"
       when: usage_percent | float >= 75 or
             (clusterinfo.json.nodes |
               selectattr('services','contains','index') |
