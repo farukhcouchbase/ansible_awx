@@ -4,7 +4,7 @@
   gather_facts: no
 
   vars:
-    couchbase_url: "http://34.233.0.93:8091//pools/default"   # Changed to localhost
+    couchbase_url: "http://localhost:8091/pools/default"
     couchbase_user: "Admin"       # 🔑 Update to your Couchbase admin
     couchbase_pass: "redhat"      # 🔑 Update to your Couchbase admin password
 
@@ -26,7 +26,7 @@
 
     - name: Extract Index Memory Quota (MB)
       set_fact:
-        index_quota: "{{ clusterinfo.json.indexMemoryQuota | int }}"   # MB value
+        index_quota: "{{ clusterinfo.json.indexMemoryQuota | int }}"
 
     - name: Calculate index usage per node
       set_fact:
@@ -44,12 +44,12 @@
       debug:
         var: index_usage_results
 
-    - name: Evaluate index usage percent
+    - name: Evaluate total index usage percent across all nodes
       set_fact:
         usage_percent: >-
           {{
             (
-              (index_usage_results[0] | int) /
+              (index_usage_results | map('int') | sum) /
               ((index_quota | int) * 1024 * 1024)
             ) * 100.0
             if (index_usage_results | length) > 0 else 0.0
@@ -72,6 +72,22 @@
             )
           }}
 
+    # ------------------
+    # Clear Human Feedback
+    # ------------------
+    - name: Print status when under threshold and healthy
+      debug:
+        msg: "✅ Couchbase Index usage is SAFE: {{ usage_percent | float | round(2) }}% used (below 75% threshold). Cluster healthy."
+      when: not block_triggered | bool
+
+    - name: Print status when threshold exceeded or unhealthy
+      debug:
+        msg: "⚠️ ALERT: Couchbase Index usage HIGH at {{ usage_percent | float | round(2) }}% (Threshold=75%). Blocking further index creation!"
+      when: block_triggered | bool
+
+    # ------------------
+    # Fail & Notify if Issue
+    # ------------------
     - name: Fail if usage exceeds threshold or unhealthy node found
       fail:
         msg: "Blocking index creation: Index usage at {{ usage_percent | float | round(2) }}% (Quota={{ index_quota | int }} MB)"
