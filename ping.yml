@@ -1,14 +1,8 @@
 ---
-- name: Bootstrap Ubuntu EC2 instance for Ansible
-  hosts: all
-  become: yes
-  gather_facts: false  # skip facts before Python is ready
+- name: Test connectivity to hosts
+  hosts: all        # Or you can specify a group from your inventory (e.g., 'webservers')
+  gather_facts: no  # Not needed for a simple ping
 
   tasks:
-    - name: Install Python 3, pip, and dependencies via apt
-      raw: |
-        apt-get update && \
-        DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-pip python3-six python3-setuptools python3-wheel
-
-    - name: Verify connectivity with Ansible ping
-      ping:
+    - name: Ping all hosts
+      ansible.builtin.ping:
