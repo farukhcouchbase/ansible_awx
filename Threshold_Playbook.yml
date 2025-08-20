@@ -1,111 +1,82 @@
 ---
-- name: Couchbase Index Resource Guard
-  hosts: localhost
-  gather_facts: no
-
-  vars:
-    couchbase_url: "http://34.233.0.93:8091/pools/default"
-    couchbase_user: "Admin"       # 🔑 Update to your Couchbase admin
-    couchbase_pass: "redhat"      # 🔑 Update to your Couchbase admin password
-
-    alert_email_from: "couchbase-alerts@company.com"
-    alert_email_to: "db-team@company.com"
-    alert_smtp_host: "smtp.company.com"
+- name: Couchbase Quota and Memory Usage Check
+  hosts: all
+  gather_facts: false
 
   tasks:
-
-    - name: Fetch Couchbase cluster info
+    - name: Get JSON from Couchbase API with authentication
       uri:
-        url: "{{ couchbase_url }}"
+        url: "http://52.1.194.209:8091/pools/default"
         method: GET
-        user: "{{ couchbase_user }}"
-        password: "{{ couchbase_pass }}"
-        force_basic_auth: yes
         return_content: yes
-      register: clusterinfo
+        user: "Administrator"
+        password: "redhat"
+        force_basic_auth: yes
+      register: api_response
 
-    - name: Extract Index Memory Quota (MB)
-      set_fact:
-        index_quota: "{{ clusterinfo.json.indexMemoryQuota | int }}"
-
-    - name: Calculate index usage per node
-      set_fact:
-        index_usage_results: >-
-          {{
-            clusterinfo.json.nodes
-            | selectattr('services', 'contains', 'index')
-            | map(attribute='interestingStats.mem_used')
-            | map('default', 0)
-            | map('int')
-            | list
-          }}
-
-    - name: Debug | Show raw index usage results per node
+    - name: Show HTTP status
       debug:
-        var: index_usage_results
+        msg: "HTTP Status: {{ api_response.status }}"
 
-    - name: Evaluate total index usage percent across all nodes
+    - name: Print indexMemoryQuota (MB from Couchbase API)
+      debug:
+        msg: "Index Memory Quota (MB): {{ api_response.json.indexMemoryQuota | default('Key not found') }}"
+
+    # ✅ Convert quota MB -> bytes and calculate 75%
+    - name: Calculate 75% of indexMemoryQuota in bytes
       set_fact:
-        usage_percent: >-
-          {{
-            (
-              (index_usage_results | map('int') | sum) /
-              ((index_quota | int) * 1024 * 1024)
-            ) * 100.0
-            if (index_usage_results | length) > 0 else 0.0
-          }}
+        quota_75_bytes: "{{ (api_response.json.indexMemoryQuota | int * 1000000 * 0.75) | round(0) | int }}"
 
-    - name: Debug | Show calculated usage percent
+    - name: Print 75% of indexMemoryQuota (bytes and MiB)
       debug:
-        msg: "Index usage percent = {{ usage_percent | float | round(2) }} % (Quota={{ index_quota | int }} MB)"
+        msg: >
+          75% of Index Memory Quota:
+          {{ quota_75_bytes }} bytes
+          ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB)
 
-    - name: Compute blocking condition
+    - name: Get Couchbase index stats using curl
+      shell: >
+        curl -s -u Administrator:redhat http://localhost:9102/stats
+      register: stats_response
+
+    - name: Parse stats JSON
       set_fact:
-        block_triggered: >-
-          {{
-            (usage_percent | float >= 75.0) or
-            (
-              clusterinfo.json.nodes
-              | selectattr('services','contains','index')
-              | selectattr('status','ne','healthy')
-              | list | length > 0
-            )
-          }}
+        stats_json: "{{ stats_response.stdout | from_json }}"
 
-    # ------------------
-    # Clear Human Feedback
-    # ------------------
-    - name: Print status when under threshold and healthy
+    - name: Print memory_used (bytes)
       debug:
-        msg: "✅ Couchbase Index usage is SAFE: {{ usage_percent | float | round(2) }}% used (below 75% threshold). Cluster healthy."
-      when: not block_triggered | bool
+        msg: "Memory Used: {{ stats_json.memory_used | default('Key not found') }} bytes"
 
-    - name: Print status when threshold exceeded or unhealthy
+    # ✅ Convert memory_used into MiB for readability
+    - name: Convert memory_used into MiB
+      set_fact:
+        memory_used_mib: "{{ (stats_json.memory_used | int / 1024 / 1024) | round(2) }}"
+
+    - name: Print memory_used in MiB
       debug:
-        msg: "⚠️ ALERT: Couchbase Index usage HIGH at {{ usage_percent | float | round(2) }}% (Threshold=75%). Blocking further index creation!"
-      when: block_triggered | bool
+        msg: "Memory Used: {{ memory_used_mib }} MiB"
 
-    # ------------------
-    # Fail & Notify if Issue
-    # ------------------
-    - name: Fail if usage exceeds threshold or unhealthy node found
+    # ✅ Alert/fail condition
+    - name: Fail if memory_used exceeds 75% of quota
       fail:
-        msg: "Blocking index creation: Index usage at {{ usage_percent | float | round(2) }}% (Quota={{ index_quota | int }} MB)"
-      when: block_triggered | bool
+        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
+      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
 
-    - name: Send alert email if block triggered
-      mail:
-        host: "{{ alert_smtp_host }}"
-        port: 25
-        from: "{{ alert_email_from }}"
-        to: "{{ alert_email_to }}"
-        subject: "ALERT: Couchbase Index Creation Blocked"
-        body: |
-          Couchbase monitoring detected that index service usage exceeded threshold
-          or index node is unhealthy.
+    - name: Threshold safe check
+      debug:
+        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
+      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
 
-          Current Usage: {{ usage_percent | float | round(2) }}%
-          Quota: {{ index_quota | int }} MB
+    - name: Fail if memory_used exceeds 75% of quota
+      fail:
+        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
+      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
 
-          Action: Index Creation BLOCKED
-      when: block_triggered | bool
+    - name: Threshold safe check
+      debug:
+        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
+      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
+
+    - name: Ping to prove calculation works
+      ping:
+      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
