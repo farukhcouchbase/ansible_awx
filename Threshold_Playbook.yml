@@ -6,10 +6,10 @@
   tasks:
     - name: Get JSON from Couchbase API with authentication
       uri:
-        url: "http://52.1.194.209:8091/pools/default"
+        url: "http://127.0.0.1:8091/pools/default"
         method: GET
         return_content: yes
-        user: "Administrator"
+        user: "Admin"
         password: "redhat"
         force_basic_auth: yes
       register: api_response
@@ -36,7 +36,7 @@
 
     - name: Get Couchbase index stats using curl
       shell: >
-        curl -s -u Administrator:redhat http://localhost:9102/stats
+        curl -s -u Admin:redhat http://localhost:9102/stats
       register: stats_response
 
     - name: Parse stats JSON
@@ -79,4 +79,38 @@
 
     - name: Ping to prove calculation works
       ping:
+      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
+    
+    - name: Send ALERT notification to EmailHook if threshold exceeded
+      uri:
+        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          subject: "🚨 Couchbase Memory Alert on {{ inventory_hostname }}"
+          body: >
+            ALERT: Memory usage is above threshold!
+            Current Memory: {{ memory_used_mib }} MiB
+            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
+            Host: {{ inventory_hostname }}
+            Status: ❌ Index creation is blocked.
+      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
+
+    - name: Send OK notification to EmailHook if memory usage is under control
+      uri:
+        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          subject: "✅ Couchbase Memory OK on {{ inventory_hostname }}"
+          body: >
+            All good ✔ Memory usage is within safe limits.
+            Current Memory: {{ memory_used_mib }} MiB
+            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
+            Host: {{ inventory_hostname }}
+            Status: ✅ Index creation/build is allowed.
       when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
