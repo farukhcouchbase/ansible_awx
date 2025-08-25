@@ -5,10 +5,11 @@
 
   tasks:
     - name: Ping the server
-      ansible.builtin.ping
+      ansible.builtin.ping:
 
     - name: Print hostname
-      ansible.builtin.command: hostname
+      ansible.builtin.command:
+        cmd: hostname
       register: host_name
 
     - name: Show hostname
