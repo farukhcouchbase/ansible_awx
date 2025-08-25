@@ -1,15 +1,16 @@
 ---
-- name: Ensure Python dependencies are present
+- name: Simple test playbook
   hosts: all
-  become: yes
-  tasks:
-    - name: Ensure pip is installed
-      apt:
-        name: python3-pip
-        state: present
-        update_cache: yes
+  gather_facts: false
 
-    - name: Ensure six is installed
-      pip:
-        name: six
-        executable: pip3
+  tasks:
+    - name: Ping the server
+      ansible.builtin.ping
+
+    - name: Print hostname
+      ansible.builtin.command: hostname
+      register: host_name
+
+    - name: Show hostname
+      ansible.builtin.debug:
+        msg: "This server's hostname is {{ host_name.stdout }}"
