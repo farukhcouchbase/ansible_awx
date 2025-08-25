@@ -3,6 +3,9 @@
   hosts: all
   gather_facts: false
 
+  vars:
+    quota_threshold: 0.75   # ✅ Change this to 0.8, 0.9, etc.
+
   tasks:
     - name: Get JSON from Couchbase API with authentication
       uri:
@@ -22,17 +25,17 @@
       debug:
         msg: "Index Memory Quota (MB): {{ api_response.json.indexMemoryQuota | default('Key not found') }}"
 
-    # ✅ Convert quota MB -> bytes and calculate 75%
-    - name: Calculate 75% of indexMemoryQuota in bytes
+    # ✅ Convert quota MB -> bytes and apply threshold
+    - name: Calculate threshold of indexMemoryQuota in bytes
       set_fact:
-        quota_75_bytes: "{{ (api_response.json.indexMemoryQuota | int * 1000000 * 0.75) | round(0) | int }}"
+        quota_limit_bytes: "{{ (api_response.json.indexMemoryQuota | int * 1000000 * quota_threshold) | round(0) | int }}"
 
-    - name: Print 75% of indexMemoryQuota (bytes and MiB)
+    - name: Print threshold (bytes and MiB)
       debug:
         msg: >
-          75% of Index Memory Quota:
-          {{ quota_75_bytes }} bytes
-          ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB)
+          {{ (quota_threshold * 100) | int }}% of Index Memory Quota:
+          {{ quota_limit_bytes }} bytes
+          ({{ (quota_limit_bytes | int / 1024 / 1024) | round(2) }} MiB)
 
     - name: Get Couchbase index stats using curl
       shell: >
@@ -47,7 +50,6 @@
       debug:
         msg: "Memory Used: {{ stats_json.memory_used | default('Key not found') }} bytes"
 
-    # ✅ Convert memory_used into MiB for readability
     - name: Convert memory_used into MiB
       set_fact:
         memory_used_mib: "{{ (stats_json.memory_used | int / 1024 / 1024) | round(2) }}"
@@ -57,30 +59,20 @@
         msg: "Memory Used: {{ memory_used_mib }} MiB"
 
     # ✅ Alert/fail condition
-    - name: Fail if memory_used exceeds 75% of quota
+    - name: Fail if memory_used exceeds threshold
       debug:
-        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
-      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
+        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded {{ (quota_threshold * 100) | int }}% of quota ({{ (quota_limit_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
+      when: (stats_json.memory_used | int) > (quota_limit_bytes | int)
 
     - name: Threshold safe check
       debug:
-        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
-
-    - name: Fail if memory_used exceeds 75% of quota
-      debug:
-        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
-      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
-
-    - name: Threshold safe check
-      debug:
-        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
+        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below {{ (quota_threshold * 100) | int }}% of quota ({{ (quota_limit_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
+      when: (stats_json.memory_used | int) <= (quota_limit_bytes | int)
 
     - name: Ping to prove calculation works
       ping:
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
-    
+      when: (stats_json.memory_used | int) <= (quota_limit_bytes | int)
+
     - name: Send ALERT notification to EmailHook if threshold exceeded
       uri:
         url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
@@ -93,10 +85,10 @@
           body: >
             ALERT: Memory usage is above threshold!
             Current Memory: {{ memory_used_mib }} MiB
-            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
+            Threshold ({{ (quota_threshold * 100) | int }}% quota): {{ ((quota_limit_bytes | int) / 1024 / 1024) | round(2) }} MiB
             Host: {{ inventory_hostname }}
             Status: ❌ Index creation is blocked.
-      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
+      when: (stats_json.memory_used | int) > (quota_limit_bytes | int)
 
     - name: Send OK notification to EmailHook if memory usage is under control
       uri:
@@ -110,7 +102,7 @@
           body: >
             All good ✔ Memory usage is within safe limits.
             Current Memory: {{ memory_used_mib }} MiB
-            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
+            Threshold ({{ (quota_threshold * 100) | int }}% quota): {{ ((quota_limit_bytes | int) / 1024 / 1024) | round(2) }} MiB
             Host: {{ inventory_hostname }}
             Status: ✅ Index creation/build is allowed.
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
+      when: (stats_json.memory_used | int) <= (quota_limit_bytes | int)
