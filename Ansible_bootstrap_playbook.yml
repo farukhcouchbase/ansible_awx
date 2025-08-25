@@ -1,0 +1,15 @@
+---
+- name: Ensure Python dependencies are present
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure pip is installed
+      apt:
+        name: python3-pip
+        state: present
+        update_cache: yes
+
+    - name: Ensure six is installed
+      pip:
+        name: six
+        executable: pip3
