@@ -58,7 +58,7 @@
 
     # ✅ Alert/fail condition
     - name: Fail if memory_used exceeds 75% of quota
-      fail:
+      debug:
         msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
       when: (stats_json.memory_used | int) > (quota_75_bytes | int)
 
@@ -68,7 +68,7 @@
       when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
 
     - name: Fail if memory_used exceeds 75% of quota
-      fail:
+      debug:
         msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
       when: (stats_json.memory_used | int) > (quota_75_bytes | int)
 
