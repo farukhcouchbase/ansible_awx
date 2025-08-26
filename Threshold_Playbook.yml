@@ -64,11 +64,13 @@
       set_fact:
         stats_json: "{{ stats_response.stdout | default('{}') | from_json }}"
 
-    - name: Extract index quota and memory used (safe default)
+    # Step 2a: Extract quota and memory used
+    - name: Set index quota and memory used
       set_fact:
         index_quota_bytes: "{{ ((api_response.json.indexMemoryQuota | default(default_index_quota_mb) | int) * 1000000) | int }}"
         index_memory_used_bytes: "{{ stats_json.memory_used | default(0) | int }}"
 
+    # Step 2b: Calculate threshold and convert to MiB
     - name: Calculate index threshold and convert to MiB
       set_fact:
         index_quota_threshold_bytes: "{{ ((index_quota_bytes | int) * (quota_threshold | float)) | round(0) | int }}"
@@ -142,7 +144,10 @@
       set_fact:
         disk_used_bytes: "{{ api_response.json.storageTotals.hdd.used | default(default_disk_used_bytes) | int }}"
         disk_total_bytes: "{{ api_response.json.storageTotals.hdd.total | default(default_disk_total_bytes) | int }}"
-        disk_used_percent: "{{ ((disk_used_bytes | int / disk_total_bytes | int) * 100) | round(2) }}"
+
+    - name: Calculate disk usage percentage
+      set_fact:
+        disk_used_percent: "{{ ((disk_used_bytes | float / disk_total_bytes | float) * 100) | round(2) }}"
         disk_threshold_percent: "{{ (disk_threshold * 100) | float }}"
 
     - name: Debug Disk usage
