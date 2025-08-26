@@ -1,5 +1,5 @@
 ---
-- name: Couchbase Monitoring - Index, CPU, and Disk Usage
+- name: Couchbase Monitoring - Index, CPU, and Disk Usage (Safe Defaults)
   hosts: all
   gather_facts: false
 
@@ -14,16 +14,24 @@
     index_stats_port: 9102
 
     # ------------------------
-    # Thresholds (as fraction of quota or %)
+    # Thresholds (fraction or %)
     # ------------------------
-    quota_threshold: 0.75       # 75% by default
-    cpu_threshold: 0.75         # 75% CPU usage
-    disk_threshold: 0.75        # 75% disk usage
+    quota_threshold: 0.75       # Index memory usage threshold
+    cpu_threshold: 0.75         # CPU usage threshold
+    disk_threshold: 0.75        # Disk usage threshold
 
     # ------------------------
     # Webhook for notifications
     # ------------------------
     webhook_url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+
+    # ------------------------
+    # Safe defaults if API returns nothing
+    # ------------------------
+    default_index_quota_mb: 256
+    default_cpu_percent: 0
+    default_disk_total_bytes: 1
+    default_disk_used_bytes: 0
 
   tasks:
 
@@ -40,9 +48,9 @@
         force_basic_auth: yes
       register: api_response
 
-    - name: Show HTTP status
+    - name: Show cluster JSON (debug)
       debug:
-        msg: "HTTP Status: {{ api_response.status }}"
+        var: api_response.json
 
     # ------------------------
     # Step 2: INDEX MEMORY USAGE
@@ -50,36 +58,34 @@
     - name: Get Couchbase index stats using curl
       shell: "curl -s -u {{ couchbase_user }}:{{ couchbase_password }} http://localhost:{{ index_stats_port }}/stats"
       register: stats_response
+      ignore_errors: yes
 
     - name: Parse index stats JSON
       set_fact:
-        stats_json: "{{ stats_response.stdout | from_json }}"
+        stats_json: "{{ stats_response.stdout | default('{}') | from_json }}"
 
-    - name: Extract index quota and usage
+    - name: Extract index quota and usage (with safe defaults)
       set_fact:
-        index_quota_bytes: "{{ api_response.json.indexMemoryQuota | int * 1000000 }}"
+        index_quota_bytes: "{{ (api_response.json.indexMemoryQuota | default(default_index_quota_mb) | int) * 1000000 }}"
         index_quota_threshold_bytes: "{{ (index_quota_bytes * quota_threshold) | round(0) | int }}"
-        index_memory_used_bytes: "{{ stats_json.memory_used | int }}"
+        index_memory_used_bytes: "{{ stats_json.memory_used | default(0) | int }}"
         index_memory_used_mib: "{{ (index_memory_used_bytes / 1024 / 1024) | round(2) }}"
         index_quota_threshold_mib: "{{ (index_quota_threshold_bytes / 1024 / 1024) | round(2) }}"
 
     - name: Debug index usage
       debug:
-        msg: >
-          Index Memory Used: {{ index_memory_used_mib }} MiB
-          Threshold: {{ index_quota_threshold_mib }} MiB
+        msg: "Index Memory Used: {{ index_memory_used_mib }} MiB (Threshold: {{ index_quota_threshold_mib }} MiB)"
 
-    - name: Alert if Index memory exceeds threshold
+    - name: Index Memory ALERT/OK
       debug:
-        msg: "❌ ALERT: Index Memory usage ({{ index_memory_used_mib }} MiB) exceeds threshold ({{ index_quota_threshold_mib }} MiB)!"
-      when: index_memory_used_bytes > index_quota_threshold_bytes
+        msg: >-
+          {% if index_memory_used_bytes > index_quota_threshold_bytes %}
+          ❌ ALERT: Index Memory usage exceeds threshold!
+          {% else %}
+          ✅ Index Memory usage is within safe limits.
+          {% endif %}
 
-    - name: OK if Index memory under threshold
-      debug:
-        msg: "✅ Index Memory usage ({{ index_memory_used_mib }} MiB) is under threshold ({{ index_quota_threshold_mib }} MiB)."
-      when: index_memory_used_bytes <= index_quota_threshold_bytes
-
-    - name: Send Index Memory ALERT to webhook
+    - name: Send Index Memory notification
       uri:
         url: "{{ webhook_url }}"
         method: POST
@@ -87,51 +93,34 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          subject: "🚨 Couchbase Index Memory Alert on {{ inventory_hostname }}"
+          subject: "{% if index_memory_used_bytes > index_quota_threshold_bytes %}🚨 Couchbase Index Memory Alert{% else %}✅ Couchbase Index Memory OK{% endif %} on {{ inventory_hostname }}"
           body: >
-            ALERT: Index memory usage is above threshold!
-            Used: {{ index_memory_used_mib }} MiB
+            Index Memory Usage: {{ index_memory_used_mib }} MiB
             Threshold: {{ index_quota_threshold_mib }} MiB
-      when: index_memory_used_bytes > index_quota_threshold_bytes
-
-    - name: Send Index Memory OK notification to webhook
-      uri:
-        url: "{{ webhook_url }}"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "✅ Couchbase Index Memory OK on {{ inventory_hostname }}"
-          body: >
-            Index memory usage is within safe limits.
-            Used: {{ index_memory_used_mib }} MiB
-            Threshold: {{ index_quota_threshold_mib }} MiB
-      when: index_memory_used_bytes <= index_quota_threshold_bytes
+      when: index_memory_used_bytes is defined
 
     # ------------------------
     # Step 3: CPU USAGE
     # ------------------------
-    - name: Extract CPU usage from JSON (max across nodes)
+    - name: Extract CPU usage (max across nodes) with safe default
       set_fact:
-        cpu_used_percent: "{{ api_response.json.nodes | map(attribute='systemStats.cpu_utilization_rate') | max }}"
+        cpu_used_percent: "{{ api_response.json.nodes | default([]) | map(attribute='systemStats.cpu_utilization_rate') | list | max | default(default_cpu_percent) }}"
         cpu_threshold_percent: "{{ cpu_threshold * 100 }}"
 
     - name: Debug CPU usage
       debug:
         msg: "CPU Usage: {{ cpu_used_percent }}% (Threshold: {{ cpu_threshold_percent }}%)"
 
-    - name: Alert if CPU exceeds threshold
+    - name: CPU ALERT/OK
       debug:
-        msg: "❌ ALERT: CPU usage ({{ cpu_used_percent }}%) exceeds threshold ({{ cpu_threshold_percent }}%)!"
-      when: cpu_used_percent > cpu_threshold_percent
+        msg: >-
+          {% if cpu_used_percent > cpu_threshold_percent %}
+          ❌ ALERT: CPU usage exceeds threshold!
+          {% else %}
+          ✅ CPU usage is within safe limits.
+          {% endif %}
 
-    - name: OK if CPU under threshold
-      debug:
-        msg: "✅ CPU usage ({{ cpu_used_percent }}%) is under threshold ({{ cpu_threshold_percent }}%)."
-      when: cpu_used_percent <= cpu_threshold_percent
-
-    - name: Send CPU ALERT to webhook
+    - name: Send CPU notification
       uri:
         url: "{{ webhook_url }}"
         method: POST
@@ -139,35 +128,18 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          subject: "🚨 Couchbase CPU Alert on {{ inventory_hostname }}"
+          subject: "{% if cpu_used_percent > cpu_threshold_percent %}🚨 Couchbase CPU Alert{% else %}✅ Couchbase CPU OK{% endif %} on {{ inventory_hostname }}"
           body: >
-            ALERT: CPU usage is above threshold!
             CPU Usage: {{ cpu_used_percent }}%
             Threshold: {{ cpu_threshold_percent }}%
-      when: cpu_used_percent > cpu_threshold_percent
-
-    - name: Send CPU OK notification to webhook
-      uri:
-        url: "{{ webhook_url }}"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "✅ Couchbase CPU OK on {{ inventory_hostname }}"
-          body: >
-            CPU usage is within safe limits.
-            CPU Usage: {{ cpu_used_percent }}%
-            Threshold: {{ cpu_threshold_percent }}%
-      when: cpu_used_percent <= cpu_threshold_percent
 
     # ------------------------
     # Step 4: DISK USAGE
     # ------------------------
-    - name: Extract Disk usage from JSON
+    - name: Extract Disk usage from JSON (safe defaults)
       set_fact:
-        disk_used_bytes: "{{ api_response.json.storageTotals.hdd.used }}"
-        disk_total_bytes: "{{ api_response.json.storageTotals.hdd.total }}"
+        disk_used_bytes: "{{ api_response.json.storageTotals.hdd.used | default(default_disk_used_bytes) }}"
+        disk_total_bytes: "{{ api_response.json.storageTotals.hdd.total | default(default_disk_total_bytes) }}"
         disk_used_percent: "{{ (disk_used_bytes / disk_total_bytes * 100) | round(2) }}"
         disk_threshold_percent: "{{ disk_threshold * 100 }}"
 
@@ -175,17 +147,16 @@
       debug:
         msg: "Disk Usage: {{ disk_used_percent }}% (Threshold: {{ disk_threshold_percent }}%)"
 
-    - name: Alert if Disk exceeds threshold
+    - name: Disk ALERT/OK
       debug:
-        msg: "❌ ALERT: Disk usage ({{ disk_used_percent }}%) exceeds threshold ({{ disk_threshold_percent }}%)!"
-      when: disk_used_percent > disk_threshold_percent
+        msg: >-
+          {% if disk_used_percent > disk_threshold_percent %}
+          ❌ ALERT: Disk usage exceeds threshold!
+          {% else %}
+          ✅ Disk usage is within safe limits.
+          {% endif %}
 
-    - name: OK if Disk under threshold
-      debug:
-        msg: "✅ Disk usage ({{ disk_used_percent }}%) is under threshold ({{ disk_threshold_percent }}%)."
-      when: disk_used_percent <= disk_threshold_percent
-
-    - name: Send Disk ALERT to webhook
+    - name: Send Disk notification
       uri:
         url: "{{ webhook_url }}"
         method: POST
@@ -193,24 +164,7 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          subject: "🚨 Couchbase Disk Alert on {{ inventory_hostname }}"
+          subject: "{% if disk_used_percent > disk_threshold_percent %}🚨 Couchbase Disk Alert{% else %}✅ Couchbase Disk OK{% endif %} on {{ inventory_hostname }}"
           body: >
-            ALERT: Disk usage is above threshold!
             Disk Usage: {{ disk_used_percent }}%
             Threshold: {{ disk_threshold_percent }}%
-      when: disk_used_percent > disk_threshold_percent
-
-    - name: Send Disk OK notification to webhook
-      uri:
-        url: "{{ webhook_url }}"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "✅ Couchbase Disk OK on {{ inventory_hostname }}"
-          body: >
-            Disk usage is within safe limits.
-            Disk Usage: {{ disk_used_percent }}%
-            Threshold: {{ disk_threshold_percent }}%
-      when: disk_used_percent <= disk_threshold_percent
