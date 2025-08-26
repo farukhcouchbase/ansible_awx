@@ -1,177 +1,116 @@
 ---
-- name: Couchbase Monitoring - Index, CPU, and Disk Usage (Safe Defaults)
+- name: Couchbase Quota and Memory Usage Check
   hosts: all
   gather_facts: false
 
-  vars:
-    # ------------------------
-    # Couchbase Credentials & API
-    # ------------------------
-    couchbase_user: "Admin"
-    couchbase_password: "redhat"
-    couchbase_host: "127.0.0.1"
-    couchbase_port: 8091
-    index_stats_port: 9102
-
-    # ------------------------
-    # Thresholds (fraction or %)
-    # ------------------------
-    quota_threshold: 0.75       # Index memory usage threshold
-    cpu_threshold: 0.75         # CPU usage threshold
-    disk_threshold: 0.75        # Disk usage threshold
-
-    # ------------------------
-    # Webhook for notifications
-    # ------------------------
-    webhook_url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-
-    # ------------------------
-    # Safe defaults if API returns nothing
-    # ------------------------
-    default_index_quota_mb: 256
-    default_cpu_percent: 0
-    default_disk_total_bytes: 1
-    default_disk_used_bytes: 0
-
   tasks:
-
-    # ------------------------
-    # Step 1: Fetch Couchbase Cluster Info
-    # ------------------------
-    - name: Get Couchbase cluster JSON
+    - name: Get JSON from Couchbase API with authentication
       uri:
-        url: "http://{{ couchbase_host }}:{{ couchbase_port }}/pools/default"
+        url: "http://127.0.0.1:8091/pools/default"
         method: GET
         return_content: yes
-        user: "{{ couchbase_user }}"
-        password: "{{ couchbase_password }}"
+        user: "Admin"
+        password: "redhat"
         force_basic_auth: yes
       register: api_response
 
-    - name: Show cluster JSON (debug)
+    - name: Show HTTP status
       debug:
-        var: api_response.json
+        msg: "HTTP Status: {{ api_response.status }}"
 
-    # ------------------------
-    # Step 2: INDEX MEMORY USAGE
-    # ------------------------
+    - name: Print indexMemoryQuota (MB from Couchbase API)
+      debug:
+        msg: "Index Memory Quota (MB): {{ api_response.json.indexMemoryQuota | default('Key not found') }}"
+
+    # ✅ Convert quota MB -> bytes and calculate 75%
+    - name: Calculate 75% of indexMemoryQuota in bytes
+      set_fact:
+        quota_75_bytes: "{{ (api_response.json.indexMemoryQuota | int * 1000000 * 0.75) | round(0) | int }}"
+
+    - name: Print 75% of indexMemoryQuota (bytes and MiB)
+      debug:
+        msg: >
+          75% of Index Memory Quota:
+          {{ quota_75_bytes }} bytes
+          ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB)
+
     - name: Get Couchbase index stats using curl
-      shell: "curl -s -u {{ couchbase_user }}:{{ couchbase_password }} http://localhost:{{ index_stats_port }}/stats"
+      shell: >
+        curl -s -u Admin:redhat http://localhost:9102/stats
       register: stats_response
-      ignore_errors: yes
 
-    - name: Parse index stats JSON safely
+    - name: Parse stats JSON
       set_fact:
-        stats_json: "{{ stats_response.stdout | default('{}') | from_json }}"
+        stats_json: "{{ stats_response.stdout | from_json }}"
 
-    # Step 2a: Extract quota and memory used safely
-    - name: Set index quota and memory used
-      set_fact:
-        index_quota_bytes: "{{ ((api_response.json.indexMemoryQuota | default(default_index_quota_mb)) | int * 1000000) | int }}"
-        index_memory_used_bytes: "{{ stats_json.memory_used | default(0) | int }}"
-
-    # Step 2b: Calculate threshold and convert to MiB safely
-    - name: Calculate index threshold and convert to MiB
-      set_fact:
-        index_quota_threshold_bytes: "{{ ((index_quota_bytes | default(default_index_quota_mb * 1000000)) | int * (quota_threshold | float)) | round(0) | int }}"
-        index_memory_used_mib: "{{ (index_memory_used_bytes | int / 1024 / 1024) | round(2) }}"
-        index_quota_threshold_mib: "{{ (index_quota_threshold_bytes | int / 1024 / 1024) | round(2) }}"
-
-    - name: Debug index usage
+    - name: Print memory_used (bytes)
       debug:
-        msg: "Index Memory Used: {{ index_memory_used_mib }} MiB (Threshold: {{ index_quota_threshold_mib }} MiB)"
+        msg: "Memory Used: {{ stats_json.memory_used | default('Key not found') }} bytes"
 
-    - name: Index Memory ALERT/OK
+    # ✅ Convert memory_used into MiB for readability
+    - name: Convert memory_used into MiB
+      set_fact:
+        memory_used_mib: "{{ (stats_json.memory_used | int / 1024 / 1024) | round(2) }}"
+
+    - name: Print memory_used in MiB
       debug:
-        msg: >-
-          {% if index_memory_used_bytes > index_quota_threshold_bytes %}
-          ❌ ALERT: Index Memory usage exceeds threshold!
-          {% else %}
-          ✅ Index Memory usage is within safe limits.
-          {% endif %}
+        msg: "Memory Used: {{ memory_used_mib }} MiB"
 
-    - name: Send Index Memory notification to webhook
+    # ✅ Alert/fail condition
+    - name: Fail if memory_used exceeds 75% of quota
+      debug:
+        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
+      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
+
+    - name: Threshold safe check
+      debug:
+        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
+      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
+
+    - name: Fail if memory_used exceeds 75% of quota
+      debug:
+        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
+      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
+
+    - name: Threshold safe check
+      debug:
+        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
+      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
+
+    - name: Ping to prove calculation works
+      ping:
+      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
+    
+    - name: Send ALERT notification to EmailHook if threshold exceeded
       uri:
-        url: "{{ webhook_url }}"
+        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
         method: POST
         headers:
           Content-Type: "application/json"
         body_format: json
         body:
-          subject: "{% if index_memory_used_bytes > index_quota_threshold_bytes %}🚨 Couchbase Index Memory Alert{% else %}✅ Couchbase Index Memory OK{% endif %} on {{ inventory_hostname }}"
+          subject: "🚨 Couchbase Memory Alert on {{ inventory_hostname }}"
           body: >
-            Index Memory Usage: {{ index_memory_used_mib }} MiB
-            Threshold: {{ index_quota_threshold_mib }} MiB
+            ALERT: Memory usage is above threshold!
+            Current Memory: {{ memory_used_mib }} MiB
+            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
+            Host: {{ inventory_hostname }}
+            Status: ❌ Index creation is blocked.
+      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
 
-    # ------------------------
-    # Step 3: CPU USAGE
-    # ------------------------
-    - name: Extract CPU usage safely (max across nodes)
-      set_fact:
-        cpu_used_percent: "{{ api_response.json.nodes | default([]) | map(attribute='systemStats.cpu_utilization_rate') | list | max | default(default_cpu_percent) | float }}"
-        cpu_threshold_percent: "{{ (cpu_threshold * 100) | float }}"
-
-    - name: Debug CPU usage
-      debug:
-        msg: "CPU Usage: {{ cpu_used_percent }}% (Threshold: {{ cpu_threshold_percent }}%)"
-
-    - name: CPU ALERT/OK
-      debug:
-        msg: >-
-          {% if cpu_used_percent > cpu_threshold_percent %}
-          ❌ ALERT: CPU usage exceeds threshold!
-          {% else %}
-          ✅ CPU usage is within safe limits.
-          {% endif %}
-
-    - name: Send CPU notification to webhook
+    - name: Send OK notification to EmailHook if memory usage is under control
       uri:
-        url: "{{ webhook_url }}"
+        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
         method: POST
         headers:
           Content-Type: "application/json"
         body_format: json
         body:
-          subject: "{% if cpu_used_percent > cpu_threshold_percent %}🚨 Couchbase CPU Alert{% else %}✅ Couchbase CPU OK{% endif %} on {{ inventory_hostname }}"
+          subject: "✅ Couchbase Memory OK on {{ inventory_hostname }}"
           body: >
-            CPU Usage: {{ cpu_used_percent }}%
-            Threshold: {{ cpu_threshold_percent }}%
-
-    # ------------------------
-    # Step 4: DISK USAGE
-    # ------------------------
-    - name: Extract Disk usage safely from JSON
-      set_fact:
-        disk_used_bytes: "{{ api_response.json.storageTotals.hdd.used | default(default_disk_used_bytes) | int }}"
-        disk_total_bytes: "{{ api_response.json.storageTotals.hdd.total | default(default_disk_total_bytes) | int }}"
-
-    - name: Calculate disk usage percentage safely
-      set_fact:
-        disk_used_percent: "{{ ((disk_used_bytes | float / disk_total_bytes | float) * 100) | round(2) }}"
-        disk_threshold_percent: "{{ (disk_threshold * 100) | float }}"
-
-    - name: Debug Disk usage
-      debug:
-        msg: "Disk Usage: {{ disk_used_percent }}% (Threshold: {{ disk_threshold_percent }}%)"
-
-    - name: Disk ALERT/OK
-      debug:
-        msg: >-
-          {% if disk_used_percent > disk_threshold_percent %}
-          ❌ ALERT: Disk usage exceeds threshold!
-          {% else %}
-          ✅ Disk usage is within safe limits.
-          {% endif %}
-
-    - name: Send Disk notification to webhook
-      uri:
-        url: "{{ webhook_url }}"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "{% if disk_used_percent > disk_threshold_percent %}🚨 Couchbase Disk Alert{% else %}✅ Couchbase Disk OK{% endif %} on {{ inventory_hostname }}"
-          body: >
-            Disk Usage: {{ disk_used_percent }}%
-            Threshold: {{ disk_threshold_percent }}%
+            All good ✔ Memory usage is within safe limits.
+            Current Memory: {{ memory_used_mib }} MiB
+            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
+            Host: {{ inventory_hostname }}
+            Status: ✅ Index creation/build is allowed.
+      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
