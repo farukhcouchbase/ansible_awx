@@ -22,7 +22,6 @@
       debug:
         msg: "Index Memory Quota (MB): {{ api_response.json.indexMemoryQuota | default('Key not found') }}"
 
-    # ✅ Convert quota MB -> bytes and calculate 75%
     - name: Calculate 75% of indexMemoryQuota in bytes
       set_fact:
         quota_75_bytes: "{{ (api_response.json.indexMemoryQuota | int * 1000000 * 0.75) | round(0) | int }}"
@@ -47,7 +46,6 @@
       debug:
         msg: "Memory Used: {{ stats_json.memory_used | default('Key not found') }} bytes"
 
-    # ✅ Convert memory_used into MiB for readability
     - name: Convert memory_used into MiB
       set_fact:
         memory_used_mib: "{{ (stats_json.memory_used | int / 1024 / 1024) | round(2) }}"
@@ -55,17 +53,6 @@
     - name: Print memory_used in MiB
       debug:
         msg: "Memory Used: {{ memory_used_mib }} MiB"
-
-    # ✅ Alert/fail condition
-    - name: Fail if memory_used exceeds 75% of quota
-      debug:
-        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
-      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
-
-    - name: Threshold safe check
-      debug:
-        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
 
     - name: Fail if memory_used exceeds 75% of quota
       debug:
@@ -114,3 +101,54 @@
             Host: {{ inventory_hostname }}
             Status: ✅ Index creation/build is allowed.
       when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
+
+    - name: Set CPU threshold
+      set_fact:
+        cpu_threshold: 75
+
+    - name: Print CPU utilization per node
+      debug:
+        msg: "Node {{ item.hostname }} CPU Utilization: {{ item.systemStats.cpu_utilization_rate }}%"
+      loop: "{{ api_response.json.nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+
+    - name: Send CPU ALERT notification to EmailHook
+      uri:
+        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          subject: "🚨 Couchbase CPU Alert on {{ inventory_hostname }}"
+          body: >
+            ALERT: CPU usage is above threshold!
+            Node: {{ item.hostname }}
+            Current CPU: {{ item.systemStats.cpu_utilization_rate }}%
+            Threshold: {{ cpu_threshold }}%
+            Status: ❌ High CPU usage detected.
+      loop: "{{ api_response.json.nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      when: item.systemStats.cpu_utilization_rate | float > cpu_threshold
+
+    - name: Send CPU OK notification to EmailHook
+      uri:
+        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          subject: "✅ Couchbase CPU OK on {{ inventory_hostname }}"
+          body: >
+            CPU usage is within safe limits.
+            Node: {{ item.hostname }}
+            Current CPU: {{ item.systemStats.cpu_utilization_rate }}%
+            Threshold: {{ cpu_threshold }}%
+            Status: ✅ CPU usage is normal.
+      loop: "{{ api_response.json.nodes }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      when: item.systemStats.cpu_utilization_rate | float <= cpu_threshold
