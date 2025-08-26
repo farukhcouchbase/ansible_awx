@@ -60,20 +60,20 @@
       register: stats_response
       ignore_errors: yes
 
-    - name: Parse index stats JSON
+    - name: Parse index stats JSON safely
       set_fact:
         stats_json: "{{ stats_response.stdout | default('{}') | from_json }}"
 
-    # Step 2a: Extract quota and memory used
+    # Step 2a: Extract quota and memory used safely
     - name: Set index quota and memory used
       set_fact:
-        index_quota_bytes: "{{ ((api_response.json.indexMemoryQuota | default(default_index_quota_mb) | int) * 1000000) | int }}"
+        index_quota_bytes: "{{ ((api_response.json.indexMemoryQuota | default(default_index_quota_mb)) | int * 1000000) | int }}"
         index_memory_used_bytes: "{{ stats_json.memory_used | default(0) | int }}"
 
-    # Step 2b: Calculate threshold and convert to MiB
+    # Step 2b: Calculate threshold and convert to MiB safely
     - name: Calculate index threshold and convert to MiB
       set_fact:
-        index_quota_threshold_bytes: "{{ ((index_quota_bytes | int) * (quota_threshold | float)) | round(0) | int }}"
+        index_quota_threshold_bytes: "{{ ((index_quota_bytes | default(default_index_quota_mb * 1000000)) | int * (quota_threshold | float)) | round(0) | int }}"
         index_memory_used_mib: "{{ (index_memory_used_bytes | int / 1024 / 1024) | round(2) }}"
         index_quota_threshold_mib: "{{ (index_quota_threshold_bytes | int / 1024 / 1024) | round(2) }}"
 
@@ -106,7 +106,7 @@
     # ------------------------
     # Step 3: CPU USAGE
     # ------------------------
-    - name: Extract CPU usage (max across nodes) with safe default
+    - name: Extract CPU usage safely (max across nodes)
       set_fact:
         cpu_used_percent: "{{ api_response.json.nodes | default([]) | map(attribute='systemStats.cpu_utilization_rate') | list | max | default(default_cpu_percent) | float }}"
         cpu_threshold_percent: "{{ (cpu_threshold * 100) | float }}"
@@ -140,12 +140,12 @@
     # ------------------------
     # Step 4: DISK USAGE
     # ------------------------
-    - name: Extract Disk usage from JSON (safe defaults)
+    - name: Extract Disk usage safely from JSON
       set_fact:
         disk_used_bytes: "{{ api_response.json.storageTotals.hdd.used | default(default_disk_used_bytes) | int }}"
         disk_total_bytes: "{{ api_response.json.storageTotals.hdd.total | default(default_disk_total_bytes) | int }}"
 
-    - name: Calculate disk usage percentage
+    - name: Calculate disk usage percentage safely
       set_fact:
         disk_used_percent: "{{ ((disk_used_bytes | float / disk_total_bytes | float) * 100) | round(2) }}"
         disk_threshold_percent: "{{ (disk_threshold * 100) | float }}"
