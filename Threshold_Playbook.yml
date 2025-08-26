@@ -1,167 +1,18 @@
 ---
-- name: Couchbase Quota and Memory Usage Check
+- name: Couchbase Cluster Monitoring (Memory, CPU, Disk)
   hosts: all
   gather_facts: false
 
-  tasks:
-    - name: Get JSON from Couchbase API with authentication
-      uri:
-        url: "http://127.0.0.1:8091/pools/default"
-        method: GET
-        return_content: yes
-        user: "Admin"
-        password: "redhat"
-        force_basic_auth: yes
-      register: api_response
-
-    - name: Show HTTP status
-      debug:
-        msg: "HTTP Status: {{ api_response.status }}"
-
-    - name: Print indexMemoryQuota (MB from Couchbase API)
-      debug:
-        msg: "Index Memory Quota (MB): {{ api_response.json.indexMemoryQuota | default('Key not found') }}"
-
-    - name: Calculate 75% of indexMemoryQuota in bytes
-      set_fact:
-        quota_75_bytes: "{{ (api_response.json.indexMemoryQuota | int * 1000000 * 0.75) | round(0) | int }}"
-
-    - name: Print 75% of indexMemoryQuota (bytes and MiB)
-      debug:
-        msg: >
-          75% of Index Memory Quota:
-          {{ quota_75_bytes }} bytes
-          ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB)
-
-    - name: Get Couchbase index stats using curl
-      shell: >
-        curl -s -u Admin:redhat http://localhost:9102/stats
-      register: stats_response
-
-    - name: Parse stats JSON
-      set_fact:
-        stats_json: "{{ stats_response.stdout | from_json }}"
-
-    - name: Print memory_used (bytes)
-      debug:
-        msg: "Memory Used: {{ stats_json.memory_used | default('Key not found') }} bytes"
-
-    - name: Convert memory_used into MiB
-      set_fact:
-        memory_used_mib: "{{ (stats_json.memory_used | int / 1024 / 1024) | round(2) }}"
-
-    - name: Print memory_used in MiB
-      debug:
-        msg: "Memory Used: {{ memory_used_mib }} MiB"
-
-    - name: Fail if memory_used exceeds 75% of quota
-      debug:
-        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
-      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
-
-    - name: Threshold safe check
-      debug:
-        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
-
-    - name: Ping to prove calculation works
-      ping:
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
-    
-    - name: Send ALERT notification to EmailHook if threshold exceeded
-      uri:
-        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "🚨 Couchbase Memory Alert on {{ inventory_hostname }}"
-          body: >
-            ALERT: Memory usage is above threshold!
-            Current Memory: {{ memory_used_mib }} MiB
-            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
-            Host: {{ inventory_hostname }}
-            Status: ❌ Index creation is blocked.
-      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
-
-    - name: Send OK notification to EmailHook if memory usage is under control
-      uri:
-        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "✅ Couchbase Memory OK on {{ inventory_hostname }}"
-          body: >
-            All good ✔ Memory usage is within safe limits.
-            Current Memory: {{ memory_used_mib }} MiB
-            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
-            Host: {{ inventory_hostname }}
-            Status: ✅ Index creation/build is allowed.
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
-
-    - name: Set CPU threshold
-      set_fact:
-        cpu_threshold: 75
-
-    - name: Print CPU utilization per node
-      debug:
-        msg: "Node {{ item.hostname }} CPU Utilization: {{ item.systemStats.cpu_utilization_rate }}%"
-      loop: "{{ api_response.json.nodes }}"
-      loop_control:
-        label: "{{ item.hostname }}"
-
-    - name: Send CPU ALERT notification to EmailHook
-      uri:
-        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "🚨 Couchbase CPU Alert on {{ inventory_hostname }}"
-          body: >
-            ALERT: CPU usage is above threshold!
-            Node: {{ item.hostname }}
-            Current CPU: {{ item.systemStats.cpu_utilization_rate }}%
-            Threshold: {{ cpu_threshold }}%
-            Status: ❌ High CPU usage detected.
-      loop: "{{ api_response.json.nodes }}"
-      loop_control:
-        label: "{{ item.hostname }}"
-      when: item.systemStats.cpu_utilization_rate | float > cpu_threshold
-
-    - name: Send CPU OK notification to EmailHook
-      uri:
-        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "✅ Couchbase CPU OK on {{ inventory_hostname }}"
-          body: >
-            CPU usage is within safe limits.
-            Node: {{ item.hostname }}
-            Current CPU: {{ item.systemStats.cpu_utilization_rate }}%
-            Threshold: {{ cpu_threshold }}%
-            Status: ✅ CPU usage is normal.
-      loop: "{{ api_response.json.nodes }}"
-      loop_control:
-        label: "{{ item.hostname }}"
-      when: item.systemStats.cpu_utilization_rate | float <= cpu_threshold
-
-    ---
-- name: Couchbase Disk Usage and Node-Level Usage Check
-  hosts: all
-  gather_facts: false
+  vars:
+    memory_alert_threshold: 0.75   # 75% of index memory quota
+    cpu_alert_threshold: 75        # CPU usage threshold %
+    disk_alert_threshold: 0.75     # 75% of disk quota
 
   tasks:
-    # ================================
-    # Step 1: Fetch cluster JSON
-    # ================================
+
+    # ==============================
+    # Step 1: Fetch Couchbase Cluster Info
+    # ==============================
     - name: Get Couchbase cluster info
       uri:
         url: "http://127.0.0.1:8091/pools/default"
@@ -170,94 +21,218 @@
         user: "Admin"
         password: "redhat"
         force_basic_auth: yes
-      register: api_response
+      register: cluster_info
 
-    # ================================
-    # Step 2: Cluster-wide disk usage
-    # ================================
-    - name: Calculate 75% of cluster HDD quota
-      set_fact:
-        cluster_disk_quota_75_bytes: "{{ (api_response.json.storageTotals.hdd.quotaTotal * 0.75) | round(0) | int }}"
-
-    - name: Print cluster disk usage
+    - name: Show HTTP status
       debug:
-        msg: >
-          Cluster Disk Quota: {{ api_response.json.storageTotals.hdd.quotaTotal }} bytes
-          75% Threshold: {{ cluster_disk_quota_75_bytes }} bytes
-          Used Disk: {{ api_response.json.storageTotals.hdd.used }} bytes
-          Free Disk: {{ api_response.json.storageTotals.hdd.free }} bytes
+        msg: "Couchbase API HTTP Status: {{ cluster_info.status }}"
 
-    - name: Fail if cluster disk usage exceeds 75% of quota
-      debug:
-        msg: "❌ ALERT: Cluster disk usage ({{ api_response.json.storageTotals.hdd.used }} bytes) exceeded 75% of quota ({{ cluster_disk_quota_75_bytes }} bytes)."
-      when: api_response.json.storageTotals.hdd.used | int > cluster_disk_quota_75_bytes
+    # ==============================
+    # Step 2: Index Memory Usage Check
+    # ==============================
+    - block:
+        - name: Print indexMemoryQuota
+          debug:
+            msg: "Index Memory Quota (MB): {{ cluster_info.json.indexMemoryQuota | default('Key not found') }}"
 
-    - name: Cluster disk usage safe check
-      debug:
-        msg: "✅ Cluster disk usage is within safe limits ({{ api_response.json.storageTotals.hdd.used }} / {{ api_response.json.storageTotals.hdd.quotaTotal }} bytes)."
-      when: api_response.json.storageTotals.hdd.used | int <= cluster_disk_quota_75_bytes
+        - name: Calculate 75% of indexMemoryQuota in bytes
+          set_fact:
+            quota_75_bytes: "{{ (cluster_info.json.indexMemoryQuota | int * 1000000 * memory_alert_threshold) | round(0) | int }}"
 
-    # ================================
-    # Step 3: Node-level disk usage
-    # ================================
-    - name: Loop through each node to calculate disk usage
-      vars:
-        node_disk_used: "{{ item.interestingStats.couch_docs_actual_disk_size | int + item.interestingStats.index_disk_size | int }}"
-        node_quota_total: "{{ api_response.json.storageTotals.hdd.quotaUsedPerNode | default((api_response.json.storageTotals.hdd.quotaTotal / api_response.json.nodes | length) | int) }}"
-        node_quota_75: "{{ (node_quota_total * 0.75) | round(0) | int }}"
-      loop: "{{ api_response.json.nodes }}"
-      loop_control:
-        label: "{{ item.hostname }}"
-      block:
-        - name: Print node disk usage
+        - name: Get Couchbase index stats
+          shell: curl -s -u Admin:redhat http://localhost:9102/stats
+          register: stats_response
+
+        - name: Parse stats JSON
+          set_fact:
+            stats_json: "{{ stats_response.stdout | from_json }}"
+
+        - name: Calculate memory used in MiB
+          set_fact:
+            memory_used_mib: "{{ (stats_json.memory_used | int / 1024 / 1024) | round(2) }}"
+
+        - name: Memory usage alert check
+          block:
+            - name: Memory usage exceeded 75% quota
+              debug:
+                msg: "❌ Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes / 1024 / 1024) | round(2) }} MiB). Index creation blocked."
+              when: stats_json.memory_used | int > quota_75_bytes
+
+            - name: Memory usage within safe limits
+              debug:
+                msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes / 1024 / 1024) | round(2) }} MiB). Index creation allowed."
+              when: stats_json.memory_used | int <= quota_75_bytes
+
+        - name: Send memory alert notification
+          uri:
+            url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              subject: "🚨 Couchbase Memory Alert on {{ inventory_hostname }}"
+              body: >
+                ALERT: Memory usage is above threshold!
+                Current Memory: {{ memory_used_mib }} MiB
+                Threshold (75% quota): {{ (quota_75_bytes / 1024 / 1024) | round(2) }} MiB
+                Host: {{ inventory_hostname }}
+                Status: ❌ Index creation blocked.
+          when: stats_json.memory_used | int > quota_75_bytes
+
+        - name: Send memory OK notification
+          uri:
+            url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              subject: "✅ Couchbase Memory OK on {{ inventory_hostname }}"
+              body: >
+                Memory usage is within safe limits.
+                Current Memory: {{ memory_used_mib }} MiB
+                Threshold (75% quota): {{ (quota_75_bytes / 1024 / 1024) | round(2) }} MiB
+                Host: {{ inventory_hostname }}
+                Status: ✅ Index creation allowed.
+          when: stats_json.memory_used | int <= quota_75_bytes
+
+    # ==============================
+    # Step 3: CPU Usage Check
+    # ==============================
+    - block:
+        - name: Print CPU utilization per node
+          debug:
+            msg: "Node {{ item.hostname }} CPU Utilization: {{ item.systemStats.cpu_utilization_rate }}%"
+          loop: "{{ cluster_info.json.nodes }}"
+          loop_control:
+            label: "{{ item.hostname }}"
+
+        - name: Send CPU alert notifications
+          uri:
+            url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              subject: "🚨 Couchbase CPU Alert on {{ inventory_hostname }}"
+              body: >
+                ALERT: CPU usage is above threshold!
+                Node: {{ item.hostname }}
+                Current CPU: {{ item.systemStats.cpu_utilization_rate }}%
+                Threshold: {{ cpu_alert_threshold }}%
+                Status: ❌ High CPU usage detected.
+          loop: "{{ cluster_info.json.nodes }}"
+          loop_control:
+            label: "{{ item.hostname }}"
+          when: item.systemStats.cpu_utilization_rate | float > cpu_alert_threshold
+
+        - name: Send CPU OK notifications
+          uri:
+            url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              subject: "✅ Couchbase CPU OK on {{ inventory_hostname }}"
+              body: >
+                CPU usage is within safe limits.
+                Node: {{ item.hostname }}
+                Current CPU: {{ item.systemStats.cpu_utilization_rate }}%
+                Threshold: {{ cpu_alert_threshold }}%
+                Status: ✅ CPU usage normal.
+          loop: "{{ cluster_info.json.nodes }}"
+          loop_control:
+            label: "{{ item.hostname }}"
+          when: item.systemStats.cpu_utilization_rate | float <= cpu_alert_threshold
+
+    # ==============================
+    # Step 4: Disk Usage Check
+    # ==============================
+    - block:
+        - name: Calculate 75% of cluster HDD quota
+          set_fact:
+            cluster_disk_quota_75_bytes: "{{ (cluster_info.json.storageTotals.hdd.quotaTotal * disk_alert_threshold) | round(0) | int }}"
+
+        - name: Print cluster disk usage
           debug:
             msg: >
-              Node {{ item.hostname }} disk usage:
-              Used: {{ node_disk_used }} bytes
-              75% Threshold: {{ node_quota_75 }} bytes
-              Total Node Quota: {{ node_quota_total }} bytes
+              Cluster Disk Quota: {{ cluster_info.json.storageTotals.hdd.quotaTotal }} bytes
+              75% Threshold: {{ cluster_disk_quota_75_bytes }} bytes
+              Used Disk: {{ cluster_info.json.storageTotals.hdd.used }} bytes
+              Free Disk: {{ cluster_info.json.storageTotals.hdd.free }} bytes
 
-        - name: Fail if node disk usage exceeds 75% of quota
+        - name: Cluster disk usage alert
           debug:
-            msg: "❌ ALERT: Node {{ item.hostname }} disk usage ({{ node_disk_used }} bytes) exceeded 75% of quota ({{ node_quota_75 }} bytes)."
-          when: node_disk_used > node_quota_75
+            msg: "❌ Cluster disk usage ({{ cluster_info.json.storageTotals.hdd.used }} bytes) exceeded 75% of quota ({{ cluster_disk_quota_75_bytes }} bytes)."
+          when: cluster_info.json.storageTotals.hdd.used | int > cluster_disk_quota_75_bytes
 
-        - name: Node disk usage safe check
+        - name: Cluster disk usage safe
           debug:
-            msg: "✅ Node {{ item.hostname }} disk usage is within safe limits ({{ node_disk_used }} / {{ node_quota_total }} bytes)."
-          when: node_disk_used <= node_quota_75
+            msg: "✅ Cluster disk usage is within safe limits ({{ cluster_info.json.storageTotals.hdd.used }} / {{ cluster_info.json.storageTotals.hdd.quotaTotal }} bytes)."
+          when: cluster_info.json.storageTotals.hdd.used | int <= cluster_disk_quota_75_bytes
 
-        - name: Send ALERT notification if node disk usage exceeded
-          uri:
-            url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-            method: POST
-            headers:
-              Content-Type: "application/json"
-            body_format: json
-            body:
-              subject: "🚨 Couchbase Node Disk Alert on {{ item.hostname }}"
-              body: >
-                ALERT: Disk usage is above threshold!
-                Node: {{ item.hostname }}
-                Disk Used: {{ node_disk_used }} bytes
-                75% Threshold: {{ node_quota_75 }} bytes
-                Total Node Quota: {{ node_quota_total }} bytes
-          when: node_disk_used > node_quota_75
+    # Node-level disk usage
+    - block:
+        - name: Check disk usage per node
+          vars:
+            node_disk_used: "{{ item.interestingStats.couch_docs_actual_disk_size | int + item.interestingStats.index_disk_size | int }}"
+            node_quota_total: "{{ cluster_info.json.storageTotals.hdd.quotaUsedPerNode | default((cluster_info.json.storageTotals.hdd.quotaTotal / cluster_info.json.nodes | length) | int) }}"
+            node_quota_75: "{{ (node_quota_total * disk_alert_threshold) | round(0) | int }}"
+          loop: "{{ cluster_info.json.nodes }}"
+          loop_control:
+            label: "{{ item.hostname }}"
+          block:
+            - name: Print node disk usage
+              debug:
+                msg: >
+                  Node {{ item.hostname }} disk usage:
+                  Used: {{ node_disk_used }} bytes
+                  75% Threshold: {{ node_quota_75 }} bytes
+                  Total Node Quota: {{ node_quota_total }} bytes
 
-        - name: Send OK notification if node disk usage under control
-          uri:
-            url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-            method: POST
-            headers:
-              Content-Type: "application/json"
-            body_format: json
-            body:
-              subject: "✅ Couchbase Node Disk OK on {{ item.hostname }}"
-              body: >
-                Node disk usage is within safe limits.
-                Node: {{ item.hostname }}
-                Disk Used: {{ node_disk_used }} bytes
-                75% Threshold: {{ node_quota_75 }} bytes
-                Total Node Quota: {{ node_quota_total }} bytes
-          when: node_disk_used <= node_quota_75
-  
+            - name: Node disk usage alert
+              debug:
+                msg: "❌ Node {{ item.hostname }} disk usage ({{ node_disk_used }} bytes) exceeded 75% of quota ({{ node_quota_75 }} bytes)."
+              when: node_disk_used > node_quota_75
+
+            - name: Node disk usage safe
+              debug:
+                msg: "✅ Node {{ item.hostname }} disk usage is within safe limits ({{ node_disk_used }} / {{ node_quota_total }} bytes)."
+              when: node_disk_used <= node_quota_75
+
+            - name: Send node disk alert notification
+              uri:
+                url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+                method: POST
+                headers:
+                  Content-Type: "application/json"
+                body_format: json
+                body:
+                  subject: "🚨 Couchbase Node Disk Alert on {{ item.hostname }}"
+                  body: >
+                    ALERT: Disk usage is above threshold!
+                    Node: {{ item.hostname }}
+                    Disk Used: {{ node_disk_used }} bytes
+                    75% Threshold: {{ node_quota_75 }} bytes
+                    Total Node Quota: {{ node_quota_total }} bytes
+              when: node_disk_used > node_quota_75
+
+            - name: Send node disk OK notification
+              uri:
+                url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+                method: POST
+                headers:
+                  Content-Type: "application/json"
+                body_format: json
+                body:
+                  subject: "✅ Couchbase Node Disk OK on {{ item.hostname }}"
+                  body: >
+                    Node disk usage is within safe limits.
+                    Node: {{ item.hostname }}
+                    Disk Used: {{ node_disk_used }} bytes
+                    75% Threshold: {{ node_quota_75 }} bytes
+                    Total Node Quota: {{ node_quota_total }} bytes
+              when: node_disk_used <= node_quota_75
