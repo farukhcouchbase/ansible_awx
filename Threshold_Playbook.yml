@@ -54,21 +54,7 @@
       debug:
         msg: "Memory Used: {{ memory_used_mib }} MiB"
 
-    - name: Fail if memory_used exceeds 75% of quota
-      debug:
-        msg: "❌ ALERT: Memory usage ({{ memory_used_mib }} MiB) exceeded 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation is blocked."
-      when: (stats_json.memory_used | int) > (quota_75_bytes | int)
-
-    - name: Threshold safe check
-      debug:
-        msg: "✅ Memory usage ({{ memory_used_mib }} MiB) is below 75% of quota ({{ (quota_75_bytes | int / 1024 / 1024) | round(2) }} MiB). Index creation/build is allowed."
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
-
-    - name: Ping to prove calculation works
-      ping:
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
-    
-    - name: Send ALERT notification to EmailHook if threshold exceeded
+    - name: Alert if memory_used exceeds 75% of quota
       uri:
         url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
         method: POST
@@ -84,23 +70,6 @@
             Host: {{ inventory_hostname }}
             Status: ❌ Index creation is blocked.
       when: (stats_json.memory_used | int) > (quota_75_bytes | int)
-
-    - name: Send OK notification to EmailHook if memory usage is under control
-      uri:
-        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "✅ Couchbase Memory OK on {{ inventory_hostname }}"
-          body: >
-            All good ✔ Memory usage is within safe limits.
-            Current Memory: {{ memory_used_mib }} MiB
-            Threshold (75% quota): {{ ((quota_75_bytes | int) / 1024 / 1024) | round(2) }} MiB
-            Host: {{ inventory_hostname }}
-            Status: ✅ Index creation/build is allowed.
-      when: (stats_json.memory_used | int) <= (quota_75_bytes | int)
 
     - name: Set CPU threshold
       set_fact:
@@ -132,26 +101,6 @@
       loop_control:
         label: "{{ item.hostname }}"
       when: item.systemStats.cpu_utilization_rate | float > cpu_threshold
-
-    - name: Send CPU OK notification to EmailHook
-      uri:
-        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "✅ Couchbase CPU OK on {{ inventory_hostname }}"
-          body: >
-            CPU usage is within safe limits.
-            Node: {{ item.hostname }}
-            Current CPU: {{ item.systemStats.cpu_utilization_rate }}%
-            Threshold: {{ cpu_threshold }}%
-            Status: ✅ CPU usage is normal.
-      loop: "{{ api_response.json.nodes }}"
-      loop_control:
-        label: "{{ item.hostname }}"
-      when: item.systemStats.cpu_utilization_rate | float <= cpu_threshold
 
     - name: Set Disk usage threshold
       set_fact:
@@ -194,22 +143,3 @@
             Free: {{ (disk_free | int / 1024 / 1024 / 1024) | round(2) }} GiB
             Status: ❌ High disk usage detected.
       when: disk_used_percent | float > disk_threshold
-
-    - name: Send Disk OK notification to EmailHook
-      uri:
-        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          subject: "✅ Couchbase Disk OK on {{ inventory_hostname }}"
-          body: >
-            Disk usage is within safe limits.
-            Current Usage: {{ disk_used_percent }} %
-            Threshold: {{ disk_threshold }} %
-            Total: {{ (disk_total | int / 1024 / 1024 / 1024) | round(2) }} GiB
-            Used: {{ (disk_used | int / 1024 / 1024 / 1024) | round(2) }} GiB
-            Free: {{ (disk_free | int / 1024 / 1024 / 1024) | round(2) }} GiB
-            Status: ✅ Disk usage is normal.
-      when: disk_used_percent | float <= disk_threshold  
