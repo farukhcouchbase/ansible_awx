@@ -152,3 +152,61 @@
       loop_control:
         label: "{{ item.hostname }}"
       when: item.systemStats.cpu_utilization_rate | float <= cpu_threshold
+
+    - name: Set Disk usage threshold
+      set_fact:
+        disk_threshold: 75
+
+    - name: Calculate Cluster Disk Usage %
+      set_fact:
+        disk_total: "{{ api_response.json.storageTotals.hdd.total | int }}"
+        disk_used: "{{ api_response.json.storageTotals.hdd.used | int }}"
+        disk_free: "{{ api_response.json.storageTotals.hdd.free | int }}"
+        disk_used_percent: "{{ ((disk_used | float / disk_total | float) * 100) | round(2) }}"
+
+    - name: Print Cluster Disk Usage
+      debug:
+        msg: >
+          Cluster Disk Usage:
+          Total: {{ (disk_total | int / 1024 / 1024 / 1024) | round(2) }} GiB,
+          Used: {{ (disk_used | int / 1024 / 1024 / 1024) | round(2) }} GiB,
+          Free: {{ (disk_free | int / 1024 / 1024 / 1024) | round(2) }} GiB,
+          Usage: {{ disk_used_percent }} %
+
+    - name: Send Disk ALERT notification to EmailHook
+      uri:
+        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          subject: "🚨 Couchbase Disk Alert on {{ inventory_hostname }}"
+          body: >
+            ALERT: Disk usage is above threshold!
+            Current Usage: {{ disk_used_percent }} %
+            Threshold: {{ disk_threshold }} %
+            Total: {{ (disk_total | int / 1024 / 1024 / 1024) | round(2) }} GiB
+            Used: {{ (disk_used | int / 1024 / 1024 / 1024) | round(2) }} GiB
+            Free: {{ (disk_free | int / 1024 / 1024 / 1024) | round(2) }} GiB
+            Status: ❌ High disk usage detected.
+      when: disk_used_percent | float > disk_threshold
+
+    - name: Send Disk OK notification to EmailHook
+      uri:
+        url: "https://webhook.site/cdf4536e-6275-4ab8-9d3d-873bea3fc777"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          subject: "✅ Couchbase Disk OK on {{ inventory_hostname }}"
+          body: >
+            Disk usage is within safe limits.
+            Current Usage: {{ disk_used_percent }} %
+            Threshold: {{ disk_threshold }} %
+            Total: {{ (disk_total | int / 1024 / 1024 / 1024) | round(2) }} GiB
+            Used: {{ (disk_used | int / 1024 / 1024 / 1024) | round(2) }} GiB
+            Free: {{ (disk_free | int / 1024 / 1024 / 1024) | round(2) }} GiB
+            Status: ✅ Disk usage is normal.
+      when: disk_used_percent | float <= disk_threshold  
