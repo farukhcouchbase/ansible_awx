@@ -157,11 +157,14 @@
       set_fact:
         disk_threshold: 75
 
-    - name: Calculate Cluster Disk Usage %
+    - name: Set Cluster Disk Totals
       set_fact:
         disk_total: "{{ api_response.json.storageTotals.hdd.total | int }}"
         disk_used: "{{ api_response.json.storageTotals.hdd.used | int }}"
         disk_free: "{{ api_response.json.storageTotals.hdd.free | int }}"
+
+    - name: Calculate Cluster Disk Usage %
+      set_fact:
         disk_used_percent: "{{ ((disk_used | float / disk_total | float) * 100) | round(2) }}"
 
     - name: Print Cluster Disk Usage
