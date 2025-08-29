@@ -73,7 +73,7 @@
 
     - name: Set CPU threshold
       set_fact:
-        cpu_threshold: 5
+        cpu_threshold: 75
 
     - name: Print CPU utilization per node
       debug:
