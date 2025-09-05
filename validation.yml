@@ -240,26 +240,8 @@
       register: query_result
       ignore_errors: no
 
-    - name: Build Couchbase indexes (Method 2)
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s \"BUILD INDEX ON {{ bucket_name }}(`{{ item.split()[2] }}`)\""
-      with_items: "{{ updated_queries2 }}"
-      when: updated_queries2 | length > 0
-      register: build_index_result2
-      ignore_errors: no
 
-    - name: Build Couchbase indexes (Method 1)
-      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s \"BUILD INDEX ON {{ bucket_name }}(`{{ item.split()[2] }}`)\""
-      with_items: "{{ updated_queries1 }}"
-      when: updated_queries1 | length > 0
-      register: build_index_result1
-      ignore_errors: no
-     
+
     
-        
-    # - name: Execute deferred_index.sh script
-    #   command: "{{ deffered_index_path }}"
-    #   args:
-    #     chdir: "{{ deffered_index_path | dirname }}"
-    #   register: script_output
 
   
