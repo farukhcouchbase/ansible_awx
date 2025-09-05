@@ -56,14 +56,8 @@
       with_items: "{{ index_queries }}"
       register: syntax_check
       no_log: true
-      # failed_when: "'syntax error' in syntax_check.stdout"
-      
-    - name: Fail with meaningful message if syntax error detected
-      fail:
-        msg: "Query '{{ item.item }}' has syntax issues, please double-check the query."
-      with_items: "{{ syntax_check.results }}"
-      when: "'syntax error' in item.stdout"
-
+      failed_when: "'syntax error' in syntax_check.stdout"
+     
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
