@@ -239,3 +239,5 @@
       when: updated_queries1 | length > 0
       register: query_result
       ignore_errors: no 
+
+          
