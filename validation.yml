@@ -249,7 +249,7 @@
           {{
             (updated_queries2 + updated_queries1)
             | map('regex_search', '(?i)CREATE\\s+INDEX\\s+`([^`]+)`', '\\1')
-            | select('string')
+            | select('!=', None)
             | list
           }}
       when: index_names | length > 0
@@ -257,7 +257,8 @@
 
     - name: Debug build index output
       debug:
-        var: build_index_result.stdout 
+        var: build_index_result.stdout
+
       #==========================================================================
 
     # - name: Execute deferred_index.sh script
