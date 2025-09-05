@@ -239,7 +239,7 @@
       when: updated_queries1 | length > 0
       register: query_result
       ignore_errors: no
-      #==========================================================================
+     
     - name: Build Couchbase indexes
       shell: >
         {{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }}
@@ -258,10 +258,7 @@
     - name: Debug build index output
       debug:
         var: build_index_result.stdout
-
-
-      #==========================================================================
-
+        
     # - name: Execute deferred_index.sh script
     #   command: "{{ deffered_index_path }}"
     #   args:
