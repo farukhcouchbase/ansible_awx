@@ -240,8 +240,20 @@
       register: query_result
       ignore_errors: no
 
-
-
-    
-
-  
+    - name: Build Couchbase indexes
+      shell: >
+        {{ couchbase_bin_path }}
+        -u {{ couchbase_admin_username }}
+        -p {{ couchbase_admin_password }}
+        -s "BUILD INDEX ON `{{ bucket_name }}` ({{ index_list | join(', ') }})"
+      vars:
+        index_list: >-
+          {{
+            (updated_queries1 + updated_queries2)
+            | map('regex_search', '(?i)create\\s+index\\s+`?([^`\\s]+)`?')
+            | select('string')
+            | list
+          }}
+      when: (updated_queries1 | length > 0) or (updated_queries2 | length > 0)
+      register: build_result
+      ignore_errors: no 
