@@ -241,23 +241,11 @@
       ignore_errors: no
      
     - name: Build Couchbase indexes
-      shell: >
-        {{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }}
-        -s "BUILD INDEX ON `{{ bucket_name }}`({{ index_names | join(', ') }});"
-      vars:
-        index_names: >-
-          {{
-            (updated_queries2 + updated_queries1)
-            | map('regex_search', '(?i)CREATE\\s+INDEX\\s+`([^`]+)`', '\\1', default='')
-            | reject('equalto', '')
-            | list
-          }}
-      when: index_names | length > 0
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'BUILD INDEX ON {{ bucket_name }}({{ item }})'"
+      with_items: "{{ index_list }}"
+      when: index_list | length > 0
       register: build_index_result
-
-    - name: Debug build index output
-      debug:
-        var: build_index_result.stdout
+      ignore_errors: no
         
     # - name: Execute deferred_index.sh script
     #   command: "{{ deffered_index_path }}"
