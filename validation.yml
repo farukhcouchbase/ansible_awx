@@ -257,3 +257,29 @@
       when: (updated_queries1 | length > 0) or (updated_queries2 | length > 0)
       register: build_result
       ignore_errors: no 
+
+    - name: Build Couchbase indexes
+      shell: >
+        {{ couchbase_bin_path }}
+        -u {{ couchbase_admin_username }}
+        -p {{ couchbase_admin_password }}
+        -s "BUILD INDEX ON `travel-sample`.`scopeB`.`collection3` (`Secondary_index_022`)"
+      register: build_result
+      changed_when: "'status\":\"success' in build_result.stdout"
+
+    - name: Wait until indexes are online
+      shell: >
+        {{ couchbase_bin_path }}
+        -u {{ couchbase_admin_username }}
+        -p {{ couchbase_admin_password }}
+        -s "SELECT name, state FROM system:indexes
+            WHERE bucket_id = 'travel-sample'
+            AND scope_id = 'scopeB'
+            AND keyspace_id = 'collection3'
+            AND name = 'Secondary_index_022';"
+      register: verify_result
+      until: verify_result.stdout is search("online")
+      retries: 30        # wait up to ~5 minutes (30 * 10s)
+      delay: 10
+      changed_when: false
+  
