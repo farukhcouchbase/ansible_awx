@@ -56,7 +56,7 @@
       with_items: "{{ index_queries }}"
       register: syntax_check
       no_log: true
-      failed_when: "'syntax error' in syntax_check.stdout"
+      # failed_when: "'syntax error' in syntax_check.stdout"
       
     - name: Fail with meaningful message if syntax error detected
       fail:
