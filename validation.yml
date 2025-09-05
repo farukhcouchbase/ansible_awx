@@ -240,4 +240,47 @@
       register: query_result
       ignore_errors: no 
 
+    #==============================================================================================================
+    # ------------------------
+# Convert and execute BUILD INDEX for updated_queries2
+# ------------------------
+- name: Convert updated_queries2 CREATE INDEX to BUILD INDEX (case-insensitive)
+  set_fact:
+    build_queries2: "{{ updated_queries2 | map('regex_replace', '(?i)^CREATE INDEX', 'BUILD INDEX') | list }}"
+  when: updated_queries2 | length > 0
+
+- name: Debug - BUILD INDEX queries for updated_queries2
+  debug:
+    msg: "\033[36mBUILD Query: {{ item }}\033[0m"
+  with_items: "{{ build_queries2 }}"
+  when: build_queries2 | length > 0
+
+- name: Execute BUILD INDEX queries for updated_queries2
+  shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+  with_items: "{{ build_queries2 }}"
+  when: build_queries2 | length > 0
+  register: build_query_result2
+  ignore_errors: no
+
+# ------------------------
+# Convert and execute BUILD INDEX for updated_queries1
+# ------------------------
+- name: Convert updated_queries1 CREATE INDEX to BUILD INDEX (case-insensitive)
+  set_fact:
+    build_queries1: "{{ updated_queries1 | map('regex_replace', '(?i)^CREATE INDEX', 'BUILD INDEX') | list }}"
+  when: updated_queries1 | length > 0
+
+- name: Debug - BUILD INDEX queries for updated_queries1
+  debug:
+    msg: "\033[36mBUILD Query: {{ item }}\033[0m"
+  with_items: "{{ build_queries1 }}"
+  when: build_queries1 | length > 0
+
+- name: Execute BUILD INDEX queries for updated_queries1
+  shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
+  with_items: "{{ build_queries1 }}"
+  when: build_queries1 | length > 0
+  register: build_query_result1
+  ignore_errors: no
+
           
