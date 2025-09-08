@@ -57,6 +57,13 @@
       register: syntax_check
       no_log: true
       failed_when: "'syntax error' in syntax_check.stdout"
+      vars:
+        ansible_failed_msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
+
+    - name: Fail if any index query has syntax errors
+      fail:
+        msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
+      when: "'syntax error' in syntax_check.stdout"    
      
     - name: Validate index queries
       set_fact:
