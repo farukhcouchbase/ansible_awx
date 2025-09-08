@@ -55,7 +55,7 @@
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
       with_items: "{{ index_queries }}"
       register: syntax_check
-      no_log: false
+      no_log: true
       failed_when: "'syntax error' in syntax_check.stdout"
       vars:
         ansible_failed_msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
