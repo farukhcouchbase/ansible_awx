@@ -56,15 +56,14 @@
       with_items: "{{ index_queries }}"
       register: syntax_check
       no_log: true
-      failed_when: "'syntax error' in syntax_check.stdout"
-      vars:
-        ansible_failed_msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
+      #failed_when: "'syntax error' in syntax_check.stdout"
+      
 
     - name: Fail if any index query has syntax errors
       fail:
         msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
-      when: "'syntax error' in syntax_check.stdout"    
-     
+      when: syntax_check.results | selectattr('stdout', 'search', 'syntax error') | list | length > 0 
+
     - name: Validate index queries
       set_fact:
         allowed_queries: "{{ allowed_queries + [item] }}"
