@@ -8,6 +8,7 @@
     couchbase_admin_password: [] 
     index_queries: [] 
     INDEX_NAME: []
+    bucket: []
     duplicate_indexes: []
     some_query_output: [] 
     existing_index_map: []
