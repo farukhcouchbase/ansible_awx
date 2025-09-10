@@ -248,13 +248,13 @@
       ignore_errors: no
 
     - name: Execute deferred_index.sh script
-      command: "{{ deffered_index_path }}"
-      args:
-        chdir: "{{ deffered_index_path | dirname }}"
-      environment:
-        CB_USERNAME: "{{ cb_username }}"
-        CB_PASSWORD: "{{ cb_password }}"
-        BUCKET: "{{ bucket }}"  
-      register: script_output
+      # command: "{{ deffered_index_path }}"
+      # args:
+      #   chdir: "{{ deffered_index_path | dirname }}"
+      # environment:
+      #   CB_USERNAME: "{{ cb_username }}"
+      #   CB_PASSWORD: "{{ cb_password }}"
+      #   BUCKET: "{{ bucket }}"  
+      # register: script_output
 
   
