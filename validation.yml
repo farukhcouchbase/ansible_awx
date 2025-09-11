@@ -8,7 +8,7 @@
     couchbase_admin_password: [] 
     index_queries: [] 
     INDEX_NAME: []
-    script_path: "~/deffered_index.sh"
+    script_path: "~/2differed.sh"
     bucket_name: []
     duplicate_indexes: []
     some_query_output: [] 
