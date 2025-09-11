@@ -9,7 +9,7 @@
     index_queries: [] 
     INDEX_NAME: []
     script_path: "~/deffered_index.sh "
-    bucket_names: [] 
+    # bucket_names: [] 
     duplicate_indexes: []
     some_query_output: [] 
     existing_index_map: []
