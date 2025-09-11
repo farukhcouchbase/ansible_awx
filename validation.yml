@@ -249,7 +249,7 @@
       ignore_errors: no
 
     - name: Run deferred index script for a bucket
-      command: "{{ script_path }} --bucket={{ bucket_name }}"
+      command: "{{ script_path }} --bucket={{ bucket_names | join(',') }}"
       args:
         chdir: "~"  # ensure we are in home directory
       register: script_output
