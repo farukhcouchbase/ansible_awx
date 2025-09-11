@@ -248,14 +248,14 @@
       register: query_result
       ignore_errors: no
 
-    - name: Run deferred index script for a bucket
-      command: "{{ script_path }} --bucket={{ bucket_name }}"
-      args:
-        chdir: "~"  # ensure we are in home directory
-      register: script_output
+    # - name: Run deferred index script for a bucket
+    #   command: "{{ script_path }} --bucket={{ bucket_name }}"
+    #   args:
+    #     chdir: "~"  # ensure we are in home directory
+    #   register: script_output
 
-    - name: Show script output
-      debug:
-        var: script_output.stdout
+    # - name: Show script output
+    #   debug:
+    #     var: script_output.stdout
 
   
