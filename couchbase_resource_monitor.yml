@@ -47,7 +47,7 @@
 
     - name: Calculate Index Memory Threshold (75% by default)
       set_fact:
-        index_quota_threshold: "{{ (index_quota_bytes * index_memory_threshold_percent / 100) | int }}"
+        index_quota_threshold: "{{ (index_quota_bytes | int * index_memory_threshold_percent / 100) | int }}"
 
     - name: Get current index memory used
       set_fact:
@@ -95,7 +95,7 @@
     ###########################
     - name: Calculate Memory Threshold in bytes
       set_fact:
-        memory_threshold_bytes: "{{ node_json.systemStats.mem_total | int * memory_threshold_percent / 100 }}"
+        memory_threshold_bytes: "{{ (node_json.systemStats.mem_total | int * memory_threshold_percent / 100) | int }}"
 
     - name: Get current memory used
       set_fact:
@@ -124,7 +124,7 @@
         disk_total: "{{ node_json.storageTotals.hdd.total | int }}"
         disk_used: "{{ node_json.storageTotals.hdd.used | int }}"
         disk_free: "{{ node_json.storageTotals.hdd.free | int }}"
-        disk_used_percent: "{{ ((disk_used / disk_total) * 100) | round(2) }}"
+        disk_used_percent: "{{ ((disk_used / disk_total | float) * 100) | round(2) }}"
 
     - name: Send alert if Disk exceeds threshold
       uri:
