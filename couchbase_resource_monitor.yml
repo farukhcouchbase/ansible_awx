@@ -13,7 +13,10 @@
     webhook_url: "https://webhook.site/135d7b7c-96b1-42fe-8b3a-ed57d510c1d3"
 
   tasks:
-    - name: Get Couchbase cluster info (mocked with /pools/default JSON)
+    ###########################
+    # GET CLUSTER & NODE INFO
+    ###########################
+    - name: Get Couchbase cluster info
       uri:
         url: "http://127.0.0.1:8091/pools/default"
         method: GET
@@ -23,7 +26,7 @@
         force_basic_auth: yes
       register: cluster_info
 
-    - name: Get Couchbase node info (mocked with /nodes/self JSON)
+    - name: Get Couchbase node info
       uri:
         url: "http://127.0.0.1:8091/nodes/self"
         method: GET
@@ -119,12 +122,17 @@
     ###########################
     # DISK USAGE CHECK
     ###########################
-    - name: Get HDD totals and usage
+    - name: Get HDD totals and usage safely
       set_fact:
         disk_total: "{{ node_json.storageTotals.hdd.total | default(0) | int }}"
         disk_used: "{{ node_json.storageTotals.hdd.used | default(0) | int }}"
         disk_free: "{{ node_json.storageTotals.hdd.free | default(0) | int }}"
-        disk_used_percent: "{{ ((disk_used | float / disk_total | float) * 100) | round(2) if disk_total > 0 else 0 }}"
+        disk_used_percent: >-
+          {% if node_json.storageTotals.hdd.total | default(0) | int > 0 %}
+            {{ (disk_used | float / disk_total | float) * 100 | round(2) }}
+          {% else %}
+            0
+          {% endif %}
 
     - name: Send alert if Disk exceeds threshold
       uri:
