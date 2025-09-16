@@ -48,7 +48,7 @@
 
     - name: Calculate Index Memory Threshold
       set_fact:
-        index_threshold_bytes: "{{ (index_quota_bytes * (index_memory_threshold_percent | float) / 100) | round(0) | int }}"
+        index_threshold_bytes: "{{ (index_quota_bytes | float * (index_memory_threshold_percent | float) / 100) | round(0) | int }}"
 
     - name: Get actual Index Memory Used in bytes
       set_fact:
