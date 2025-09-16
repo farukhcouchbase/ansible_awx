@@ -108,7 +108,7 @@
 
     - name: Calculate Memory threshold in bytes
       set_fact:
-        memory_threshold_bytes: "{{ (memory_total * (memory_threshold_percent | float) / 100) | round(0) | int }}"
+        memory_used: "{{ (memory_total | int) - (memory_free | int) }}"
 
     - name: Alert if Memory exceeds threshold
       uri:
