@@ -43,7 +43,7 @@
     ###########################
     - name: Calculate Index Memory Quota in bytes
       set_fact:
-        index_quota_bytes: "{{ cluster_json.indexMemoryQuota | int * 1024 * 1024 }}"
+        index_quota_bytes: "{{ cluster_json.indexMemoryQuota | default(0) | int * 1024 * 1024 }}"
 
     - name: Calculate Index Memory Threshold (75% by default)
       set_fact:
@@ -51,7 +51,7 @@
 
     - name: Get current index memory used
       set_fact:
-        index_mem_used: "{{ node_json.interestingStats.index_data_size | int }}"
+        index_mem_used: "{{ node_json.interestingStats.index_data_size | default(0) | int }}"
 
     - name: Send alert if Index Memory exceeds threshold
       uri:
@@ -73,7 +73,7 @@
     ###########################
     - name: Get current CPU usage
       set_fact:
-        cpu_used: "{{ node_json.systemStats.cpu_utilization_rate | float }}"
+        cpu_used: "{{ node_json.systemStats.cpu_utilization_rate | default(0) | float }}"
 
     - name: Send alert if CPU exceeds threshold
       uri:
@@ -95,11 +95,11 @@
     ###########################
     - name: Calculate Memory Threshold in bytes
       set_fact:
-        memory_threshold_bytes: "{{ (node_json.systemStats.mem_total | int * memory_threshold_percent | float / 100) | int }}"
+        memory_threshold_bytes: "{{ (node_json.systemStats.mem_total | default(0) | int * memory_threshold_percent | float / 100) | int }}"
 
     - name: Get current memory used
       set_fact:
-        memory_used: "{{ node_json.interestingStats.mem_used | int }}"
+        memory_used: "{{ node_json.interestingStats.mem_used | default(0) | int }}"
 
     - name: Send alert if Memory exceeds threshold
       uri:
@@ -121,10 +121,10 @@
     ###########################
     - name: Get HDD totals and usage
       set_fact:
-        disk_total: "{{ node_json.storageTotals.hdd.total | int }}"
-        disk_used: "{{ node_json.storageTotals.hdd.used | int }}"
-        disk_free: "{{ node_json.storageTotals.hdd.free | int }}"
-        disk_used_percent: "{{ ((disk_used | float / disk_total | float) * 100) | round(2) }}"
+        disk_total: "{{ node_json.storageTotals.hdd.total | default(0) | int }}"
+        disk_used: "{{ node_json.storageTotals.hdd.used | default(0) | int }}"
+        disk_free: "{{ node_json.storageTotals.hdd.free | default(0) | int }}"
+        disk_used_percent: "{{ ((disk_used | float / disk_total | float) * 100) | round(2) if disk_total > 0 else 0 }}"
 
     - name: Send alert if Disk exceeds threshold
       uri:
