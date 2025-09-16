@@ -104,7 +104,7 @@
 
     - name: Calculate Memory used
       set_fact:
-        memory_used: "{{ memory_total - memory_free }}"
+        memory_threshold_bytes: "{{ ((memory_total | int) * (memory_threshold_percent | float) / 100) | round(0) | int }}"
 
     - name: Calculate Memory threshold in bytes
       set_fact:
