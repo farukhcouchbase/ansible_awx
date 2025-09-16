@@ -94,11 +94,20 @@
     ###########################
     # MEMORY USAGE CHECK
     ###########################
-    - name: Get Memory usage safely
+    - name: Get Memory total safely
       set_fact:
         memory_total: "{{ node_json.systemStats.mem_total | default(0) | int }}"
+
+    - name: Get Memory free safely
+      set_fact:
         memory_free: "{{ node_json.systemStats.mem_free | default(0) | int }}"
+
+    - name: Calculate Memory used
+      set_fact:
         memory_used: "{{ memory_total - memory_free }}"
+
+    - name: Calculate Memory threshold in bytes
+      set_fact:
         memory_threshold_bytes: "{{ (memory_total * (memory_threshold_percent | float) / 100) | round(0) | int }}"
 
     - name: Alert if Memory exceeds threshold
