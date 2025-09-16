@@ -162,8 +162,8 @@
       debug:
         msg: |
           ================== Couchbase Resource Summary ==================
-          Index Memory: {{ (index_used_bytes / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (index_threshold_bytes / 1024 / 1024) | round(2) }} MiB
-          CPU Usage: {{ cpu_used }} % / Threshold: {{ cpu_threshold_percent }} %
-          Memory Usage: {{ (memory_used / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (memory_threshold_bytes / 1024 / 1024) | round(2) }} MiB
-          Disk Usage: {{ disk_used_percent }} % / Threshold: {{ disk_threshold_percent }} %
+          Index Memory: {{ (index_used_bytes | int / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (index_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB
+          CPU Usage: {{ cpu_used | float }} % / Threshold: {{ cpu_threshold_percent | float }} %
+          Memory Usage: {{ (memory_used | int / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (memory_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB
+          Disk Usage: {{ disk_used_percent | float }} % / Threshold: {{ disk_threshold_percent | float }} %
           ===================================================================
