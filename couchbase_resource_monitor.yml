@@ -1,10 +1,9 @@
 ---
-- name: Couchbase Resource Monitoring
+- name: Couchbase Resource Monitor
   hosts: all
   gather_facts: false
-
   vars:
-    # Thresholds (adjustable)
+    # Thresholds (can be changed easily)
     index_memory_threshold_percent: 75
     cpu_threshold_percent: 75
     memory_threshold_percent: 75
@@ -14,57 +13,48 @@
   tasks:
 
     ###########################
-    # Fetch Couchbase cluster info
+    # FETCH COUCHBASE DATA
     ###########################
     - name: Get Couchbase cluster info
       uri:
         url: "http://127.0.0.1:8091/pools/default"
         method: GET
+        return_content: yes
         user: "Admin"
         password: "redhat"
         force_basic_auth: yes
-        return_content: yes
-      register: cluster_info
+      register: cluster_json
 
-    - name: Parse cluster info JSON
-      set_fact:
-        cluster_json: "{{ cluster_info.json }}"
-
-    - name: Get node/self info
+    - name: Get self node info
       uri:
         url: "http://127.0.0.1:8091/nodes/self"
         method: GET
+        return_content: yes
         user: "Admin"
         password: "redhat"
         force_basic_auth: yes
-        return_content: yes
-      register: node_info
+      register: node_json_response
 
-    - name: Parse node JSON
+    - name: Parse self node JSON
       set_fact:
-        node_json: "{{ node_info.json }}"
+        node_json: "{{ node_json_response.json }}"
 
     ###########################
-    # Index Memory Check
+    # INDEX MEMORY CHECK
     ###########################
-    - name: Calculate Index Memory in bytes
+    - name: Get Index Memory Quota in bytes
       set_fact:
-        index_quota_bytes: "{{ (cluster_json.indexMemoryQuota | default(0) | int) * 1024 * 1024 }}"
+        index_quota_bytes: "{{ (cluster_json.json.indexMemoryQuota | default(0) | int * 1024 * 1024) }}"
 
-    - name: Calculate Index Memory Threshold (75% by default)
+    - name: Calculate Index Memory Threshold
       set_fact:
-        index_threshold_bytes: >-
-          {{
-            ((index_quota_bytes | int) * (index_memory_threshold_percent | float) / 100)
-            | round(0)
-            | int
-          }}
+        index_threshold_bytes: "{{ (index_quota_bytes * (index_memory_threshold_percent | float) / 100) | round(0) | int }}"
 
-    - name: Get current index memory used
+    - name: Get actual Index Memory Used in bytes
       set_fact:
-        index_memory_used: "{{ node_json.interestingStats.index_data_size | default(0) | int }}"
+        index_used_bytes: "{{ node_json.interestingStats.index_disk_size | default(0) | int }}"
 
-    - name: Send alert if index memory exceeds threshold
+    - name: Alert if Index Memory exceeds threshold
       uri:
         url: "{{ alert_webhook_url }}"
         method: POST
@@ -74,19 +64,19 @@
         body:
           subject: "🚨 Couchbase Index Memory Alert on {{ inventory_hostname }}"
           body: >
-            ALERT: Index Memory usage is above threshold!
-            Current Memory: {{ (index_memory_used | float / 1024 / 1024) | round(2) }} MiB
-            Threshold ({{ index_memory_threshold_percent }}% of quota): {{ (index_threshold_bytes | float / 1024 / 1024) | round(2) }} MiB
-      when: index_memory_used | int > index_threshold_bytes | int
+            ALERT: Index memory usage above threshold!
+            Used: {{ index_used_bytes }} bytes ({{ (index_used_bytes / 1024 / 1024) | round(2) }} MiB)
+            Threshold: {{ (index_threshold_bytes / 1024 / 1024) | round(2) }} MiB
+      when: index_used_bytes | int > index_threshold_bytes | int
 
     ###########################
-    # CPU Usage Check
+    # CPU USAGE CHECK
     ###########################
     - name: Get CPU usage safely
       set_fact:
         cpu_used: "{{ node_json.systemStats.cpu_utilization_rate | default(0) | float }}"
 
-    - name: Send alert if CPU exceeds threshold
+    - name: Alert if CPU exceeds threshold
       uri:
         url: "{{ alert_webhook_url }}"
         method: POST
@@ -96,22 +86,22 @@
         body:
           subject: "🚨 Couchbase CPU Alert on {{ inventory_hostname }}"
           body: >
-            ALERT: CPU usage is above threshold!
+            ALERT: CPU usage above threshold!
             Current CPU: {{ cpu_used }}%
             Threshold: {{ cpu_threshold_percent }}%
-      when: cpu_used > cpu_threshold_percent
+      when: cpu_used > cpu_threshold_percent | float
 
     ###########################
-    # Memory Usage Check
+    # MEMORY USAGE CHECK
     ###########################
     - name: Get Memory usage safely
       set_fact:
-        mem_total: "{{ node_json.systemStats.mem_total | default(0) | int }}"
-        mem_free:  "{{ node_json.systemStats.mem_free  | default(0) | int }}"
-        mem_used:  "{{ mem_total - mem_free }}"
-        mem_threshold_bytes: "{{ (mem_total * (memory_threshold_percent | float) / 100) | int }}"
+        memory_total: "{{ node_json.systemStats.mem_total | default(0) | int }}"
+        memory_free: "{{ node_json.systemStats.mem_free | default(0) | int }}"
+        memory_used: "{{ memory_total - memory_free }}"
+        memory_threshold_bytes: "{{ (memory_total * (memory_threshold_percent | float) / 100) | round(0) | int }}"
 
-    - name: Send alert if memory exceeds threshold
+    - name: Alert if Memory exceeds threshold
       uri:
         url: "{{ alert_webhook_url }}"
         method: POST
@@ -121,22 +111,21 @@
         body:
           subject: "🚨 Couchbase Memory Alert on {{ inventory_hostname }}"
           body: >
-            ALERT: Memory usage is above threshold!
-            Current Memory: {{ (mem_used | float / 1024 / 1024) | round(2) }} MiB
-            Threshold: {{ (mem_threshold_bytes | float / 1024 / 1024) | round(2) }} MiB
-      when: mem_used > mem_threshold_bytes
+            ALERT: Memory usage above threshold!
+            Used: {{ memory_used }} bytes ({{ (memory_used / 1024 / 1024) | round(2) }} MiB)
+            Threshold: {{ (memory_threshold_bytes / 1024 / 1024) | round(2) }} MiB
+      when: memory_used > memory_threshold_bytes
 
     ###########################
-    # Disk Usage Check
+    # DISK USAGE CHECK
     ###########################
     - name: Get HDD totals and usage safely
       set_fact:
-        disk_total: "{{ node_json.storageTotals.hdd.total | default(0) | int }}"
-        disk_used:  "{{ node_json.storageTotals.hdd.used  | default(0) | int }}"
-        disk_free:  "{{ node_json.storageTotals.hdd.free  | default(0) | int }}"
-        disk_used_percent: "{{ ((disk_used | float / disk_total | float) * 100) | round(2) if disk_total > 0 else 0 }}"
+        disk_total: "{{ node_json.storage.hdd[0].sizeKBytes | default(0) | int * 1024 }}"
+        disk_used: "{{ (node_json.storageTotals.hdd.used | default(0) | int) }}"
+        disk_used_percent: "{{ ((disk_used | float / disk_total | float) * 100) | round(2) }}"
 
-    - name: Send alert if disk exceeds threshold
+    - name: Alert if Disk exceeds threshold
       uri:
         url: "{{ alert_webhook_url }}"
         method: POST
@@ -146,23 +135,22 @@
         body:
           subject: "🚨 Couchbase Disk Alert on {{ inventory_hostname }}"
           body: >
-            ALERT: Disk usage is above threshold!
-            Current Usage: {{ disk_used_percent }} %
-            Threshold: {{ disk_threshold_percent }} %
-            Total: {{ (disk_total | float / 1024 / 1024 / 1024) | round(2) }} GiB
-            Used:  {{ (disk_used | float / 1024 / 1024 / 1024) | round(2) }} GiB
-            Free:  {{ (disk_free | float / 1024 / 1024 / 1024) | round(2) }} GiB
-      when: disk_used_percent > disk_threshold_percent
+            ALERT: Disk usage above threshold!
+            Usage: {{ disk_used_percent }}%
+            Threshold: {{ disk_threshold_percent }}%
+            Total: {{ (disk_total / 1024 / 1024 / 1024) | round(2) }} GiB
+            Used: {{ (disk_used / 1024 / 1024 / 1024) | round(2) }} GiB
+      when: disk_used_percent > disk_threshold_percent | float
 
     ###########################
-    # Summary Table
+    # SUMMARY TABLE
     ###########################
-    - name: Show summary of all metrics vs thresholds
+    - name: Display Summary Table
       debug:
         msg: |
-          ===== Couchbase Resource Summary on {{ inventory_hostname }} =====
-          Index Memory: {{ (index_memory_used | float / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (index_threshold_bytes | float / 1024 / 1024) | round(2) }} MiB
+          ================== Couchbase Resource Summary ==================
+          Index Memory: {{ (index_used_bytes / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (index_threshold_bytes / 1024 / 1024) | round(2) }} MiB
           CPU Usage: {{ cpu_used }} % / Threshold: {{ cpu_threshold_percent }} %
-          Memory Usage: {{ (mem_used | float / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (mem_threshold_bytes | float / 1024 / 1024) | round(2) }} MiB
+          Memory Usage: {{ (memory_used / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (memory_threshold_bytes / 1024 / 1024) | round(2) }} MiB
           Disk Usage: {{ disk_used_percent }} % / Threshold: {{ disk_threshold_percent }} %
-          Total Disk: {{ (disk_total | float / 1024 / 1024 / 1024) | round(2) }} GiB, Used: {{ (disk_used | float / 1024 / 1024 / 1024) | round(2) }} GiB, Free: {{ (disk_free | float / 1024 / 1024 / 1024) | round(2) }} GiB
+          ===================================================================
