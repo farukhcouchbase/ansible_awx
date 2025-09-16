@@ -89,7 +89,7 @@
             ALERT: CPU usage above threshold!
             Current CPU: {{ cpu_used }}%
             Threshold: {{ cpu_threshold_percent }}%
-      when: cpu_used > cpu_threshold_percent | float
+      when: cpu_used | float > cpu_threshold_percent | float
 
     ###########################
     # MEMORY USAGE CHECK
