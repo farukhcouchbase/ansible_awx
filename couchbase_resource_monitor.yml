@@ -130,9 +130,12 @@
     ###########################
     - name: Get HDD totals and usage safely
       set_fact:
-        disk_total: "{{ node_json.storage.hdd[0].sizeKBytes | default(0) | int * 1024 }}"
-        disk_used: "{{ (node_json.storageTotals.hdd.used | default(0) | int) }}"
-        disk_used_percent: "{{ ((disk_used | float / disk_total | float) * 100) | round(2) }}"
+        disk_total: "{{ total }}"
+        disk_used: "{{ used }}"
+        disk_used_percent: "{{ ((used | float / total | float) * 100) | round(2) }}"
+      vars:
+        total: "{{ node_json.storage.hdd[0].sizeKBytes | default(0) | int * 1024 }}"
+        used: "{{ node_json.storageTotals.hdd.used | default(0) | int }}"
 
     - name: Alert if Disk exceeds threshold
       uri:
