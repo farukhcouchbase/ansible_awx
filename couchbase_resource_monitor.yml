@@ -167,3 +167,11 @@
           Memory Usage: {{ (memory_used | int / 1024 / 1024) | round(2) }} MiB / Threshold: {{ (memory_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB
           Disk Usage: {{ disk_used_percent | float }} % / Threshold: {{ disk_threshold_percent | float }} %
           ===================================================================
+
+    - name: Display Couchbase Resource Summary as key-value
+      debug:
+        msg:
+          Index_Memory: "{{ (index_used_bytes | int / 1024 / 1024) | round(2) }} MiB / {{ (index_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB"
+          CPU_Usage: "{{ cpu_used | float | round(2) }} % / {{ cpu_threshold_percent | float | round(2) }} %"
+          Memory_Usage: "{{ (memory_used | int / 1024 / 1024) | round(2) }} MiB / {{ (memory_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB"
+          Disk_Usage: "{{ disk_used_percent | float | round(2) }} % / {{ disk_threshold_percent | float | round(2) }} %"      
