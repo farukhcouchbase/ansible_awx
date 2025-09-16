@@ -151,7 +151,9 @@
             Threshold: {{ disk_threshold_percent }}%
             Total: {{ (disk_total / 1024 / 1024 / 1024) | round(2) }} GiB
             Used: {{ (disk_used / 1024 / 1024 / 1024) | round(2) }} GiB
-      when: disk_used_percent > disk_threshold_percent | float
+      when: (disk_used_percent | float) > (disk_threshold_percent | float)
+
+
 
     ###########################
     # SUMMARY TABLE
