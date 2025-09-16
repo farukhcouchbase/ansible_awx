@@ -3,7 +3,7 @@
   hosts: all
   gather_facts: false
   vars:
-    # Thresholds (can be changed easily)
+    # Thresholds
     index_memory_threshold_percent: 75
     cpu_threshold_percent: 75
     memory_threshold_percent: 75
@@ -102,13 +102,10 @@
       set_fact:
         memory_free: "{{ node_json.systemStats.mem_free | default(0) | int }}"
 
-    - name: Calculate Memory used
-      set_fact:
-        memory_threshold_bytes: "{{ ((memory_total | int) * (memory_threshold_percent | float) / 100) | round(0) | int }}"
-
-    - name: Calculate Memory threshold in bytes
+    - name: Calculate Memory used and threshold
       set_fact:
         memory_used: "{{ (memory_total | int) - (memory_free | int) }}"
+        memory_threshold_bytes: "{{ ((memory_total | int) * (memory_threshold_percent | float) / 100) | round(0) | int }}"
 
     - name: Alert if Memory exceeds threshold
       uri:
@@ -130,12 +127,14 @@
     ###########################
     - name: Get HDD totals and usage safely
       set_fact:
-        disk_total: "{{ total }}"
-        disk_used: "{{ used }}"
-        disk_used_percent: "{{ ((used | float / total | float) * 100) | round(2) }}"
-      vars:
-        total: "{{ node_json.storage.hdd[0].sizeKBytes | default(0) | int * 1024 }}"
-        used: "{{ node_json.storageTotals.hdd.used | default(0) | int }}"
+        disk_total: "{{ (node_json.storage.hdd[0].sizeKBytes | default(0) | int * 1024) }}"
+        disk_used: "{{ node_json.storageTotals.hdd.used | default(0) | int }}"
+        disk_used_percent: >-
+          {% if (node_json.storage.hdd[0].sizeKBytes | default(0) | int) > 0 %}
+            {{ ((disk_used | float / disk_total | float) * 100) | round(2) }}
+          {% else %}
+            0
+          {% endif %}
 
     - name: Alert if Disk exceeds threshold
       uri:
