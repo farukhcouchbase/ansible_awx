@@ -69,12 +69,40 @@
             Threshold: {{ (index_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB
       when: index_used_bytes | int > index_threshold_bytes | int
 
+    # ###########################
+    # # CPU USAGE CHECK
+    # ###########################
+    # - name: Get CPU usage safely
+    #   set_fact:
+    #     cpu_used: "{{ node_json.systemStats.cpu_utilization_rate | default(0) | float }}"
+
+    # - name: Alert if CPU exceeds threshold
+    #   uri:
+    #     url: "{{ alert_webhook_url }}"
+    #     method: POST
+    #     headers:
+    #       Content-Type: "application/json"
+    #     body_format: json
+    #     body:
+    #       subject: "🚨 Couchbase CPU Alert on {{ inventory_hostname }}"
+    #       body: >
+    #         ALERT: CPU usage above threshold!
+    #         Current CPU: {{ cpu_used }}%
+    #         Threshold: {{ cpu_threshold_percent }}%
+    #   when: cpu_used | float > cpu_threshold_percent | float
     ###########################
     # CPU USAGE CHECK
     ###########################
     - name: Get CPU usage safely
       set_fact:
-        cpu_used: "{{ node_json.systemStats.cpu_utilization_rate | default(0) | float }}"
+        cpu_used: "{{ (node_json.systemStats.cpu_utilization_rate | float) | round(2) }}"
+
+    - name: Debug CPU stats
+      debug:
+        msg:
+          cpu_used: "{{ cpu_used }}"
+          threshold: "{{ cpu_threshold_percent }}"
+          condition_result: "{{ cpu_used | float > cpu_threshold_percent | float }}"
 
     - name: Alert if CPU exceeds threshold
       uri:
