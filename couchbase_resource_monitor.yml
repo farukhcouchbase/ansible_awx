@@ -143,14 +143,23 @@
     ###########################
     - name: Get HDD totals and usage safely
       set_fact:
-        disk_total: "{{ (node_json.storage.hdd[0].sizeKBytes | default(0) | int * 1024) }}"
-        disk_used: "{{ node_json.storageTotals.hdd.used | default(0) | int }}"
+        disk_total: "{{ (node_json.storage.hdd[0].sizeKBytes | default(0) | float) * 1024 }}"
+        disk_used: "{{ node_json.storageTotals.hdd.used | default(0) | float }}"
         disk_used_percent: >-
-          {% if (node_json.storage.hdd[0].sizeKBytes | default(0) | int) > 0 %}
-            {{ ((disk_used | float / disk_total | float) * 100) | round(2) }}
+          {% if (node_json.storage.hdd[0].sizeKBytes | default(0) | float) > 0 %}
+            {{ ((disk_used | float) / (disk_total | float) * 100) | round(2) }}
           {% else %}
             0
           {% endif %}
+
+    - name: Debug Disk stats
+      debug:
+        msg:
+          disk_total: "{{ (disk_total | float / 1024 / 1024 / 1024) | round(2) }} GiB"
+          disk_used: "{{ (disk_used | float / 1024 / 1024 / 1024) | round(2) }} GiB"
+          disk_used_percent: "{{ disk_used_percent | float }}"
+          threshold: "{{ disk_threshold_percent | float }}"
+          condition_result: "{{ (disk_used_percent | float) > (disk_threshold_percent | float) }}"
 
     - name: Alert if Disk exceeds threshold
       uri:
@@ -163,13 +172,11 @@
           subject: "🚨 Couchbase Disk Alert on {{ inventory_hostname }}"
           body: >
             ALERT: Disk usage above threshold!
-            Usage: {{ disk_used_percent }}%
-            Threshold: {{ disk_threshold_percent }}%
-            Total: {{ (disk_total / 1024 / 1024 / 1024) | round(2) }} GiB
-            Used: {{ (disk_used / 1024 / 1024 / 1024) | round(2) }} GiB
+            Usage: {{ disk_used_percent | float }}%
+            Threshold: {{ disk_threshold_percent | float }}%
+            Total: {{ (disk_total | float / 1024 / 1024 / 1024) | round(2) }} GiB
+            Used: {{ (disk_used | float / 1024 / 1024 / 1024) | round(2) }} GiB
       when: (disk_used_percent | float) > (disk_threshold_percent | float)
-
-
 
     ###########################
     # SUMMARY TABLE
