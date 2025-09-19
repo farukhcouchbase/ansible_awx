@@ -143,10 +143,10 @@
     ###########################
     - name: Get HDD totals and usage safely
       set_fact:
-        disk_total: "{{ (node_json.storage.hdd[0].sizeKBytes | default(0) | float) * 1024 }}"
+        disk_total: "{{ node_json.storageTotals.hdd.total | default(0) | float }}"
         disk_used: "{{ node_json.storageTotals.hdd.used | default(0) | float }}"
         disk_used_percent: >-
-          {% if (node_json.storage.hdd[0].sizeKBytes | default(0) | float) > 0 %}
+          {% if (disk_total | float) > 0 %}
             {{ ((disk_used | float) / (disk_total | float) * 100) | round(2) }}
           {% else %}
             0
@@ -177,6 +177,7 @@
             Total: {{ (disk_total | float / 1024 / 1024 / 1024) | round(2) }} GiB
             Used: {{ (disk_used | float / 1024 / 1024 / 1024) | round(2) }} GiB
       when: (disk_used_percent | float) > (disk_threshold_percent | float)
+
 
     ###########################
     # SUMMARY TABLE
