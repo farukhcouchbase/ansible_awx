@@ -98,36 +98,77 @@
             Threshold: {{ cpu_threshold_percent }}%
       when: cpu_used | float > cpu_threshold_percent | float
 
+    # ###########################
+    # # MEMORY USAGE CHECK
+    # ###########################
+    # - name: Get Memory total safely
+    #   set_fact:
+    #     memory_total: "{{ node_json.systemStats.mem_total | default(0) | int }}"
+
+    # - name: Get Memory free safely
+    #   set_fact:
+    #     memory_free: "{{ node_json.systemStats.mem_free | default(0) | int }}"
+
+    # - name: Calculate Memory used and threshold
+    #   set_fact:
+    #     memory_used: "{{ (memory_total | int) - (memory_free | int) }}"
+    #     memory_threshold_bytes: "{{ ((memory_total | int) * (memory_threshold_percent | float) / 100) | round(0) | int }}"
+
+    # - name: Alert if Memory exceeds threshold
+    #   uri:
+    #     url: "{{ alert_webhook_url }}"
+    #     method: POST
+    #     headers:
+    #       Content-Type: "application/json"
+    #     body_format: json
+    #     body:
+    #       subject: "🚨 Couchbase Memory Alert on {{ inventory_hostname }}"
+    #       body: >
+    #         ALERT: Memory usage above threshold!
+    #         Used: {{ memory_used }} bytes ({{ (memory_used / 1024 / 1024) | round(2) }} MiB)
+    #         Threshold: {{ (memory_threshold_bytes / 1024 / 1024) | round(2) }} MiB
+    #   when: memory_used > memory_threshold_bytes
+
     ###########################
     # MEMORY USAGE CHECK
     ###########################
     - name: Get Memory total safely
       set_fact:
-        memory_total: "{{ node_json.systemStats.mem_total | default(0) | int }}"
+        memory_total: "{{ (node_json.systemStats.mem_total | float) | round(2) }}"
 
     - name: Get Memory free safely
       set_fact:
-        memory_free: "{{ node_json.systemStats.mem_free | default(0) | int }}"
+        memory_free: "{{ (node_json.systemStats.mem_free | float) | round(2) }}"
 
     - name: Calculate Memory used and threshold
       set_fact:
-        memory_used: "{{ (memory_total | int) - (memory_free | int) }}"
-        memory_threshold_bytes: "{{ ((memory_total | int) * (memory_threshold_percent | float) / 100) | round(0) | int }}"
+        memory_used: "{{ (memory_total - memory_free) | float | round(2) }}"
+        memory_threshold_bytes: "{{ (memory_total * (memory_threshold_percent | float) / 100) | float | round(2) }}"
+
+    - name: Debug Memory stats
+      debug:
+        msg:
+          memory_total: "{{ (memory_total / 1024 / 1024) | round(2) }} MiB"
+          memory_free: "{{ (memory_free / 1024 / 1024) | round(2) }} MiB"
+          memory_used: "{{ (memory_used / 1024 / 1024) | round(2) }} MiB"
+          threshold: "{{ (memory_threshold_bytes / 1024 / 1024) | round(2) }} MiB"
+          condition_result: "{{ memory_used > memory_threshold_bytes }}"
 
     - name: Alert if Memory exceeds threshold
       uri:
         url: "{{ alert_webhook_url }}"
         method: POST
         headers:
-          Content-Type: "application/json"
+      Content-Type: "application/json"
         body_format: json
         body:
           subject: "🚨 Couchbase Memory Alert on {{ inventory_hostname }}"
           body: >
             ALERT: Memory usage above threshold!
-            Used: {{ memory_used }} bytes ({{ (memory_used / 1024 / 1024) | round(2) }} MiB)
+            Used: {{ (memory_used / 1024 / 1024) | round(2) }} MiB
             Threshold: {{ (memory_threshold_bytes / 1024 / 1024) | round(2) }} MiB
       when: memory_used > memory_threshold_bytes
+
 
     ###########################
     # DISK USAGE CHECK
