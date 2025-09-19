@@ -141,16 +141,22 @@
     ###########################
     # DISK USAGE CHECK
     ###########################
-    - name: Get HDD totals and usage safely
+    - name: Ensure node_json and HDD data exists
       set_fact:
-        disk_total: "{{ node_json.storageTotals.hdd.total | default(0) | float }}"
-        disk_used: "{{ node_json.storageTotals.hdd.used | default(0) | float }}"
+        hdd_info: "{{ node_json.storageTotals.hdd | default({'total': 0, 'used': 0}) }}"
+      when: node_json is defined
+
+    - name: Set disk facts safely
+      set_fact:
+        disk_total: "{{ hdd_info.total | float }}"
+        disk_used: "{{ hdd_info.used | float }}"
         disk_used_percent: >-
-          {% if (disk_total | float) > 0 %}
-            {{ ((disk_used | float) / (disk_total | float) * 100) | round(2) }}
+          {% if (hdd_info.total | float) > 0 %}
+            {{ ((hdd_info.used | float) / (hdd_info.total | float) * 100) | round(2) }}
           {% else %}
             0
           {% endif %}
+      when: hdd_info is defined
 
     - name: Debug Disk stats
       debug:
@@ -160,6 +166,7 @@
           disk_used_percent: "{{ disk_used_percent | float }}"
           threshold: "{{ disk_threshold_percent | float }}"
           condition_result: "{{ (disk_used_percent | float) > (disk_threshold_percent | float) }}"
+      when: disk_total is defined and disk_used is defined
 
     - name: Alert if Disk exceeds threshold
       uri:
@@ -176,8 +183,7 @@
             Threshold: {{ disk_threshold_percent | float }}%
             Total: {{ (disk_total | float / 1024 / 1024 / 1024) | round(2) }} GiB
             Used: {{ (disk_used | float / 1024 / 1024 / 1024) | round(2) }} GiB
-      when: (disk_used_percent | float) > (disk_threshold_percent | float)
-
+      when: disk_used_percent is defined and (disk_used_percent | float) > (disk_threshold_percent | float)
 
     ###########################
     # SUMMARY TABLE
