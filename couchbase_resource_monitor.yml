@@ -65,8 +65,8 @@
           subject: "🚨 Couchbase Index Memory Alert on {{ inventory_hostname }}"
           body: >
             ALERT: Index memory usage above threshold!
-            Used: {{ index_used_bytes }} bytes ({{ (index_used_bytes / 1024 / 1024) | round(2) }} MiB)
-            Threshold: {{ (index_threshold_bytes / 1024 / 1024) | round(2) }} MiB
+            Used: {{ index_used_bytes | int }} bytes ({{ (index_used_bytes | int / 1024 / 1024) | round(2) }} MiB)
+            Threshold: {{ (index_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB
       when: index_used_bytes | int > index_threshold_bytes | int
 
     ###########################
