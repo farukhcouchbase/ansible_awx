@@ -159,7 +159,7 @@
         url: "{{ alert_webhook_url }}"
         method: POST
         headers:
-      Content-Type: "application/json"
+          Content-Type: "application/json"
         body_format: json
         body:
           subject: "🚨 Couchbase Memory Alert on {{ inventory_hostname }}"
