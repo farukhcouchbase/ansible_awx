@@ -105,13 +105,14 @@
           keys: >-
             {{
               decoded_indexes
-              | regex_findall('(?i)Index Key[s]?\\s*:\\s*(.*)')
+              | regex_findall('(?i)Index Key[s]?\\s*:\\s*(\\[.*\\])')
               | first
-              | default('')
-              | regex_replace('\\s+', '')
-              | regex_findall('[^,]+')
+              | default('[]')
+              | from_yaml
+              | map('regex_replace', '`', '')
+              | map('regex_replace', '\\s+', '')
               | map('lower')
-              | list
+              | lis
             }}
 
     - name: Debug extracted index metadata
