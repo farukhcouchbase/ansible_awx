@@ -4,12 +4,12 @@
   vars:
     couchbase_bin_path: "/path/to/couchbase_bin"
     couchbase_admin_username: []
-    couchbase_admin_password: [] 
-    index_queries: [] 
+    couchbase_admin_password: []
+    index_queries: []
     INDEX_NAME: []
     script_path: "~/deffered_index.sh"
     duplicate_indexes: []
-    some_query_output: [] 
+    some_query_output: []
     existing_index_map: []
     query_types: []
     query_type: []
@@ -33,7 +33,7 @@
 
     - name: Print the extracted bucket name
       debug:
-        msg: "The extracted bucket name is: {{ bucket_name }}"    
+        msg: "The extracted bucket name is: {{ bucket_name }}"
 
     - name: Extract operation type from Couchbase index query
       vars:
@@ -44,7 +44,7 @@
             The query is of type: {{ query_type }}
           {% else %}
             The query type could not be determined.
-          {% endif %}    
+          {% endif %}
 
     - name: Run Couchbase query script
       shell: >
@@ -59,7 +59,7 @@
     - name: Fail if any index query has syntax errors
       fail:
         msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
-      when: syntax_check.results | selectattr('stdout', 'search', 'syntax error') | list | length > 0 
+      when: syntax_check.results | selectattr('stdout', 'search', 'syntax error') | list | length > 0
 
     - name: Validate index queries
       set_fact:
@@ -72,7 +72,7 @@
       with_items: "{{ index_queries }}"
 
     - name: Run the script
-      shell: /home/ubuntu/index.sh 
+      shell: /home/ubuntu/index.sh
       args:
         chdir: /home/ubuntu
 
@@ -115,8 +115,8 @@
     - name: Fail if name is different but location and fields are the same
       fail:
         msg: >-
-          ⚠️ Index with different name but same bucket, scope, collection, and fields are not allowed to create 
-       when: >
+          ⚠️ Index with different name but same bucket, scope, collection, and fields are not allowed to create
+      when: >
         index_meta.name != query_meta.name and
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
@@ -159,7 +159,7 @@
       debug:
         msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
       with_dict: "{{ query_field_list }}"
-      when: "query_field_list[item.key] | length > 6"  
+      when: "query_field_list[item.key] | length > 6"
 
     - name: Debug - Queries exceeding field limits
       debug:
@@ -234,7 +234,7 @@
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
       with_items: "{{ updated_queries2 }}"
-      
+
     - name: Execute allowed index queries (Method 2)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries2 }}"
