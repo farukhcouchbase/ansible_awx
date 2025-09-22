@@ -1,3 +1,4 @@
+ 
 - name: Validate and Create Couchbase Indexes
   hosts: all
   gather_facts: no
@@ -7,14 +8,15 @@
     couchbase_admin_password: [] 
     index_queries: [] 
     INDEX_NAME: []
-    script_path: "~/deferred_index.sh"
+    script_path: "~/deffered_index.sh "
+    # bucket_names: [] 
     duplicate_indexes: []
     some_query_output: [] 
     existing_index_map: []
     query_types: []
     query_type: []
     
-    deferred_index_path: "/path/to/deferred_index.sh"
+    deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
 
   tasks:
@@ -56,6 +58,8 @@
       with_items: "{{ index_queries }}"
       register: syntax_check
       no_log: true
+      #failed_when: "'syntax error' in syntax_check.stdout"
+      
 
     - name: Fail if any index query has syntax errors
       fail:
@@ -90,6 +94,45 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
+    - name: Extract original index metadata (safe parsing)
+      set_fact:
+        index_meta:
+          name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+
+    - name: Debug extracted index metadata
+      debug:
+        var: index_meta
+    
+    - name: Extract new index data from index_queries (safe parsing)
+      set_fact:
+        query_meta:
+          name: "{{ index_queries | regex_search('(?i)create index `(.+?)`', '\\1') | default('') }}"
+          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
+          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
+          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
+
+    - name: Fail if name is different but location is the same
+      fail:
+        msg: >-
+          ⚠️ Index with different name but same bucket , scope and collection are not allowed to create 
+      when: >
+        index_meta.name != query_meta.name and
+        index_meta.bucket == query_meta.bucket and
+        index_meta.scope == query_meta.scope and
+        index_meta.collection == query_meta.collection
+
+    - name: Allow execution
+      debug:
+        msg: "✅ Index is allowed. Either name matches or location is different."
+      when: >
+        index_meta.name == query_meta.name or
+        index_meta.bucket != query_meta.bucket or
+        index_meta.scope != query_meta.scope or
+        index_meta.collection != query_meta.collection   
+    
     - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
@@ -124,7 +167,7 @@
 
     - name: Stop execution if any query exceeds allowed field count
       fail:
-        msg: "You are exceeding the limit of 6 fields in query. Please contact the admin: {{ queries_exceeding_fields }}"
+        msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
 
     - name: Identify not allowed queries
@@ -215,3 +258,4 @@
       debug:
         var: script_output.stdout
 
+  
