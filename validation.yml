@@ -105,8 +105,8 @@
           keys: >-
             {{
               (decoded_indexes | regex_search('(?i)Index Keys\\s*:\\s*(.*?)\\n', '\\1') | default(''))
-              | regex_replace('\\s+', '') 
-              | split(',')
+              | regex_replace('\\s+', '')
+              | regex_findall('[^,]+')
             }}
 
     - name: Debug extracted index metadata
@@ -123,8 +123,8 @@
           keys: >-
             {{
               (index_queries | regex_search('\\((.*?)\\)', '\\1') | default(''))
-              | regex_replace('\\s+', '') 
-              | split(',')
+              | regex_replace('\\s+', '')
+              | regex_findall('[^,]+')
             }}
           
 
@@ -147,7 +147,7 @@
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
         index_meta.collection != query_meta.collection or 
-        index_meta.keys | difference(query_meta.keys) | length > 0
+        index_meta.keys | difference(query_meta.keys) | length == 0
         
 
     #===============================================================================================================    
