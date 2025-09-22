@@ -93,10 +93,10 @@
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
-          name: "{{ (decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('')) | string }}"
-          bucket: "{{ (decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('')) | string }}"
-          scope: "{{ (decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('')) | string }}"
-          collection: "{{ (decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('')) | string }}"
+          name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           fields: "{{ (decoded_indexes | regex_search('Fields\\s*:\\s*(.*?)\\n', '\\1') | default('')) | string }}"
 
     - name: Debug extracted original index metadata
@@ -106,10 +106,10 @@
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
-          name: "{{ (index_queries | regex_search('(?i)create index `(.+?)`', '\\1') | default('')) | string }}"
-          bucket: "{{ (index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('')) | string }}"
-          scope: "{{ (index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('')) | string }}"
-          collection: "{{ (index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('')) | string }}"
+          name: "{{ index_queries | regex_search('(?i)create index `(.+?)`', '\\1') | default('') }}"
+          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
+          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
+          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: "{{ (index_queries | regex_search('ON `[^`]+`(?:\\.`[^`]+`)?(?:\\.`[^`]+`)?\\((.*?)\\) WHERE', '\\1') | default('')) | string }}"
 
     - name: Fail if name is different but location and fields are the same
