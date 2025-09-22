@@ -93,11 +93,12 @@
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
-          name: "{{ (decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | first | default('')) | string }}"
-          bucket: "{{ (decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | first | default('')) | string }}"
-          scope: "{{ (decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | first | default('')) | string }}"
-          collection: "{{ (decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | first | default('')) | string }}"
-          fields: "{{ (decoded_indexes | regex_search('Fields\\s*:\\s*(.*?)\\n', '\\1') | first | default('')) | string }}"
+          name: "{{ (decoded_indexes | regex_findall('(?i)NAME\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+          bucket: "{{ (decoded_indexes | regex_findall('(?i)Bucket ID\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+          scope: "{{ (decoded_indexes | regex_findall('(?i)Scope ID\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+          collection: "{{ (decoded_indexes | regex_findall('(?i)Keyspace ID\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+          fields: "{{ (decoded_indexes | regex_findall('Fields\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+
 
     - name: Debug extracted original index metadata
       debug:
