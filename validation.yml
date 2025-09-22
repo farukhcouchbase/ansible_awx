@@ -208,9 +208,10 @@
     - name: Run deferred index script for a bucket
       command: "{{ script_path }} --bucket={{ bucket_names | join(',') }}"
       args:
-        chdir: "~"
+        chdir: "~"  # ensure we are in home directory
       register: script_output
 
     - name: Show script output
       debug:
         var: script_output.stdout
+
