@@ -102,18 +102,6 @@
           bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          keys: >-
-            {{
-              decoded_indexes
-              | regex_findall('(?i)Index Key[s]?\\s*:\\s*(\\[.*\\])')
-              | first
-              | default('[]')
-              | from_yaml
-              | map('regex_replace', '`', '')
-              | map('regex_replace', '\\s+', '')
-              | map('lower')
-              | list
-            }}
 
     - name: Debug extracted index metadata
       debug:
