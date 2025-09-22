@@ -124,7 +124,7 @@
         index_meta.name != query_meta.name and
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
-        index_meta.collection == query_meta.collection
+        index_meta.collection == query_meta.collection and
         index_meta.fields == query_meta.fields
         
     - name: Allow execution
