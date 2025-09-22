@@ -104,7 +104,10 @@
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           keys: >-
             {{
-              (decoded_indexes | regex_search('(?i)Index Keys\\s*:\\s*(.*?)\\n', '\\1') | default(''))
+              decoded_indexes
+              | regex_findall('(?i)Index Keys\\s*:\\s*(.*)')
+              | first
+              | default('')
               | regex_replace('\\s+', '')
               | regex_findall('[^,]+')
             }}
@@ -122,7 +125,10 @@
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           keys: >-
             {{
-              (index_queries | regex_search('\\((.*?)\\)', '\\1') | default(''))
+              index_queries
+              | regex_findall('\\((.*?)\\)')
+              | first
+              | default('')
               | regex_replace('\\s+', '')
               | regex_findall('[^,]+')
             }}
@@ -147,7 +153,7 @@
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
         index_meta.collection != query_meta.collection or 
-        index_meta.keys | difference(query_meta.keys) | length == 0
+        index_meta.keys | difference(query_meta.keys) | length > 0
         
 
     #===============================================================================================================    
