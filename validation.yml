@@ -113,16 +113,29 @@
           bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
-
-    - name: Fail if name is different but location is the same
-      fail:
-        msg: >-
-          ⚠️ Index with different name but same bucket , scope and collection are not allowed to create 
+#=======================================================================================
+    - name: Fail if a different index with the same keys and WHERE clause already exists
+      ansible.builtin.fail:
+        msg: "⚠ Index with different name but same bucket, scope, collection, keys, and WHERE clause is not allowed to be created. Please use a different name or remove the existing index first."
       when: >
-        index_meta.name != query_meta.name and
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
-        index_meta.collection == query_meta.collection
+        index_meta.collection == query_meta.collection and
+        index_meta.index_key_definition == query_meta.index_key_definition and
+        index_meta.where_clause_definition == query_meta.where_clause_definition and
+        index_meta.name != query_meta.name
+#========================================================================================
+    # - name: Fail if name is different but location is the same
+    #   fail:
+    #     msg: >-
+    #       ⚠️ Index with different name but same bucket , scope and collection are not allowed to create 
+    #   when: >
+    #     index_meta.name != query_meta.name and
+    #     index_meta.bucket == query_meta.bucket and
+    #     index_meta.scope == query_meta.scope and
+    #     index_meta.collection == query_meta.collection
+
+#=========================================================================================        
 
     - name: Allow execution
       debug:
