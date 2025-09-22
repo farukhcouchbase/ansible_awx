@@ -101,6 +101,9 @@
           bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          keys: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') | split(',') | map('trim') | list }}"
+          where: "{{ decoded_indexes | regex_search('(?i)WHERE\\s+(.*?)(WITH|$)', '\\1') | default('') | trim }}"
+
 
     - name: Debug extracted index metadata
       debug:
@@ -113,6 +116,20 @@
           bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
+
+    - name: Extract keys from query_meta
+      set_fact:
+        query_meta:
+          keys: "{{ index_queries | regex_search('ON `[^`]+`\\(([^)]+)\\)', '\\1') | default('') | split(',') | map('trim') | list }}"
+
+    - name: Extract WHERE clause from query_meta
+      set_fact:
+        query_meta:
+          where: "{{ index_queries | regex_search('WHERE\\s+(.*?)(WITH|$)', '\\1') | default('') | trim }}"
+
+    - name: Debug extracted query_meta
+      debug:
+        var: query_meta      
 #=======================================================================================
     - name: Fail if a conflicting index exists
       ansible.builtin.fail:
@@ -146,7 +163,9 @@
         index_meta.name == query_meta.name or
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
-        index_meta.collection != query_meta.collection   
+        index_meta.collection != query_meta.collection  
+        (index_meta.keys | sort) != (query_meta.keys | sort) or
+        index_meta.where != query_meta.where
     
     - name: Identify queries exceeding field limits
       set_fact:
