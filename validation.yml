@@ -102,7 +102,12 @@
           bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          keys: "{{ decoded_indexes | regex_search('(?i)Index Keys\\s*:\\s*(.*?)\\n', '\\1') | default('') | regex_replace('\\s+', '') }}"
+          keys: >-
+            {{
+              (decoded_indexes | regex_search('(?i)Index Keys\\s*:\\s*(.*?)\\n', '\\1') | default(''))
+              | regex_replace('\\s+', '') 
+              | split(',')
+            }}
 
     - name: Debug extracted index metadata
       debug:
@@ -115,7 +120,12 @@
           bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
-          keys: "{{ index_queries | regex_search('\\((.*?)\\)', '\\1') | default('') | regex_replace('\\s+', '') }}"
+          keys: >-
+            {{
+              (index_queries | regex_search('\\((.*?)\\)', '\\1') | default(''))
+              | regex_replace('\\s+', '') 
+              | split(',')
+            }}
           
 
     - name: Fail if name is different but location is the same
@@ -127,7 +137,7 @@
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
         index_meta.collection == query_meta.collection and
-        index_meta.keys == query_meta.keys
+        index_meta.keys | difference(query_meta.keys) | length == 0
 
     - name: Allow execution
       debug:
@@ -136,7 +146,8 @@
         index_meta.name == query_meta.name or
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
-        index_meta.collection != query_meta.collection  
+        index_meta.collection != query_meta.collection or 
+        index_meta.keys | difference(query_meta.keys) | length > 0
         
 
     #===============================================================================================================    
