@@ -93,7 +93,6 @@
     - name: Set decoded file content as variable
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
-#=================================================================================================
 
     - name: Extract original index metadata (safe parsing)
       set_fact:
@@ -114,18 +113,6 @@
           bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
-          keys: >-
-            {{
-              index_queries
-              | regex_findall('\\((.*?)\\)')
-              | first
-              | default('')
-              | regex_replace('\\s+', '')
-              | regex_findall('[^,]+')
-              | map('lower')
-              | list
-            }}
-          
 
     - name: Fail if name is different but location is the same
       fail:
@@ -135,8 +122,7 @@
         index_meta.name != query_meta.name and
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
-        index_meta.collection == query_meta.collection and
-        (index_meta.keys | sort) | difference(query_meta.keys | sort) | length == 0
+        index_meta.collection == query_meta.collection
 
     - name: Allow execution
       debug:
@@ -145,11 +131,7 @@
         index_meta.name == query_meta.name or
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
-        index_meta.collection != query_meta.collection or 
-        (index_meta.keys | sort) | difference(query_meta.keys | sort) | length > 0
-        
-
-    #===============================================================================================================    
+        index_meta.collection != query_meta.collection   
     
     - name: Identify queries exceeding field limits
       set_fact:
