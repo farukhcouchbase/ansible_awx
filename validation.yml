@@ -105,11 +105,13 @@
           keys: >-
             {{
               decoded_indexes
-              | regex_findall('(?i)Index Keys\\s*:\\s*(.*)')
+              | regex_findall('(?i)Index Key[s]?\\s*:\\s*(.*)')
               | first
               | default('')
               | regex_replace('\\s+', '')
               | regex_findall('[^,]+')
+              | map('lower')
+              | list
             }}
 
     - name: Debug extracted index metadata
@@ -131,6 +133,8 @@
               | default('')
               | regex_replace('\\s+', '')
               | regex_findall('[^,]+')
+              | map('lower')
+              | list
             }}
           
 
@@ -143,7 +147,7 @@
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
         index_meta.collection == query_meta.collection and
-        index_meta.keys | difference(query_meta.keys) | length == 0
+        (index_meta.keys | sort) | difference(query_meta.keys | sort) | length == 0
 
     - name: Allow execution
       debug:
@@ -153,7 +157,7 @@
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
         index_meta.collection != query_meta.collection or 
-        index_meta.keys | difference(query_meta.keys) | length > 0
+        (index_meta.keys | sort) | difference(query_meta.keys | sort) | length > 0
         
 
     #===============================================================================================================    
