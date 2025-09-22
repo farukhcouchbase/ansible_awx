@@ -112,7 +112,7 @@
               | map('regex_replace', '`', '')
               | map('regex_replace', '\\s+', '')
               | map('lower')
-              | lis
+              | list
             }}
 
     - name: Debug extracted index metadata
