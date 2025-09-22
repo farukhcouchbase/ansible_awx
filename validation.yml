@@ -92,14 +92,14 @@
     #===================================================================================================
 
 
-    - name: Extract new index data from index_queries (safe parsing)
+    - name: Extract original index metadata (safe parsing)
       set_fact:
-        query_meta:
-          name: "{{ (index_queries | regex_findall('(?i)create index `(.+?)`') | first | default('')) | string }}"
-          bucket: "{{ (index_queries | regex_findall('ON `([^`]+)`\\.') | first | default('')) | string }}"
-          scope: "{{ (index_queries | regex_findall('ON `[^`]+`\\.`([^`]+)`\\.') | first | default('')) | string }}"
-          collection: "{{ (index_queries | regex_findall('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`') | first | default('')) | string }}"
-          fields: "{{ (index_queries | regex_findall('ON `[^`]+`(?:\\.`[^`]+`)?(?:\\.`[^`]+`)?\\((.*?)\\) WHERE') | first | default('')) | string }}"
+        index_meta:
+          name: "{{ (decoded_indexes | regex_findall('(?i)NAME\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+          bucket: "{{ (decoded_indexes | regex_findall('(?i)Bucket ID\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+          scope: "{{ (decoded_indexes | regex_findall('(?i)Scope ID\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+          collection: "{{ (decoded_indexes | regex_findall('(?i)Keyspace ID\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
+          fields: "{{ (decoded_indexes | regex_findall('Fields\\s*:\\s*(.*?)\\n') | first | default('')) | string }}"
 
     - name: Debug extracted original index metadata
       debug:
@@ -108,11 +108,11 @@
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
-          name: "{{ (index_queries | regex_search('(?i)create index `(.+?)`', '\\1') | first | default('')) | string }}"
-          bucket: "{{ (index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | first | default('')) | string }}"
-          scope: "{{ (index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | first | default('')) | string }}"
-          collection: "{{ (index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | first | default('')) | string }}"
-          fields: "{{ (index_queries | regex_search('ON `[^`]+`(?:\\.`[^`]+`)?(?:\\.`[^`]+`)?\\((.*?)\\) WHERE', '\\1') | first | default('')) | string }}"
+          name: "{{ (index_queries | regex_findall('(?i)create index `(.+?)`') | first | default('')) | string }}"
+          bucket: "{{ (index_queries | regex_findall('ON `([^`]+)`\\.') | first | default('')) | string }}"
+          scope: "{{ (index_queries | regex_findall('ON `[^`]+`\\.`([^`]+)`\\.') | first | default('')) | string }}"
+          collection: "{{ (index_queries | regex_findall('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`') | first | default('')) | string }}"
+          fields: "{{ (index_queries | regex_findall('ON `[^`]+`(?:\\.`[^`]+`)?(?:\\.`[^`]+`)?\\((.*?)\\) WHERE') | first | default('')) | string }}"
 
     - name: Fail if name is different but location and fields are the same
       fail:
