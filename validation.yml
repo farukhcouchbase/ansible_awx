@@ -53,9 +53,10 @@
       
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-      loop: "{{ index_queries }}"
+      with_items: "{{ index_queries }}"
       register: syntax_check
       no_log: true
+      #failed_when: "'syntax error' in syntax_check.stdout"
 
     - name: Fail if any index query has syntax errors
       fail:
