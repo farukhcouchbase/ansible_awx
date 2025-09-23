@@ -125,6 +125,12 @@
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
 
+    - name:  Extract new index data from index_queries (safe parsing) (field data)
+      set_face:
+        query_meta_2:
+          fields: "{{ index_queries | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          
+
     - name: Fail if name is different but location is the same
       fail:
         msg: >-
@@ -134,6 +140,7 @@
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
         index_meta.collection == query_meta.collection
+        index_meta_2.fields == query_meta_2.fields
 
     - name: Allow execution
       debug:
