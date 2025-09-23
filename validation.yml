@@ -1,20 +1,18 @@
- 
 - name: Validate and Create Couchbase Indexes
   hosts: all
   gather_facts: no
   vars:
     couchbase_bin_path: "/path/to/couchbase_bin"
-    couchbase_admin_username: []
-    couchbase_admin_password: [] 
+    couchbase_admin_username: ""
+    couchbase_admin_password: "" 
     index_queries: [] 
-    INDEX_NAME: []
-    script_path: "~/deffered_index.sh "
-    # bucket_names: [] 
+    INDEX_NAME: ""
+    script_path: "~/deffered_index.sh"
     duplicate_indexes: []
     some_query_output: [] 
     existing_index_map: []
     query_types: []
-    query_type: []
+    query_type: ""
     
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
@@ -55,11 +53,9 @@
       
     - name: Validate syntax of index queries
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
-      with_items: "{{ index_queries }}"
+      loop: "{{ index_queries }}"
       register: syntax_check
       no_log: true
-      #failed_when: "'syntax error' in syntax_check.stdout"
-      
 
     - name: Fail if any index query has syntax errors
       fail:
@@ -74,10 +70,10 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
+      loop: "{{ index_queries }}"
 
     - name: Run the script
-      shell: /home/ubuntu/index.sh 
+      shell: /home/ubuntu/index.sh
       args:
         chdir: /home/ubuntu
 
@@ -97,18 +93,31 @@
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
-          name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          # fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          fields: "{{ 
-            (decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('')) 
-            | regex_replace('[`\'"\[\]\(\)]', '')    # remove quotes, backticks, brackets, parentheses
-            | lower 
-            | regex_replace('\\s+', ' ')             # normalize whitespace
-            | trim 
-          }}"
+          name: >-
+            {{
+              decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('')
+            }}
+          bucket: >-
+            {{
+              decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('')
+            }}
+          scope: >-
+            {{
+              decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('')
+            }}
+          collection: >-
+            {{
+              decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('')
+            }}
+          fields: >-
+            {{
+              (decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default(''))
+              | regex_replace('[`\'"\[\]\(\)]', '')
+              | lower
+              | regex_replace('\\s+', ' ')
+              | trim
+            }}
+
     - name: Debug extracted index metadata
       debug:
         var: index_meta
@@ -116,28 +125,39 @@
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
-          name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('') }}"
-          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
-          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
-          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
-          # fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
-          fields: "{{ 
-            (index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('')) 
-            | regex_replace('[`\'"\(\)]', '')         # remove backticks, quotes, parentheses
-            | lower 
-            | regex_replace('\\s+', ' ')              # normalize whitespace
-            | trim 
-          }}"
-  
-        
-    - name: Debug extracted index metadata
+          name: >-
+            {{
+              index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('')
+            }}
+          bucket: >-
+            {{
+              index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('')
+            }}
+          scope: >-
+            {{
+              index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('')
+            }}
+          collection: >-
+            {{
+              index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('')
+            }}
+          fields: >-
+            {{
+              (index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default(''))
+              | regex_replace('[`\'"\(\)]', '')
+              | lower
+              | regex_replace('\\s+', ' ')
+              | trim
+            }}
+         
+    - name: Debug extracted query metadata
       debug:
         var: query_meta
             
     - name: Fail if name is different but location is the same
       fail:
         msg: >-
-          ⚠️ Index with different name but same bucket , scope and collection are not allowed to create 
+          ⚠️ Index with different name but same bucket, scope, and collection are not allowed to create
       when: >
         index_meta.name != query_meta.name and
         index_meta.bucket == query_meta.bucket and
@@ -157,7 +177,7 @@
     - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
-      with_items: "{{ index_queries }}"
+      loop: "{{ index_queries }}"
       when:
         - "item is search('CREATE INDEX')"
         - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"
@@ -167,28 +187,28 @@
         cleaned_fields: "{{ item.value | replace('`', '') | regex_replace('\\s+', '') }}"
       set_fact:
         query_field_list: "{{ query_field_list | default({}) | combine({ item.key: cleaned_fields.split(',') }) }}"
-      with_dict: "{{ query_field_mapping }}"
+      loop: "{{ query_field_mapping | dict2items }}"
 
     - name: Identify queries exceeding 6 fields
       set_fact:
         queries_exceeding_fields: "{{ queries_exceeding_fields | default([]) + [item.key] }}"
-      with_dict: "{{ query_field_list }}"
-      when: "query_field_list[item.key] | length > 6"
+      loop: "{{ query_field_list | dict2items }}"
+      when: "item.value | length > 6"
 
     - name: Display warning for queries exceeding 6 fields
       debug:
         msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
-      with_dict: "{{ query_field_list }}"
-      when: "query_field_list[item.key] | length > 6"  
+      loop: "{{ query_field_list | dict2items }}"
+      when: "item.value | length > 6"  
 
     - name: Debug - Queries exceeding field limits
       debug:
         msg: "Query exceeds field limit: {{ item }}"
-      with_items: "{{ queries_exceeding_fields }}"
+      loop: "{{ queries_exceeding_fields }}"
 
     - name: Stop execution if any query exceeds allowed field count
       fail:
-        msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
+        msg: "You are exceeding the limit of 6 fields in query. Please contact the admin: {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
 
     - name: Identify not allowed queries
@@ -196,7 +216,7 @@
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when:
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-      with_items: "{{ index_queries }}"
+      loop: "{{ index_queries }}"
 
     - name: Remove semicolon using regex
       set_fact:
@@ -205,12 +225,12 @@
     - name: Debug - Allowed Queries
       debug:
         msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
-      with_items: "{{ allowed_queries }}"
+      loop: "{{ allowed_queries }}"
 
     - name: Debug - Not Allowed Queries
       debug:
         msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
-      with_items: "{{ not_allowed_queries }}"
+      loop: "{{ not_allowed_queries }}"
 
     - name: Show the modified query
       debug:
@@ -248,23 +268,23 @@
     - name: Debug - Updated Index Queries (Method 1)
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries1 }}"
+      loop: "{{ updated_queries1 }}"
 
     - name: Debug - Updated Index Queries (Method 2)
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries2 }}"
+      loop: "{{ updated_queries2 }}"
       
     - name: Execute allowed index queries (Method 2)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries2 }}"
+      loop: "{{ updated_queries2 }}"
       when: updated_queries2 | length > 0
       register: query_result
       ignore_errors: no
 
     - name: Execute allowed index queries (Method 1)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      with_items: "{{ updated_queries1 }}"
+      loop: "{{ updated_queries1 }}"
       when: updated_queries1 | length > 0
       register: query_result
       ignore_errors: no
@@ -272,11 +292,9 @@
     - name: Run deferred index script for a bucket
       command: "{{ script_path }} --bucket={{ bucket_names | join(',') }}"
       args:
-        chdir: "~"  # ensure we are in home directory
+        chdir: "~"
       register: script_output
 
     - name: Show script output
       debug:
         var: script_output.stdout
-
-  
