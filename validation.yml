@@ -107,9 +107,8 @@
             | regex_replace('[`\'"\[\]\(\)]', '')    # remove quotes, backticks, brackets, parentheses
             | lower 
             | regex_replace('\\s+', ' ')             # normalize whitespace
-            | trim
+            | trim 
           }}"
-
     - name: Debug extracted index metadata
       debug:
         var: index_meta
@@ -128,7 +127,8 @@
             | lower 
             | regex_replace('\\s+', ' ')              # normalize whitespace
             | trim 
-              }}"
+          }}"
+  
         
     - name: Debug extracted index metadata
       debug:
