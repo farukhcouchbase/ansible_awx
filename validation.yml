@@ -113,11 +113,12 @@
           fields: >-
             {{
               ((decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*)', ignorecase=True) or [''])[0])
-              | regex_replace('[`\'"\[\]\(\)]', '')
+              | regex_replace("[`'\"\\[\\]\\(\\)]", "")
               | lower
-              | regex_replace('\\s+', ' ')
+              | regex_replace("\\s+", " ")
               | trim
             }}
+
    
     - name: Debug extracted index metadata
       debug:
