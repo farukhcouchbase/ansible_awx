@@ -89,13 +89,21 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 #=============================================================================
+    # - name: Extract original index metadata (safe parsing)
+    #   set_fact:
+    #     index_meta:
+    #       name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+    #       bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+    #       scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+    #       collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
-          name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          name: "{{ decoded_indexes | regex_search('(?i)Name\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          bucket: "{{ decoded_indexes | regex_search('(?i)(Bucket Id|Keyspace Id)\\s*:\\s*(.*?)\\n', '\\2') | default('') }}"
+          scope: "{{ decoded_indexes | regex_search('(?i)Scope Id\\s*:\\s*(.*?)\\n', '\\1') | default('_default') }}"
+          collection: "{{ decoded_indexes | regex_search('(?i)Collection Id\\s*:\\s*(.*?)\\n', '\\1') | default('_default') }}"
 
     - name: Extract original index field metadata (safe parsing)
       set_fact:
