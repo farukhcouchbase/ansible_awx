@@ -100,9 +100,6 @@
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
 
-    
-          
-
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
@@ -111,9 +108,6 @@
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
-        
-
-  
     
     - name: Debug extracted index metadata
       debug:
@@ -122,10 +116,6 @@
     - name: Debug extracted query metadata
       debug:
         var: query_meta
-
-  
-         
-    
             
     - name: Fail if name is different but location is the same
       fail:
