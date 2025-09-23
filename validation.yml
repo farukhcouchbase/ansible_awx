@@ -126,7 +126,7 @@
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
 
     - name:  Extract new index data from index_queries (safe parsing) (field data)
-      set_face:
+      set_fact:
         query_meta_2:
           fields: "{{ index_queries | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           
