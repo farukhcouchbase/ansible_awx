@@ -85,16 +85,21 @@
       debug:
         msg: "{{ file_content.content | b64decode }}"
 
-    - name: Set decoded file content as variable
+    # - name: Set decoded file content as variable
+    #   set_fact:
+    #     decoded_indexes: "{{ file_content.content | b64decode }}"
+
+
+    - name: Parse Couchbase indexes JSON safely
       set_fact:
-        decoded_indexes: "{{ file_content.content | b64decode }}"
+        decoded_indexes: "{{ (file_content.content | b64decode) | from_json }}"
 
+    - name: Debug decoded indexes
+      debug:
+        var: decoded_indexes
 
-    - name: Parse Couchbase indexes JSON
-      set_fact:
-        decoded_indexes: "{{ raw_indexes.stdout | from_json }}"
-
-    - name: Extract original index metadata from Couchbase JSON
+    # 2️⃣ Extract existing index metadata safely
+    - name: Extract original index metadata for specific index
       set_fact:
         index_meta: >-
           {{
@@ -105,7 +110,7 @@
             | default({})
           }}
 
-    - name: Set structured metadata
+    - name: Set structured metadata for existing index
       set_fact:
         index_meta_structured:
           name: "{{ index_meta.indexName | default('') }}"
@@ -117,7 +122,7 @@
     - name: Debug structured index metadata
       debug:
         var: index_meta_structured
-
+        
     - name: Extract original index field metadata (safe parsing)
       set_fact:
         index_meta_2:
