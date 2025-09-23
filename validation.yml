@@ -98,7 +98,7 @@
     #       collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
 
     - name: Extract original index metadata (safe parsing)
-      set_fact:
+      set_fact: 
         index_meta:
           name: "{{ decoded_indexes | regex_search('(?i)Name\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           bucket: "{{ decoded_indexes | regex_search('(?i)(Bucket Id|Keyspace Id)\\s*:\\s*(.*?)\\n', '\\2') | default('') }}"
