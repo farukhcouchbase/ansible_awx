@@ -89,30 +89,34 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 #=============================================================================
-    # - name: Extract original index metadata (safe parsing)
-    #   set_fact:
-    #     index_meta:
-    #       name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-    #       bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-    #       scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-    #       collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+    - name: Extract original index metadata from Couchbase JSON
+      set_fact:
+        index_meta: >-
+          {{
+            (decoded_indexes.indexes
+             | selectattr('indexName', 'equalto', 'def_route_src_dst_day')
+             | list
+             | first) 
+            | default({})
+          }}
 
-    - name: Extract original index metadata (safe parsing)
-      set_fact: 
-        index_meta:
-          name: "{{ decoded_indexes | regex_search('(?i)Name\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          bucket: "{{ decoded_indexes | regex_search('(?i)(Bucket Id|Keyspace Id)\\s*:\\s*(.*?)\\n', '\\2') | default('') }}"
-          scope: "{{ decoded_indexes | regex_search('(?i)Scope Id\\s*:\\s*(.*?)\\n', '\\1') | default('_default') }}"
-          collection: "{{ decoded_indexes | regex_search('(?i)Collection Id\\s*:\\s*(.*?)\\n', '\\1') | default('_default') }}"
+    - name: Set structured metadata
+      set_fact:
+        index_meta_structured:
+          name: "{{ index_meta.indexName | default('') }}"
+          bucket: "{{ index_meta.bucket | default('') }}"
+          scope: "{{ index_meta.scope | default('_default') }}"
+          collection: "{{ index_meta.collection | default('_default') }}"
+          fields: "{{ index_meta.definition | default('') }}"
+
+    - name: Debug structured index metadata
+      debug:
+        var: index_meta_structured
 
     - name: Extract original index field metadata (safe parsing)
       set_fact:
         index_meta_2:
           fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-
-    - name: Debug extracted index metadata
-      debug:
-        var: index_meta
 
     - name: Debug extracted index field metadata
       debug:
