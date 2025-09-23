@@ -164,29 +164,24 @@
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
-
+    
     - name: Normalize index_meta.fields
       set_fact:
-        index_fields_clean: >-
-          {{
-            index_meta.fields
-            | regex_replace('[\\[\\]`\'"]', '')           # remove brackets, backticks, quotes
-            | regex_replace('distinct|array|\\(|\\)', '', ignorecase=True)  # remove keywords/parentheses
-            | regex_replace('\\s+', ' ')                  # normalize whitespace
-            | lower
-            | trim
-          }}
+        index_fields_clean: "{{ index_meta.fields
+          | regex_replace('[\\[\\]`\'\"]', '')
+          | regex_replace('(?i)distinct|array|\\(|\\)', '')
+          | regex_replace('\\s+', ' ')
+          | lower
+          | trim }}"
 
     - name: Normalize query_meta.fields
       set_fact:
-        query_fields_clean: >-
-          {{
-            query_meta.fields
-            | regex_replace('distinct|array|\\(|\\)', '', ignorecase=True)
-            | regex_replace('\\s+', ' ')
-            | lower
-            | trim
-          }}
+        query_fields_clean: "{{ query_meta.fields
+          | regex_replace('(?i)distinct|array|\\(|\\)', '')
+          | regex_replace('\\s+', ' ')
+          | lower
+          | trim }}"
+      
 
     - name: Compare normalized fields
       set_fact:
