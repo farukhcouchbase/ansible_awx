@@ -127,6 +127,10 @@
             | lower
             | trim
           }}
+          
+    - name: Debug normalized index_meta fields
+      debug:
+        var: index_meta_normalized_fields      
 
     - name: Normalize query_meta fields
       set_fact:
@@ -138,15 +142,7 @@
             | lower
             | trim
           }}
-
-
-    - name: Debug normalized index_meta fields
-      debug:
-        var: index_meta_normalized_fields
-      
-
- 
-    
+   
     - name: Debug normalized query_meta fields
       debug:
         var: query_meta_normalized_fields
