@@ -132,7 +132,7 @@
 
     - name: Parse items out of query_raw_fields (comma-separated)
       set_fact:
-        query_items: "{{ query_raw_fields | split(',') }}"
+        query_items: "{{ (query_raw_fields | first).split(',') }}"
 
     - name: Normalize index items
       set_fact:
