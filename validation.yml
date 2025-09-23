@@ -91,6 +91,62 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
+    # - name: Extract original index metadata (safe parsing)
+    #   set_fact:
+    #     index_meta:
+    #       name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+    #       bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+    #       scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+    #       collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+    #       fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+
+    
+          
+
+    # - name: Extract new index data from index_queries (safe parsing)
+    #   set_fact:
+    #     query_meta:
+    #       name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('') }}"
+    #       bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
+    #       scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
+    #       collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
+    #       fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
+        
+
+  
+    
+    # - name: Debug extracted index metadata
+    #   debug:
+    #     var: index_meta
+         
+    # - name: Debug extracted query metadata
+    #   debug:
+    #     var: query_meta
+
+  
+         
+    
+            
+    # - name: Fail if name is different but location is the same
+    #   fail:
+    #     msg: >-
+    #       ⚠️ Index with different name but same bucket, scope, and collection are not allowed to create
+    #   when: >
+    #     index_meta.name != query_meta.name and
+    #     index_meta.bucket == query_meta.bucket and
+    #     index_meta.scope == query_meta.scope and
+    #     index_meta.collection == query_meta.collection and
+    #     index_meta.fields == query_meta.fields
+
+    # - name: Allow execution
+    #   debug:
+    #     msg: "✅ Index is allowed. Either name matches or location is different."
+    #   when: >
+    #     index_meta.name == query_meta.name or
+    #     index_meta.bucket != query_meta.bucket or
+    #     index_meta.scope != query_meta.scope or
+    #     index_meta.collection != query_meta.collection   
+
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
@@ -100,9 +156,6 @@
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
 
-    
-          
-
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
@@ -111,32 +164,53 @@
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
-        
 
-  
-    
-    - name: Debug extracted index metadata
-      debug:
-        var: index_meta
-         
-    - name: Debug extracted query metadata
-      debug:
-        var: query_meta
+    - name: Normalize index_meta.fields
+      set_fact:
+        index_fields_clean: >-
+          {{
+            index_meta.fields
+            | regex_replace('[\\[\\]`\'"]', '')           # remove brackets, backticks, quotes
+            | regex_replace('distinct|array|\\(|\\)', '', ignorecase=True)  # remove keywords/parentheses
+            | regex_replace('\\s+', ' ')                  # normalize whitespace
+            | lower
+            | trim
+          }}
 
-  
-         
-    
-            
+    - name: Normalize query_meta.fields
+      set_fact:
+        query_fields_clean: >-
+          {{
+            query_meta.fields
+            | regex_replace('distinct|array|\\(|\\)', '', ignorecase=True)
+            | regex_replace('\\s+', ' ')
+            | lower
+            | trim
+          }}
+
+    - name: Compare normalized fields
+      set_fact:
+        fields_match: "{{ index_fields_clean == query_fields_clean }}"
+
+    - name: Debug extracted and normalized metadata
+      debug:
+        msg:
+          - "Index Meta: {{ index_meta }}"
+          - "Query Meta: {{ query_meta }}"
+          - "Normalized Index Fields: {{ index_fields_clean }}"
+          - "Normalized Query Fields: {{ query_fields_clean }}"
+          - "Fields Match: {{ fields_match }}"
+
     - name: Fail if name is different but location is the same
       fail:
         msg: >-
-          ⚠️ Index with different name but same bucket, scope, and collection are not allowed to create
+          ⚠️ Index with different name but same bucket, scope, collection, and fields are not allowed to create
       when: >
         index_meta.name != query_meta.name and
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
         index_meta.collection == query_meta.collection and
-        index_meta.fields == query_meta.fields
+        fields_match  # use normalized fields comparison
 
     - name: Allow execution
       debug:
@@ -145,7 +219,8 @@
         index_meta.name == query_meta.name or
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
-        index_meta.collection != query_meta.collection   
+        index_meta.collection != query_meta.collection
+
     
     - name: Identify queries exceeding field limits
       set_fact:
