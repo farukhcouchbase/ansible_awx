@@ -98,11 +98,7 @@
           bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          fields: "{{ decoded_indexes
-                      | regex_replace('\\[|\\]|\'|`', '')                   # remove brackets, quotes, backticks
-                      | regex_replace('\\(distinct \\(array \\((.*?)\\) for `(.*?)` in `(.*?)` end\\)\\)', 
-                                      'DISTINCT ARRAY \\1 FOR \\2 IN \\3 END')  # convert nested array syntax
-                      | trim }}"
+          fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
 
     
           
