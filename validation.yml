@@ -91,67 +91,46 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
-    
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
-          name: >-
-            {{
-              decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*)', ignorecase=True) | first | default('')
-            }}
-          bucket: >-
-            {{
-              decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*)', ignorecase=True) | first | default('')
-            }}
-          scope: >-
-            {{
-              decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*)', ignorecase=True) | first | default('')
-            }}
-          collection: >-
-            {{
-              decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*)', ignorecase=True) | first | default('')
-            }}
+          name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           fields: >-
             {{
-              decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*)', ignorecase=True) | first | default('')
-              | regex_replace("[`'\"\\[\\]\\(\\)]", "")
+              decoded_indexes
+              | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1')
+              | default('')
+              | regex_replace('[`"\[\]]', '')    # remove backticks, quotes, brackets
               | lower
-              | regex_replace("\\s+", " ")
+              | regex_replace('\\s+', ' ')       # normalize whitespace
               | trim
             }}
 
-   
-    - name: Debug extracted index metadata
-      debug:
-        var: index_meta
-        
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
-          name: >-
-            {{
-              index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('')
-            }}
-          bucket: >-
-            {{
-              index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('')
-            }}
-          scope: >-
-            {{
-              index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('')
-            }}
-          collection: >-
-            {{
-              index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('')
-            }}
+          name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('') }}"
+          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
+          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
+          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: >-
             {{
-              (index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default(''))
-              | regex_replace('[`\'"\(\)]', '')
+              index_queries
+              | regex_search('\\((.*?)\\)\\s*WHERE', '\\1')
+              | default('')
+              | regex_replace('[`]', '')         # remove backticks
               | lower
-              | regex_replace('\\s+', ' ')
+              | regex_replace('\\s+', ' ')       # normalize whitespace
               | trim
             }}
+
+    
+    - name: Debug extracted index metadata
+      debug:
+        var: index_meta
          
     - name: Debug extracted query metadata
       debug:
