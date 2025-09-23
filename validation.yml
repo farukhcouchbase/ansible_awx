@@ -96,26 +96,26 @@
         index_meta:
           name: >-
             {{
-              (decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*)', ignorecase=True) or [''])[0]
+              decoded_indexes | regex_search(r'(?i)NAME\s*:\s*(.*)', ignorecase=True) | first | default('')
             }}
           bucket: >-
             {{
-              (decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*)', ignorecase=True) or [''])[0]
+              decoded_indexes | regex_search(r'(?i)Bucket ID\s*:\s*(.*)', ignorecase=True) | first | default('')
             }}
           scope: >-
             {{
-              (decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*)', ignorecase=True) or [''])[0]
+              decoded_indexes | regex_search(r'(?i)Scope ID\s*:\s*(.*)', ignorecase=True) | first | default('')
             }}
           collection: >-
             {{
-              (decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*)', ignorecase=True) or [''])[0]
+              decoded_indexes | regex_search(r'(?i)Keyspace ID\s*:\s*(.*)', ignorecase=True) | first | default('')
             }}
           fields: >-
             {{
-              ((decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*)', ignorecase=True) or [''])[0])
-              | regex_replace("[`'\"\\[\\]\\(\\)]", "")
+              decoded_indexes | regex_search(r'(?i)Index Key\s*:\s*(.*)', ignorecase=True) | first | default('')
+              | regex_replace(r"[`'\"[\]()]", "")
               | lower
-              | regex_replace("\\s+", " ")
+              | regex_replace(r"\s+", " ")
               | trim
             }}
 
