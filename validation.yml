@@ -128,7 +128,7 @@
 
     - name: Parse items out of index_raw_fields (Python-style list string)
       set_fact:
-        index_items: "{{ index_raw_fields | regex_findall(\"'\\s*([^']*?)\\s*'\") }}"
+        index_items: "{{ (index_raw_fields | first) | regex_findall(\"'([^']+)'\") }}"
 
     - name: Parse items out of query_raw_fields (comma-separated)
       set_fact:
