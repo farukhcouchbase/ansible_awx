@@ -71,7 +71,7 @@
         - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
         - "item | regex_search('CREATE INDEX', ignorecase=True)"
         - "item | regex_search('WHERE', ignorecase=True)"
-      loop: "{{ index_queries }}"
+      with_items: "{{ index_queries }}"
 
     - name: Run the script
       shell: /home/ubuntu/index.sh
