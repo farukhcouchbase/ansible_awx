@@ -131,11 +131,11 @@
           
     - name: Debug extracted index metadata
       debug:
-        var: query_meta:
+        var: query_meta
 
     - name: Debug extracted index metadata
       debug:
-        var: query_meta_2:    
+        var: query_meta_2    
           
     - name: Fail if name is different but location is the same
       fail:
