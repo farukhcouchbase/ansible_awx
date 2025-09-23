@@ -150,7 +150,7 @@
     - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
-      loop: "{{ index_queries }}"
+      with_items: "{{ index_queries }}"
       when:
         - "item is search('CREATE INDEX')"
         - "item is search('ON\\s*[^()]+\\(([^)]+)\\)')"
@@ -160,28 +160,28 @@
         cleaned_fields: "{{ item.value | replace('`', '') | regex_replace('\\s+', '') }}"
       set_fact:
         query_field_list: "{{ query_field_list | default({}) | combine({ item.key: cleaned_fields.split(',') }) }}"
-      loop: "{{ query_field_mapping | dict2items }}"
+      with_dict: "{{ query_field_mapping }}"
 
     - name: Identify queries exceeding 6 fields
       set_fact:
         queries_exceeding_fields: "{{ queries_exceeding_fields | default([]) + [item.key] }}"
-      loop: "{{ query_field_list | dict2items }}"
-      when: "item.value | length > 6"
+      with_dict: "{{ query_field_list }}"
+      when: "query_field_list[item.key] | length > 6"
 
     - name: Display warning for queries exceeding 6 fields
       debug:
         msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
-      loop: "{{ query_field_list | dict2items }}"
-      when: "item.value | length > 6"  
+      with_dict: "{{ query_field_list }}"
+      when: "query_field_list[item.key] | length > 6"  
 
     - name: Debug - Queries exceeding field limits
       debug:
         msg: "Query exceeds field limit: {{ item }}"
-      loop: "{{ queries_exceeding_fields }}"
+      with_items: "{{ queries_exceeding_fields }}"
 
     - name: Stop execution if any query exceeds allowed field count
       fail:
-        msg: "You are exceeding the limit of 6 fields in query. Please contact the admin: {{ queries_exceeding_fields }}"
+        msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
 
     - name: Identify not allowed queries
@@ -189,7 +189,7 @@
         not_allowed_queries: "{{ not_allowed_queries + [item] }}"
       when:
         - "item | regex_search('CREATE PRIMARY INDEX', ignorecase=True) or not item | regex_search('WHERE', ignorecase=True)"
-      loop: "{{ index_queries }}"
+      with_items: "{{ index_queries }}"
 
     - name: Remove semicolon using regex
       set_fact:
@@ -198,12 +198,12 @@
     - name: Debug - Allowed Queries
       debug:
         msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
-      loop: "{{ allowed_queries }}"
+      with_items: "{{ allowed_queries }}"
 
     - name: Debug - Not Allowed Queries
       debug:
         msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
-      loop: "{{ not_allowed_queries }}"
+      with_items: "{{ not_allowed_queries }}"
 
     - name: Show the modified query
       debug:
@@ -241,23 +241,23 @@
     - name: Debug - Updated Index Queries (Method 1)
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      loop: "{{ updated_queries1 }}"
+      with_items: "{{ updated_queries1 }}"
 
     - name: Debug - Updated Index Queries (Method 2)
       debug:
         msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      loop: "{{ updated_queries2 }}"
+      with_items: "{{ updated_queries2 }}"
       
     - name: Execute allowed index queries (Method 2)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      loop: "{{ updated_queries2 }}"
+      with_items: "{{ updated_queries2 }}"
       when: updated_queries2 | length > 0
       register: query_result
       ignore_errors: no
 
     - name: Execute allowed index queries (Method 1)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
-      loop: "{{ updated_queries1 }}"
+      with_items: "{{ updated_queries1 }}"
       when: updated_queries1 | length > 0
       register: query_result
       ignore_errors: no
@@ -265,7 +265,7 @@
     - name: Run deferred index script for a bucket
       command: "{{ script_path }} --bucket={{ bucket_names | join(',') }}"
       args:
-        chdir: "~"
+        chdir: "~"  # ensure we are in home directory
       register: script_output
 
     - name: Show script output
