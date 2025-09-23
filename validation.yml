@@ -93,7 +93,7 @@
     - name: Set decoded file content as variable
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
-
+#===============================================================
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
@@ -132,7 +132,7 @@
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
         index_meta.collection != query_meta.collection   
-    
+#===============================================================    
     - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
