@@ -97,16 +97,17 @@
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
-          name: "{{ decoded_indexes | regex_search('(?i)NAME\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          name: "{{ decoded_indexes | regex_search('(?i)Name\\s*:\\s*([^\\n]+)', '\\1') | default('') }}"
+          bucket: "{{ decoded_indexes | regex_search('(?i)Bucket\\s*ID\\s*:\\s*([^\\n]+)', '\\1') | default('') }}"
+          scope: "{{ decoded_indexes | regex_search('(?i)Scope\\s*ID\\s*:\\s*([^\\n]+)', '\\1') | default('_default') }}"
+          collection: "{{ decoded_indexes | regex_search('(?i)Keyspace\\s*ID\\s*:\\s*([^\\n]+)', '\\1') | default('_default') }}"
+
 
           
     - name: Extract original index field metadata (safe parsing)
       set_fact:
         index_meta_2:
-          fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*([^\\n]+)', '\\1') | regex_replace('\\s+', ' ') | trim | default('') }}"
 
     - name: Debug extracted index field metadata
       debug:
@@ -120,15 +121,15 @@
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
-          name: "{{ index_queries | regex_search('(?i)create index `(.+?)`', '\\1') | default('') }}"
-          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
-          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
-          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
+          name: "{{ index_queries | regex_search('(?i)create\\s+index\\s+`?([^`\\s]+)`?', '\\1') | default('') }}"
+          bucket: "{{ index_queries | regex_search('ON\\s+`([^`]+)`', '\\1') | default('') }}"
+          scope: "{{ index_queries | regex_search('ON\\s+`[^`]+`\\.`([^`]+)`\\.', '\\1') | default('_default') }}"
+          collection: "{{ index_queries | regex_search('ON\\s+`[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('_default') }}"
 
     - name:  Extract new index data from index_queries (safe parsing) (field data)
       set_fact:
         query_meta_2:
-          fields: "{{ index_queries | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          fields: "{{ index_queries | regex_search('ON\\s+`[^`]+`(?:\\.`[^`]+`){0,2}\\((.*?)\\)\\s*(WHERE|WITH|$)', '\\1') | regex_replace('\\s+', ' ') | trim | default('') }}"
           
 
     - name: Fail if name is different but location is the same
