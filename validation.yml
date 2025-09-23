@@ -128,21 +128,23 @@
             | trim
           }}
 
+    - name: Debug normalized index_meta fields
+      debug:
+        var: index_meta_normalized_fields
+      
+
     - name: Normalize query_meta fields
       set_fact:
         query_meta_normalized_fields: >-
           {{
             query_meta.fields
-            | regex_replace("['`\\[\\]]", "")      # Remove backticks or quotes if any
-            | regex_replace("\\s+", " ")           # Normalize whitespace
-            | lower                               # Lowercase everything
+            | regex_replace("['`\\[\\]]", "")      
+            | regex_replace("\\s+", " ")           
+            | lower                               
             | trim
           }}
 
-    - name: Debug normalized index_meta fields
-      debug:
-        var: index_meta_normalized_fields
-
+    
     - name: Debug normalized query_meta fields
       debug:
         var: query_meta_normalized_fields
