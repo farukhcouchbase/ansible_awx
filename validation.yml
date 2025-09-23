@@ -121,9 +121,9 @@
       set_fact:
         index_meta_normalized_fields: >-
           {{
-            (index_meta.fields | first)           
-            | regex_replace("['`\\[\\]()]", "")   
-            | regex_replace("\\s+", " ")          
+            (index_meta.fields | first)           # Extract string from list
+            | regex_replace("['`\\[\\]()]", "")   # Remove quotes, backticks, brackets, parentheses
+            | regex_replace("\\s+", " ")          # Normalize spaces
             | lower
             | trim
           }}
@@ -136,9 +136,9 @@
       set_fact:
         query_meta_normalized_fields: >-
           {{
-            (query_meta.fields | first)          
-            | regex_replace("['`\\[\\]()]", "")   
-            | regex_replace("\\s+", " ")          
+            (query_meta.fields | first)           # Extract string from list
+            | regex_replace("['`\\[\\]()]", "")   # Remove quotes, backticks, brackets, parentheses
+            | regex_replace("\\s+", " ")          # Normalize spaces
             | lower
             | trim
           }}
