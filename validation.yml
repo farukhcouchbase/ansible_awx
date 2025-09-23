@@ -98,6 +98,10 @@
           bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+
+    - name: Extract original index metadata (safe parsing)
+      set_fact:
+        index_meta_2:      
           fields: >-
             {{
               decoded_indexes
@@ -116,6 +120,10 @@
           bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
+
+    - name: Extract new index data from index_queries (safe parsing)
+      set_fact:
+        query_meta_2:      
           fields: >-
             {{
               index_queries
@@ -135,6 +143,14 @@
     - name: Debug extracted query metadata
       debug:
         var: query_meta
+
+    - name: Debug extracted index metadata
+      debug:
+        var: index_meta_2
+         
+    - name: Debug extracted query metadata
+      debug:
+        var: query_meta_2    
             
     - name: Fail if name is different but location is the same
       fail:
@@ -145,7 +161,7 @@
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
         index_meta.collection == query_meta.collection and
-        index_meta.fields == query_meta.fields
+        index_meta_2.fields == query_meta_2.fields
 
     - name: Allow execution
       debug:
