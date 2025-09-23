@@ -125,6 +125,11 @@
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
 
+    - name: Debug extracted index metadata
+      debug:
+        var: query_meta:
+    
+   
     - name:  Extract new index data from index_queries (safe parsing) (field data)
       set_fact:
         query_meta_2:
