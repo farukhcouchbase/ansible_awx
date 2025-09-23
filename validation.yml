@@ -104,9 +104,9 @@
         index_meta_2:      
           fields: >-
             {{
-              decoded_indexes
+              (decoded_indexes
               | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1')
-              | default('')
+              | default(''))   # ensure it's always a string
               | regex_replace('[`"\[\]]', '')    # remove backticks, quotes, brackets
               | lower
               | regex_replace('\\s+', ' ')       # normalize whitespace
