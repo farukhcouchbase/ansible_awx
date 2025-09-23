@@ -89,6 +89,11 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
+
+    - name: Parse Couchbase indexes JSON
+      set_fact:
+        decoded_indexes: "{{ raw_indexes.stdout | from_json }}"
+
     - name: Extract original index metadata from Couchbase JSON
       set_fact:
         index_meta: >-
@@ -96,7 +101,7 @@
             (decoded_indexes.indexes
              | selectattr('indexName', 'equalto', 'def_route_src_dst_day')
              | list
-             | first) 
+             | first)
             | default({})
           }}
 
