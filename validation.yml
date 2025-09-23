@@ -116,6 +116,37 @@
     - name: Debug extracted query metadata
       debug:
         var: query_meta
+
+    - name: Normalize index_meta fields
+      set_fact:
+        index_meta_normalized_fields: >-
+          {{
+            index_meta.fields
+            | regex_replace("['`\\[\\]]", "")      
+            | regex_replace("\\s+", " ")           
+            | lower                               
+            | trim
+          }}
+
+    - name: Normalize query_meta fields
+      set_fact:
+        query_meta_normalized_fields: >-
+          {{
+            query_meta.fields
+            | regex_replace("['`\\[\\]]", "")      # Remove backticks or quotes if any
+            | regex_replace("\\s+", " ")           # Normalize whitespace
+            | lower                               # Lowercase everything
+            | trim
+          }}
+
+    - name: Debug normalized index_meta fields
+      debug:
+        var: index_meta_normalized_fields
+
+    - name: Debug normalized query_meta fields
+      debug:
+        var: query_meta_normalized_fields
+    
             
     - name: Fail if name is different but location is the same
       fail:
@@ -126,7 +157,7 @@
         index_meta.bucket == query_meta.bucket and
         index_meta.scope == query_meta.scope and
         index_meta.collection == query_meta.collection and
-        index_meta.fields == query_meta.fields
+        index_meta_normalized_fields == query_meta_normalized_fields
 
     - name: Allow execution
       debug:
