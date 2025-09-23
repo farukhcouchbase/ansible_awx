@@ -104,10 +104,10 @@
           # fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           fields: "{{ 
             (decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('')) 
-            | regex_replace('[`\"\\[\\]]', '') 
+            | regex_replace('[`\'"\[\]\(\)]', '')    # remove quotes, backticks, brackets, parentheses
             | lower 
-            | regex_replace('\\s+', ' ') 
-            | trim 
+            | regex_replace('\\s+', ' ')             # normalize whitespace
+            | trim
           }}"
 
     - name: Debug extracted index metadata
@@ -124,11 +124,11 @@
           # fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
           fields: "{{ 
             (index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('')) 
-            | regex_replace('[`]', '') 
+            | regex_replace('[`\'"\(\)]', '')         # remove backticks, quotes, parentheses
             | lower 
-            | regex_replace('\\s+', ' ') 
+            | regex_replace('\\s+', ' ')              # normalize whitespace
             | trim 
-          }}"
+              }}"
         
     - name: Debug extracted index metadata
       debug:
