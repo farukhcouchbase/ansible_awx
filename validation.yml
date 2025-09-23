@@ -101,7 +101,17 @@
           bucket: "{{ decoded_indexes | regex_search('(?i)Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           scope: "{{ decoded_indexes | regex_search('(?i)Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
           collection: "{{ decoded_indexes | regex_search('(?i)Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
-          fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          # fields: "{{ decoded_indexes | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('') }}"
+          fields: >-
+            {{
+              decoded_indexes
+              | regex_search('(?i)Index Key\\s*:\\s*(.*?)\\n', '\\1')
+              | default('')
+              | regex_replace('[`"\[\]]', '')    # remove backticks, quotes, brackets
+              | lower
+              | regex_replace('\\s+', ' ')       # normalize whitespace
+              | trim
+            }}
 
     - name: Debug extracted index metadata
       debug:
@@ -114,7 +124,17 @@
           bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
-          fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
+          # fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
+          fields: >-
+            {{
+              index_queries
+              | regex_search('\\((.*?)\\)\\s*WHERE', '\\1')
+              | default('')
+              | regex_replace('[`]', '')         # remove backticks
+              | lower
+              | regex_replace('\\s+', ' ')       # normalize whitespace
+              | trim
+            }}
         
     - name: Debug extracted index metadata
       debug:
