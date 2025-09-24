@@ -144,7 +144,7 @@
       set_fact:
         query_items_norm: >-
           {{
-            (query_meta.fields | default(''))
+            (query_meta.fields | default('') | string)
             .split(',')
             | map('regex_replace', '`', '')
             | map('regex_replace', '[()]', '')
