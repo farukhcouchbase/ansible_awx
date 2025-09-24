@@ -82,17 +82,9 @@
         src: /home/ubuntu/fields1.txt
       register: file_content
 
-    - name: Print decoded file content
-      debug:
-        msg: "{{ file_content.content | b64decode }}"
-
-    - name: Set decoded file content as variable
+    - name: Decode file content
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
-
-    - name: Debug decoded file content
-      debug:
-        var: decoded_indexes
 
     - name: Initialize all_indexes
       set_fact:
@@ -115,10 +107,10 @@
           {{
             current_index | combine({
               'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-              'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
-              'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
-              'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
-              'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
+              'bucket': ((item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', '')) | default(''),
+              'scope': ((item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', '')) | default(''),
+              'collection': ((item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', '')) | default(''),
+              'fields': ((item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')) | default('')
             })
           }}
       loop: "{{ lines }}"
@@ -126,10 +118,6 @@
     - name: Append last index to all_indexes
       set_fact:
         all_indexes: "{{ all_indexes + [current_index] }}"
-
-    - name: Debug all_indexes
-      debug:
-        var: all_indexes
 
     - name: Extract new index metadata from index_queries
       set_fact:
@@ -154,25 +142,31 @@
             | list
           }}
 
-    - name: Compare user query against all existing indexes
+    - name: Compare new query against all existing indexes and fail if duplicate
       fail:
         msg: >-
           ⚠️ Index with different name but same bucket, scope, collection, and fields already exists: {{ item.name }}
       loop: "{{ all_indexes }}"
       loop_control:
         label: "{{ item.name }}"
+      vars:
+        item_fields_norm: >-
+          {{
+            (item.fields | default('') | regex_findall("'([^']+)'")
+             | map('regex_replace', '`', '')
+             | map('regex_replace', '[()]', '')
+             | map('regex_replace', '\\s+', ' ')
+             | map('trim')
+             | map('lower')
+             | list)
+          }}
       when: >
         item.name != query_meta.name and
-        item.bucket == query_meta.bucket and
-        item.scope == query_meta.scope and
-        item.collection == query_meta.collection and
-        (item.fields | default('') | regex_findall("'([^']+)'") 
-           | map('regex_replace', '`', '') 
-           | map('regex_replace', '[()]', '') 
-           | map('regex_replace', '\\s+', ' ') 
-           | map('trim') 
-           | map('lower') 
-           | list) == query_items_norm    
+        item.bucket | default('') == query_meta.bucket | default('') and
+        item.scope | default('') == query_meta.scope | default('') and
+        item.collection | default('') == query_meta.collection | default('') and
+        item_fields_norm == query_items_norm
+  
 
     # - name: Extract original index metadata (safe parsing)
     #   set_fact:
