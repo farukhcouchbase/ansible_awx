@@ -166,17 +166,18 @@
             | map('combine', {
                 'normalized_fields_list': (
                   (item.fields | default('') | string)
-                  | regex_replace('[\\[\\]()`\'"]', '')   
-                  | regex_replace('\\s+', ' ')           
+                  | regex_replace('[\\[\\]()`"]', '')   
+                  | regex_replace('\\s+', ' ')      
                   | trim
                   | lower
-                ).split(',')                             
-                | map('trim')                          
+                ).split(',')
+                | map('trim')
                 | list
               })
             | list
           }}
 
+    
     - name: Debug normalized existing indexes
       debug:
         var: all_indexes_normalized
