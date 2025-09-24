@@ -123,7 +123,11 @@
             }]
           }}
       loop: "{{ index_blocks }}"
-      
+
+    - name: Debug all indexes
+      debug:
+        var: all_indexes
+        
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
