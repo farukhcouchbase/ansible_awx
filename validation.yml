@@ -76,7 +76,27 @@
       shell: /home/ubuntu/index.sh
       args:
         chdir: /home/ubuntu
+        
+    - name: Run cbq command and save output to fields.json
+      shell: /opt/couchbase/bin/cbq -u Admin -p redhat -s "SELECT * FROM system:indexes;" > fields.json 2>&1
+      args:
+        chdir: /home/ubuntu
 
+    - name: Remove first 5 lines and create new_fields.json
+      shell: tail -n +6 fields.json > new_fields.json
+      args:
+        chdir: /home/ubuntu
+
+    - name: Convert JSON to plain text using jq
+      shell: jq -r '.[] | @text' new_fields.json > plain1.txt
+      args:
+        chdir: /home/ubuntu
+
+    - name: Run extract2.py and redirect output to fields1.txt
+      shell: python3 extract2.py > fields1.txt
+      args:
+        chdir: /home/ubuntu
+        
     - name: Read file /home/ubuntu/fields1.txt
       slurp:
         src: /home/ubuntu/fields1.txt
