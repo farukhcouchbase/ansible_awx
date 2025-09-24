@@ -166,13 +166,13 @@
             | map('combine', {
                 'normalized_fields_list': (
                   (item.fields | default('') | string)
-                  | regex_replace(r'[\[\]()`\'"]', '', 'g')   
-                  | regex_replace(r'\s+', ' ', 'g')         
+                  | regex_replace('[\\[\\]()`\'"]', '')   
+                  | regex_replace('\\s+', ' ')           
                   | trim
                   | lower
-                  | split(',')                              
-                  | map('trim')                               
-                )
+                ).split(',')                             
+                | map('trim')                          
+                | list
               })
             | list
           }}
