@@ -103,8 +103,9 @@
       set_fact:
         index_blocks: >-
           {{
-            decoded_for_split.split('\nNAME')
+            decoded_indexes.split('\nNAME')
             | map('trim')
+            | map('regex_replace', '^(?!(NAME))', 'NAME')  # ensure each block starts with NAME
             | reject('equalto','')
             | list
           }}
