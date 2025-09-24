@@ -94,7 +94,30 @@
     - name: Debug decoded file content
       debug:
         var: decoded_indexes
-    
+        
+    - name: Split decoded indexes into individual blocks
+      set_fact:
+        index_blocks: >-
+          {{
+            decoded_indexes.split('\nNAME')
+            | select('trim')   # remove empty blocks
+            | list
+          }}
+
+    - name: Extract all index metadata
+      set_fact:
+        all_indexes: >-
+          {{
+            all_indexes | default([]) + [{
+              'name': (item | regex_search('NAME\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
+              'bucket': (item | regex_search('Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
+              'scope': (item | regex_search('Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
+              'collection': (item | regex_search('Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
+              'fields': (item | regex_search('Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip()
+            }]
+          }}
+      loop: "{{ index_blocks }}"
+      
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
