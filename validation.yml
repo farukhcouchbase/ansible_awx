@@ -193,7 +193,7 @@
       set_fact:
         query_normalized_fields_list: "{{ (query_meta.fields | default('') 
                                           | string
-                                          | regex_replace('[\\[\\]()`\\'"]', '')   
+                                          | regex_replace('[\\[\\]()`\'"]', '')   
                                           | regex_replace('\\s+', ' ')          
                                           | trim
                                           | lower
