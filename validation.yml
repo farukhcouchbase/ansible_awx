@@ -126,6 +126,14 @@
         index_raw_fields: "{{ index_meta.fields | default('') }}"
         query_raw_fields: "{{ query_meta.fields | default('') }}"
 
+    - name: Debug index_raw_fields
+      debug:
+        msg: "index_raw_fields: {{ index_raw_fields }}"
+
+    - name: Debug query_raw_fields
+      debug:
+        msg: "query_raw_fields: {{ query_raw_fields }}"
+        
     - name: Parse items out of index_raw_fields (Python-style list string)
       set_fact:
         index_items: "{{ (index_raw_fields | first) | regex_findall(\"'([^']+)'\") }}"
