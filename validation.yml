@@ -191,14 +191,19 @@
     # -------------------------------
     - name: Normalize new query fields as list
       set_fact:
-        query_normalized_fields_list: "{{ (query_meta.fields | default('') 
-                                          | string
-                                          | regex_replace('[\\[\\]()`\'"]', '')   
-                                          | regex_replace('\\s+', ' ')          
-                                          | trim
-                                          | lower
-                                          ).split(',')
-                                          | map('trim') | list }}" 
+        query_normalized_fields_list: >-
+          {{
+            (query_meta.fields | default('') 
+            | string
+            | regex_replace('[\[\]()`\'"]', '')   
+            | regex_replace('\s+', ' ')          
+            | trim
+            | lower
+            ).split(',')
+            | map('trim')
+            | reject('equalto','')
+            | list
+          }} 
 
     - name: Debug normalized new query fields
       debug:
