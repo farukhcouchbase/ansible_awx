@@ -381,16 +381,21 @@
       set_fact:
         all_indexes_normalized: >-
           {{
-            all_indexes | map('combine', {'normalized_fields': (
-              (item.fields | regex_findall("'([^']+)'"))
-              | map('regex_replace','`','')
-              | map('regex_replace','[()]','')
-              | map('regex_replace','\\s+',' ')
-              | map('trim')
-              | map('lower')
-              | join(', ')
-            )}) | list
+            all_indexes
+            | map('combine', {
+                'normalized_fields': (
+                  (item.fields | default('') | string | regex_findall("'([^']+)'"))
+                  | map('regex_replace','`','')
+                  | map('regex_replace','[()]','')
+                  | map('regex_replace','\\s+',' ')
+                  | map('trim')
+                  | map('lower')
+                  | join(', ')
+                )
+              })
+            | list
           }}
+
 
     - name: Normalize new query fields
       set_fact:
