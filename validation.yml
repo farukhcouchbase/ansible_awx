@@ -330,13 +330,11 @@
         current_index: {}
 
     - name: Parse decoded indexes line by line
-      vars:
-        lines: "{{ decoded_indexes.split('\n') }}"
       set_fact:
         all_indexes: >-
           {{
             all_indexes +
-            ([current_index] if current_index.name is defined and current_index.name != '' and not first_item else [])
+            ([current_index] if current_index.name is defined and current_index.name != '' and loop_index != 0 else [])
           }}
         current_index: >-
           {{
@@ -346,14 +344,12 @@
               'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
               'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
               'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
-            }) 
+            })
           }}
-      loop: "{{ lines }}"
+      loop: "{{ decoded_indexes.split('\n') }}"
       loop_control:
         extended: yes
         index_var: loop_index
-      vars:
-        first_item: "{{ loop_index == 0 }}"
 
     - name: Append last index if exists
       set_fact:
