@@ -94,12 +94,16 @@
     - name: Debug decoded file content
       debug:
         var: decoded_indexes
+
+    - name: Prepare decoded indexes for splitting
+      set_fact:
+        decoded_for_split: "NAME{{ decoded_indexes }}"
         
     - name: Split decoded indexes into individual blocks
       set_fact:
         index_blocks: >-
           {{
-            decoded_indexes.split('\nNAME')
+            decoded_for_split.split('\nNAME')
             | map('trim')
             | reject('equalto','')
             | list
