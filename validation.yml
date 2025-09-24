@@ -161,17 +161,20 @@
             all_indexes
             | map('combine', {
                 'normalized_fields': (
-                  (item.fields | default('') | string | regex_findall("'([^']+)'"))
-                  | map('regex_replace','`','')
-                  | map('regex_replace','[()]','')
-                  | map('regex_replace','\\s+',' ')
-                  | map('trim')
-                  | map('lower')
-                  | join(', ')
+                  (item.fields | default('') | string
+                    | regex_replace("[][]", "")        # remove square brackets
+                    | regex_replace("'", "")           # remove single quotes
+                    | regex_replace("`", "")           # remove backticks
+                    | regex_replace('[()]','')         # remove parentheses
+                    | regex_replace('\\s+',' ')        # normalize spaces
+                    | trim
+                    | lower
+                  )
                 )
               })
             | list
           }}
+
 
     - name: Normalize new query fields
       set_fact:
