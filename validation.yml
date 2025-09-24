@@ -155,47 +155,55 @@
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
 
-    - name: Normalize existing index fields
+    # -------------------------------
+    # Normalize existing indexes safely
+    # -------------------------------
+    - name: Normalize existing index fields as list
       set_fact:
         all_indexes_normalized: >-
           {{
             all_indexes
             | map('combine', {
-                'normalized_fields': (
-                  (item.fields | default('') | string
-                    | regex_replace('\\[|\\]', '')        
-                    | regex_replace("'", '')              
-                    | regex_replace('`', '')              
-                    | regex_replace('\\(', '')            
-                    | regex_replace('\\)', '')           
-                    | regex_replace('\\s+', ' ')          
-                    | trim
-                    | lower
-                  )
+                'normalized_fields_list': (
+                  (item.fields | default('') | string)
+                  | regex_replace(r'[\[\]()`\'"]', '', 'g')   
+                  | regex_replace(r'\s+', ' ', 'g')         
+                  | trim
+                  | lower
+                  | split(',')                              
+                  | map('trim')                               
                 )
               })
             | list
           }}
 
+    - name: Debug normalized existing indexes
+      debug:
+        var: all_indexes_normalized
 
-
-    - name: Normalize new query fields
+    # -------------------------------
+    # Normalize new query fields
+    # -------------------------------
+    - name: Normalize new query fields as list
       set_fact:
-        query_items: "{{ (query_meta.fields | first | default('')) .split(',') if query_meta.fields | length > 0 else [] }}"
-
-    - name: Normalize new query fields for comparison
-      set_fact:
-        query_normalized_fields: >-
+        query_normalized_fields_list: >-
           {{
-            query_items
-            | map('regex_replace','`','')
-            | map('regex_replace','[()]','')
-            | map('regex_replace','\\s+',' ')
+            (query_meta.fields | default('') | string)
+            | regex_replace(r'[\[\]()`\'"]', '', 'g')
+            | regex_replace(r'\s+', ' ', 'g')
+            | trim
+            | lower
+            | split(',')
             | map('trim')
-            | map('lower')
-            | join(', ')
           }}
 
+    - name: Debug normalized new query fields
+      debug:
+        var: query_normalized_fields_list
+
+    # -------------------------------
+    # Detect conflicts with existing indexes
+    # -------------------------------
     - name: Fail if any existing index conflicts with new query
       fail:
         msg: >-
@@ -204,12 +212,15 @@
       loop_control:
         loop_var: item
       when: >
-        item.normalized_fields == query_normalized_fields and
+        (item.normalized_fields_list | sort) == (query_normalized_fields_list | sort) and
         item.name != query_meta.name and
         item.bucket == query_meta.bucket and
         item.scope == query_meta.scope and
         item.collection == query_meta.collection
 
+    # -------------------------------
+    # Allow execution if name matches or location is different
+    # -------------------------------
     - name: Allow execution if name matches or location is different
       debug:
         msg: "✅ Index is allowed. Either name matches or location is different."
