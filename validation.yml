@@ -99,40 +99,7 @@
       set_fact:
         decoded_for_split: "NAME{{ decoded_indexes }}"
         
-    - name: Split decoded indexes into individual blocks
-      set_fact:
-        index_blocks: >-
-          {{
-            decoded_indexes | regex_findall(
-              '(?s)(NAME\\s*:.+?)(?=(\nNAME\\s*:|$))'
-            )
-            | map('first') 
-            | list
-          }}
-
-    - name: Initialize all_indexes
-      set_fact:
-        all_indexes: []      
-
-    - name: Extract all index metadata
-      set_fact:
-        all_indexes: >-
-          {{
-            all_indexes + [{
-              'name': (item | regex_replace('(?s).*NAME\s*:\s*(.*?)\n.*', '\\1')).strip(),
-              'bucket': (item | regex_replace('(?s).*Bucket ID\s*:\s*(.*?)\n.*', '\\1')).strip(),
-              'scope': (item | regex_replace('(?s).*Scope ID\s*:\s*(.*?)\n.*', '\\1')).strip(),
-              'collection': (item | regex_replace('(?s).*Keyspace ID\s*:\s*(.*?)\n.*', '\\1')).strip(),
-              'fields': (item | regex_replace('(?s).*Index Key\s*:\s*(.*?)\n.*', '\\1')).strip()
-            }]
-          }}
-      loop: "{{ index_blocks }}"
-
-
-    - name: Debug all indexes
-      debug:
-        var: all_indexes
-        
+    
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
