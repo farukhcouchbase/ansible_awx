@@ -72,10 +72,10 @@
         - "item | regex_search('WHERE', ignorecase=True)"
       with_items: "{{ index_queries }}"
 
-    - name: Run the script
-      shell: /home/ubuntu/index.sh
-      args:
-        chdir: /home/ubuntu
+    # - name: Run the script
+    #   shell: /home/ubuntu/index.sh
+    #   args:
+    #     chdir: /home/ubuntu
         
     - name: Run cbq command and save output to fields.json
       shell: /opt/couchbase/bin/cbq -u Admin -p redhat -s "SELECT * FROM system:indexes;" > fields.json 2>&1
