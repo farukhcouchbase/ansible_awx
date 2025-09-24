@@ -194,8 +194,8 @@
         query_normalized_fields_list: >-
           {{
             (query_meta.fields | default('') | string
-            | regex_replace('[\[\]()`\'"]', '')   # remove brackets, quotes, backticks
-            | regex_replace('\s+', ' ')          # collapse whitespace
+            | regex_replace('[\[\]()`\'"]', '')   
+            | regex_replace('\s+', ' ')          
             | trim
             | lower
             ).split(',')
