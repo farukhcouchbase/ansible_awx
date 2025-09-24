@@ -110,6 +110,10 @@
             | list
           }}
 
+    - name: Initialize all_indexes
+      set_fact:
+        all_indexes: []      
+
     - name: Extract all index metadata
       set_fact:
         all_indexes: >-
