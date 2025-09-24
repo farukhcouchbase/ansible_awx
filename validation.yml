@@ -100,7 +100,8 @@
         index_blocks: >-
           {{
             decoded_indexes.split('\nNAME')
-            | select('trim')   
+            | map('trim')
+            | reject('equalto','')
             | list
           }}
 
