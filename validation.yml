@@ -163,12 +163,12 @@
             | map('combine', {
                 'normalized_fields': (
                   (item.fields | default('') | string
-                    | regex_replace("\\[|\\]", "")          
-                    | regex_replace("'", "")                 
-                    | regex_replace("`", "")                 
-                    | regex_replace("\\(", "")               
-                    | regex_replace("\\)", "")               
-                    | regex_replace("\\s+", " ")             
+                    | regex_replace('\\[|\\]', '')        
+                    | regex_replace("'", '')              
+                    | regex_replace('`', '')              
+                    | regex_replace('\\(', '')            
+                    | regex_replace('\\)', '')           
+                    | regex_replace('\\s+', ' ')          
                     | trim
                     | lower
                   )
@@ -176,6 +176,7 @@
               })
             | list
           }}
+
 
 
     - name: Normalize new query fields
