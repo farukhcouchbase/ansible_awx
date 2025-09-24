@@ -195,15 +195,15 @@
           {{
             (query_meta.fields | default('') 
             | string
-            | regex_replace('[\[\]()`\'"]', '')   
-            | regex_replace('\s+', ' ')          
+            | regex_replace(r'^[\[\]()`\'"]+|[\[\]()`\'"]+$', '')  
+            | regex_replace(r'\s+', ' ')                    
             | trim
             | lower
             ).split(',')
             | map('trim')
             | reject('equalto','')
             | list
-          }} 
+          }}
 
     - name: Debug normalized new query fields
       debug:
