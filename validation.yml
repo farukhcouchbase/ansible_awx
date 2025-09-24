@@ -97,29 +97,72 @@
       args:
         chdir: /home/ubuntu
         
+    # - name: Read file /home/ubuntu/fields1.txt
+    #   slurp:
+    #     src: /home/ubuntu/fields1.txt
+    #   register: file_content
+
+    # - name: Print decoded file content
+    #   debug:
+    #     msg: "{{ file_content.content | b64decode }}"
+
+    # - name: Set decoded file content as variable
+    #   set_fact:
+    #     decoded_indexes: "{{ file_content.content | b64decode }}"
+
+    # - name: Debug decoded file content
+    #   debug:
+    #     var: decoded_indexes
+
+    # - name: Initialize all_indexes
+    #   set_fact:
+    #     all_indexes: []
+
+    # - name: Initialize current index
+    #   set_fact:
+    #     current_index: {}
+
+    # - name: Parse decoded indexes line by line
+    #   vars:
+    #     lines: "{{ decoded_indexes.split('\n') }}"
+    #   set_fact:
+    #     all_indexes: >-
+    #       {{
+    #         all_indexes +
+    #         ([current_index] if current_index.name is defined and item.startswith('NAME') else [])
+    #       }}
+    #     current_index: >-
+    #       {{
+    #         current_index | combine({
+    #           'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+    #           'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
+    #           'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
+    #           'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
+    #           'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
+    #         })
+    #       }}
+    #   loop: "{{ lines }}"
+
+    # - name: Append last index to all_indexes
+    #   set_fact:
+    #     all_indexes: "{{ all_indexes + [current_index] }}"
+
+    # - name: Debug all_indexes
+    #   debug:
+    #     var: all_indexes
+
     - name: Read file /home/ubuntu/fields1.txt
       slurp:
         src: /home/ubuntu/fields1.txt
       register: file_content
 
-    - name: Print decoded file content
-      debug:
-        msg: "{{ file_content.content | b64decode }}"
-
     - name: Set decoded file content as variable
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
-    - name: Debug decoded file content
-      debug:
-        var: decoded_indexes
-
-    - name: Initialize all_indexes
+    - name: Initialize all_indexes and current_index
       set_fact:
         all_indexes: []
-
-    - name: Initialize current index
-      set_fact:
         current_index: {}
 
     - name: Parse decoded indexes line by line
@@ -143,13 +186,23 @@
           }}
       loop: "{{ lines }}"
 
-    - name: Append last index to all_indexes
+    - name: Append last index if exists
       set_fact:
-        all_indexes: "{{ all_indexes + [current_index] }}"
+        all_indexes: "{{ all_indexes + [current_index] if current_index.name is defined else all_indexes }}"
 
-    - name: Debug all_indexes
+    - name: Convert all_indexes into index_meta format
+      set_fact:
+        index_meta:
+          name: "{{ all_indexes | map(attribute='name') | list }}"
+          bucket: "{{ all_indexes | map(attribute='bucket') | list }}"
+          scope: "{{ all_indexes | map(attribute='scope') | list }}"
+          collection: "{{ all_indexes | map(attribute='collection') | list }}"
+          fields: "{{ all_indexes | map(attribute='fields') | list }}"
+
+    - name: Debug extracted index metadata
       debug:
-        var: all_indexes
+        var: index_meta
+
 
     - name: Extract original index metadata (safe parsing)
       set_fact:
