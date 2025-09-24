@@ -118,7 +118,7 @@
       set_fact:
         all_indexes: >-
           {{
-            all_indexes | default([]) + [{
+            all_indexes + [{
               'name': (item | regex_search('NAME\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
               'bucket': (item | regex_search('Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
               'scope': (item | regex_search('Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
