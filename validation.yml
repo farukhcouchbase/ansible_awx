@@ -193,16 +193,13 @@
       set_fact:
         query_normalized_fields_list: >-
           {{
-            (
-              query_meta.fields | default('') | string
-              | regex_replace(r"[\[\]()`'\"\\\\]", "", "g")
-              | regex_replace(r"\s+", " ", "g")
-              | trim
-              | lower
-              | split(",")
-            )
-            | map("trim")
-            | list
+            (query_meta.fields | default('') | string
+            | regex_replace('[\[\]()`\'"]', '')   # remove brackets, quotes, backticks
+            | regex_replace('\s+', ' ')          # collapse whitespace
+            | trim
+            | lower
+            ).split(',')
+            | map('trim') | list
           }}
 
     - name: Debug normalized new query fields
