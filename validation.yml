@@ -9,7 +9,7 @@
     INDEX_NAME: ""
     script_path: "~/deffered_index.sh"
     duplicate_indexes: []
-    some_query_output: [] 
+    some_query_output: []  
     existing_index_map: []
     query_types: []
     query_type: ""
