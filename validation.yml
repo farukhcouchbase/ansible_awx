@@ -105,7 +105,7 @@
           {{
             decoded_indexes.split('\nNAME')
             | map('trim')
-            | map('regex_replace', '^(?!(NAME))', 'NAME')  # ensure each block starts with NAME
+            | map('regex_replace', '^(?!(NAME))', 'NAME') 
             | reject('equalto','')
             | list
           }}
