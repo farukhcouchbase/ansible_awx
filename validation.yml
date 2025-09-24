@@ -198,6 +198,7 @@
             | regex_replace('\s+', ' ')          
             | trim
             | lower
+            | replace('#', '')   # remove any # characters
             ).split(',')
             | map('trim') | list
           }}
