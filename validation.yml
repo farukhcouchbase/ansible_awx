@@ -119,14 +119,15 @@
         all_indexes: >-
           {{
             all_indexes + [{
-              'name': (item | regex_search('NAME\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
-              'bucket': (item | regex_search('Bucket ID\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
-              'scope': (item | regex_search('Scope ID\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
-              'collection': (item | regex_search('Keyspace ID\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip(),
-              'fields': (item | regex_search('Index Key\\s*:\\s*(.*?)\\n', '\\1') | default('')).strip()
+              'name': (item | regex_replace('(?s).*NAME\s*:\s*(.*?)\n.*', '\\1')).strip(),
+              'bucket': (item | regex_replace('(?s).*Bucket ID\s*:\s*(.*?)\n.*', '\\1')).strip(),
+              'scope': (item | regex_replace('(?s).*Scope ID\s*:\s*(.*?)\n.*', '\\1')).strip(),
+              'collection': (item | regex_replace('(?s).*Keyspace ID\s*:\s*(.*?)\n.*', '\\1')).strip(),
+              'fields': (item | regex_replace('(?s).*Index Key\s*:\s*(.*?)\n.*', '\\1')).strip()
             }]
           }}
       loop: "{{ index_blocks }}"
+
 
     - name: Debug all indexes
       debug:
