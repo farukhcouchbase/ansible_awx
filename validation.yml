@@ -100,7 +100,7 @@
         index_blocks: >-
           {{
             decoded_indexes.split('\nNAME')
-            | select('trim')   # remove empty blocks
+            | select('trim')   
             | list
           }}
 
