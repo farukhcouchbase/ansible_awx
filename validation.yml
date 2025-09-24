@@ -346,7 +346,7 @@
               'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
               'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
               'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
-            })
+            }) 
           }}
       loop: "{{ lines }}"
       loop_control:
