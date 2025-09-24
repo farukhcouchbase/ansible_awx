@@ -109,11 +109,11 @@
         current_index: >-
           {{
             current_index | combine({
-              'name': (line.split(':',1)[1] | trim) if line.startswith('NAME') else current_index.get('name', ''),
-              'bucket': (line.split(':',1)[1] | trim) if line.startswith('Bucket ID') else current_index.get('bucket', ''),
-              'scope': (line.split(':',1)[1] | trim) if line.startswith('Scope ID') else current_index.get('scope', ''),
-              'collection': (line.split(':',1)[1] | trim) if line.startswith('Keyspace ID') else current_index.get('collection', ''),
-              'fields': (line.split(':',1)[1] | trim) if line.startswith('Index Key') else current_index.get('fields', '')
+              'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+              'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
+              'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
+              'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
+              'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
             })
           }}
       loop: "{{ lines }}"
