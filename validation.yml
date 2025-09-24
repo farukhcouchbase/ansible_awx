@@ -79,7 +79,7 @@
 
     - name: Remove first 5 lines and create new_fields.json
       shell: tail -n +6 fields.json > new_fields.json
-      args:
+      args: 
         chdir: /home/ubuntu
 
     - name: Convert JSON to plain text using jq
