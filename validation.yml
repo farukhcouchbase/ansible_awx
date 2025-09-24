@@ -195,13 +195,13 @@
           {{
             (
               query_meta.fields | default('') | string
-              | regex_replace(r'[\[\]()`\'"]', '', 'g')
-              | regex_replace(r'\s+', ' ', 'g')
+              | regex_replace(r"[\[\]()`'\"\\\\]", "", "g")
+              | regex_replace(r"\s+", " ", "g")
               | trim
               | lower
-              | split(',')
+              | split(",")
             )
-            | map('trim')
+            | map("trim")
             | list
           }}
 
