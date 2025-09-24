@@ -103,10 +103,10 @@
       set_fact:
         index_blocks: >-
           {{
-            decoded_indexes.split('\nNAME')
-            | map('trim')
-            | map('regex_replace', '^(?!(NAME))', 'NAME') 
-            | reject('equalto','')
+            decoded_indexes | regex_findall(
+              '(?s)(NAME\\s*:.+?)(?=(\nNAME\\s*:|$))'
+            )
+            | map('first')  # because regex_findall returns tuples
             | list
           }}
 
