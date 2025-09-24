@@ -163,12 +163,12 @@
             | map('combine', {
                 'normalized_fields': (
                   (item.fields | default('') | string
-                    | regex_replace("\\[|\\]", "")           # remove square brackets
-                    | regex_replace("'", "")                 # remove single quotes
-                    | regex_replace("`", "")                 # remove backticks
-                    | regex_replace("\\(", "")               # remove opening parentheses
-                    | regex_replace("\\)", "")               # remove closing parentheses
-                    | regex_replace("\\s+", " ")             # normalize spaces
+                    | regex_replace("\\[|\\]", "")          
+                    | regex_replace("'", "")                 
+                    | regex_replace("`", "")                 
+                    | regex_replace("\\(", "")               
+                    | regex_replace("\\)", "")               
+                    | regex_replace("\\s+", " ")             
                     | trim
                     | lower
                   )
