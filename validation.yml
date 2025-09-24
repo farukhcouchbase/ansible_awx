@@ -91,6 +91,10 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
+    - name: Debug decoded file content
+      debug:
+        var: decoded_indexes
+    
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
