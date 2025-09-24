@@ -56,7 +56,6 @@
       with_items: "{{ index_queries }}"
       register: syntax_check
       no_log: true
-      #failed_when: "'syntax error' in syntax_check.stdout"
 
     - name: Fail if any index query has syntax errors
       fail:
@@ -95,11 +94,38 @@
       debug:
         var: decoded_indexes
 
-    - name: Prepare decoded indexes for splitting
+    - name: Initialize all_indexes
       set_fact:
-        decoded_for_split: "NAME{{ decoded_indexes }}"
-        
-    
+        all_indexes: []
+
+    - name: Initialize current index
+      set_fact:
+        current_index: {}
+
+    - name: Parse decoded indexes line by line
+      vars:
+        lines: "{{ decoded_indexes.split('\n') }}"
+      set_fact:
+        current_index: >-
+          {{
+            current_index | combine({
+              'name': (line.split(':',1)[1] | trim) if line.startswith('NAME') else current_index.get('name', ''),
+              'bucket': (line.split(':',1)[1] | trim) if line.startswith('Bucket ID') else current_index.get('bucket', ''),
+              'scope': (line.split(':',1)[1] | trim) if line.startswith('Scope ID') else current_index.get('scope', ''),
+              'collection': (line.split(':',1)[1] | trim) if line.startswith('Keyspace ID') else current_index.get('collection', ''),
+              'fields': (line.split(':',1)[1] | trim) if line.startswith('Index Key') else current_index.get('fields', '')
+            })
+          }}
+      loop: "{{ lines }}"
+
+    - name: Append last index to all_indexes
+      set_fact:
+        all_indexes: "{{ all_indexes + [current_index] }}"
+
+    - name: Debug all_indexes
+      debug:
+        var: all_indexes
+
     - name: Extract original index metadata (safe parsing)
       set_fact:
         index_meta:
@@ -126,10 +152,6 @@
       debug:
         var: query_meta
 
-    # ---------------------------
-    # Normalization and comparison
-    # ---------------------------
-
     - name: Extract raw fields strings
       set_fact:
         index_raw_fields: "{{ index_meta.fields | default('') }}"
@@ -142,12 +164,8 @@
     - name: Debug query_raw_fields
       debug:
         msg: "query_raw_fields: {{ query_raw_fields }}"
-        
-    # - name: Parse items out of index_raw_fields (Python-style list string)
-    #   set_fact:
-    #     index_items: "{{ (index_raw_fields | first) | regex_findall(\"'([^']+)'\") }}"
 
-    - name: Parse items out of index_raw_fields (Python-style list string)
+    - name: Parse items out of index_raw_fields
       set_fact:
         index_items: >-
           {{
@@ -155,10 +173,9 @@
             | regex_findall("'([^']+)'")
           }}
 
-    - name: Parse items out of query_raw_fields (comma-separated)
+    - name: Parse items out of query_raw_fields
       set_fact:
         query_items: "{{ (query_raw_fields | first | default('')) .split(',') if query_raw_fields | length > 0 else [] }}"
-        # query_items: "{{ (query_raw_fields | first).split(',') }}"
 
     - name: Normalize index items
       set_fact:
@@ -201,10 +218,6 @@
       debug:
         var: query_meta_normalized_fields
 
-    # ---------------------------
-    # Fail condition
-    # ---------------------------
-
     - name: Fail if name is different but location is the same
       fail:
         msg: >-
@@ -215,7 +228,6 @@
         index_meta.scope == query_meta.scope and
         index_meta.collection == query_meta.collection and
         index_meta_normalized_fields == query_meta_normalized_fields
- 
 
     - name: Allow execution
       debug:
@@ -225,7 +237,7 @@
         index_meta.bucket != query_meta.bucket or
         index_meta.scope != query_meta.scope or
         index_meta.collection != query_meta.collection   
-    
+
     - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
@@ -262,6 +274,7 @@
       fail:
         msg: "You are exceeding the limit of 6 fields in query .  Please contact the admin. : {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
+
 
     - name: Identify not allowed queries
       set_fact:
