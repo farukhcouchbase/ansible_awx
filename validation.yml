@@ -199,7 +199,7 @@
     #             if (query_meta.name | default([])) is sequence and not (query_meta.name | default([])) is string
     #             else (query_meta.name | default(''))
     #           ),
-    #           'bucket': (
+    #           'bucket': ( 
     #             (query_meta.bucket | default([]))[0]
     #             if (query_meta.bucket | default([])) is sequence and not (query_meta.bucket | default([])) is string
     #             else (query_meta.bucket | default(''))
