@@ -126,16 +126,14 @@
       set_fact:
         query_type_flags: >-
           {{
-            (index_queries_list | default([]))
-            | map('regex_search', '^CREATE INDEX .*`[^`]+`\\(`)       
-            | map('ternary', 'default',
-                (index_queries_list | default([]))
-                | map('regex_search', '^CREATE INDEX .*`[^`]+`\\.`[^`]+`\\.`[^`]+`\\(')  
-                | map('ternary', 'scoped', 'other')
-              )
-            | list 
+            [
+              'scoped' if item is match('^CREATE INDEX .*`[^`]+`\\.`[^`]+`\\.`[^`]+`\\(') else
+              'default' if item is match('^CREATE INDEX .*`[^`]+`\\(') else
+              'other'
+              for item in index_queries_list | default([])
+            ]
           }}
-
+    
     # 4. Debug - Query type flags
     - name: Debug - Query type flags
       debug:
