@@ -1,29 +1,24 @@
----
-- name: Validate and Create Couchbase Indexes
+- name: Validate and Create Couchbase Indexes 
   hosts: all
-  gather_facts: no
-
+  gather_facts: no  
   vars:
     couchbase_bin_path: "/path/to/couchbase_bin"
     couchbase_admin_username: ""
-    couchbase_admin_password: ""
-    index_queries: []
+    couchbase_admin_password: "" 
+    index_queries: [] 
+    INDEX_NAME: ""
     script_path: "~/deffered_index.sh"
     duplicate_indexes: []
-    some_query_output: []
+    some_query_output: []  
     existing_index_map: []
     query_types: []
     query_type: ""
-
+    
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
 
   tasks:
-
-    ##################################################################
-    # INITIALIZATION
-    ##################################################################
-    - name: Initialize helper variables
+    - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
         allowed_queries1: []
@@ -33,9 +28,78 @@
         query_field_mapping: []
         query_field_list: []
 
-    - name: Debug - Show initial variables
+    - name: Extract bucket name from Couchbase index query
+      set_fact:
+        bucket_name: "{{ index_queries | regex_search('ON `([^`]+)`', '\\1') }}"
+
+    - name: Print the extracted bucket name
       debug:
-        msg: "Index queries to process: {{ index_queries }}"
+        msg: "The extracted bucket name is: {{ bucket_name }}"    
+
+    - name: Extract operation type from Couchbase index query
+      vars:
+        query_type: "{{ index_queries | regex_search('^(CREATE|DROP|ALTER)', ignorecase=True) }}"
+      debug:
+        msg: >-
+          {% if query_type is not none %}
+            The query is of type: {{ query_type }}
+          {% else %}
+            The query type could not be determined.
+          {% endif %}    
+
+    - name: Run Couchbase query script
+      shell: >
+        {{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s "SELECT * FROM system:indexes;" > fields.json 2>&1
+      
+    - name: Validate syntax of index queries
+      shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s 'EXPLAIN {{ item }}'"
+      with_items: "{{ index_queries }}"
+      register: syntax_check
+      no_log: true
+
+    - name: Fail if any index query has syntax errors
+      fail:
+        msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
+      when: syntax_check.results | selectattr('stdout', 'search', 'syntax error') | list | length > 0 
+
+    - name: Validate index queries
+      set_fact:
+        allowed_queries: "{{ allowed_queries + [item] }}"
+      when:
+        - "not item | regex_search('CREATE PRIMARY INDEX', ignorecase=True)"
+        - "not item | regex_search('META\\(\\)\\.id', ignorecase=True)"
+        - "item | regex_search('CREATE INDEX', ignorecase=True)"
+        - "item | regex_search('WHERE', ignorecase=True)"
+      with_items: "{{ index_queries }}"
+
+    - name: Run cbq command and save output to fields.json
+      shell: /opt/couchbase/bin/cbq -u Admin -p redhat -s "SELECT * FROM system:indexes;" > fields.json 2>&1
+      args:
+        chdir: /home/ubuntu
+
+    - name: Remove first 5 lines and create new_fields.json
+      shell: tail -n +6 fields.json > new_fields.json
+      args: 
+        chdir: /home/ubuntu
+
+    - name: Convert JSON to plain text using jq
+      shell: jq -r '.[] | @text' new_fields.json > plain1.txt
+      args:
+        chdir: /home/ubuntu
+
+    - name: Run extract2.py and redirect output to fields1.txt
+      shell: python3 extract2.py > fields1.txt
+      args:
+        chdir: /home/ubuntu
+        
+    - name: Read file /home/ubuntu/fields1.txt
+      slurp:
+        src: /home/ubuntu/fields1.txt
+      register: file_content
+
+    - name: Set decoded file content as variable
+      set_fact:
+        decoded_indexes: "{{ file_content.content | b64decode }}"
 
     ##################################################################
     # QUERY TYPE IDENTIFICATION
