@@ -212,7 +212,41 @@
           {%- endif -%}
           {{ result }}
 
+          
 
+    - name: Debug normalized existing indexes
+      debug:
+        var: all_indexes_normalized
+        
+    - name: Debug normalized new query fields
+      debug:
+        msg:
+          raw: "{{ query_meta.fields }}"
+          cleaned: "{{ query_normalized_fields_list }}"  
+
+    # -------------------------------
+    # Show potential index conflicts
+    # -------------------------------
+    - name: Check potential conflicts
+      debug:
+        msg: >-
+          ⚠️ Potential conflict detected! Existing index '{{ item.name }}'
+          in bucket '{{ item.bucket }}', scope '{{ item.scope }}', collection '{{ item.collection }}'
+          has the same fields as new index '{{ query_meta.name }}'
+          (fields: {{ item.normalized_fields_list }})
+      loop: "{{ all_indexes_normalized }}"
+      loop_control:
+        loop_var: item
+      when: >
+        (item.normalized_fields_list | sort | list) == (query_normalized_fields_list | sort | list) and
+        item.name != query_meta.name and
+        item.bucket == query_meta.bucket and
+        item.scope == query_meta.scope and
+        item.collection == query_meta.collection
+
+    # -------------------------------
+    # Fail if any conflict exists
+    # -------------------------------
     - name: Fail if any existing index conflicts with new query
       fail:
         msg: >-
@@ -228,8 +262,7 @@
         item.name != query_meta.name and
         item.bucket == query_meta.bucket and
         item.scope == query_meta.scope and
-        item.collection == query_meta.collection
-
+        item.collection == query_meta.collection      
 # -------------------------------
 # Allow valid cases
 # -------------------------------
