@@ -101,24 +101,24 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
-    # -------------------------------
-    # Initialize vars
-    # -------------------------------
+    # --------------------------------------
+# Initialize vars
+# --------------------------------------
     - name: Initialize all_indexes and current_index
       set_fact:
         all_indexes: []
         current_index: {}
 
-# -------------------------------
+# --------------------------------------
 # Parse decoded indexes line by line
-# -------------------------------
+# --------------------------------------
     - name: Parse decoded indexes line by line
       set_fact:
         current_index: >-
           {{
             current_index | combine({
               'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-              'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'unknown_bucket'),
+              'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
               'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
               'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
               'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
@@ -130,9 +130,9 @@
         index_var: loop_index
       when: item|trim != ''
 
-# -------------------------------
+# --------------------------------------
 # Append final parsed index
-# -------------------------------
+# --------------------------------------
     - name: Append final parsed index
       set_fact:
         all_indexes: >-
@@ -140,7 +140,7 @@
             all_indexes +
             [ current_index | combine({
                 'name': current_index.name | default('unnamed_index'),
-                'bucket': current_index.bucket | default('unknown_bucket'),
+                'bucket': current_index.bucket | default('travel-sample'),
                 'scope': current_index.scope | default('default'),
                 'collection': current_index.collection | default('default'),
                 'fields': current_index.fields | default('')
@@ -152,9 +152,9 @@
       set_fact:
         current_index: {}
 
-# -------------------------------
+# --------------------------------------
 # Convert all_indexes into index_meta format
-# -------------------------------
+# --------------------------------------
     - name: Convert all_indexes into index_meta format
       set_fact:
         index_meta:
@@ -164,14 +164,14 @@
           collection: "{{ all_indexes | map(attribute='collection') | list }}"
           fields: "{{ all_indexes | map(attribute='fields') | list }}"
 
-# -------------------------------
+# --------------------------------------
 # Extract new index data from index_queries
-# -------------------------------
+# --------------------------------------
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
-          name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('') }}"
-          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('unknown_bucket') }}"
+          name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('unnamed_index') }}"
+          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('travel-sample') }}"
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('default') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('default') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
@@ -181,11 +181,11 @@
         query_meta: >-
           {{
             query_meta | combine({
-              'name': (query_meta.name[0] if (query_meta.name is sequence and query_meta.name | length > 0) else query_meta.name | default('unnamed_index')),
-              'bucket': (query_meta.bucket[0] if (query_meta.bucket is sequence and query_meta.bucket | length > 0) else query_meta.bucket | default('unknown_bucket')),
-              'scope': (query_meta.scope[0] if (query_meta.scope is sequence and query_meta.scope | length > 0) else query_meta.scope | default('default')),
-              'collection': (query_meta.collection[0] if (query_meta.collection is sequence and query_meta.collection | length > 0) else query_meta.collection | default('default')),
-              'fields': (query_meta.fields[0] if (query_meta.fields is sequence and query_meta.fields | length > 0) else query_meta.fields | default(''))
+              'name': query_meta.name | default('unnamed_index'),
+              'bucket': query_meta.bucket | default('travel-sample'),
+              'scope': query_meta.scope | default('default'),
+              'collection': query_meta.collection | default('default'),
+              'fields': query_meta.fields | default('')
             })
           }}
 
@@ -193,9 +193,9 @@
       debug:
         var: query_meta
 
-# -------------------------------
-# Normalize existing indexes
-# -------------------------------
+# --------------------------------------
+# Normalize existing index fields as list
+# --------------------------------------
     - name: Normalize existing index fields as list
       set_fact:
         all_indexes_normalized: >-
@@ -216,16 +216,16 @@
           -%}
           {%-   set _ = result.append(idx | combine({
                   'normalized_fields_list': fields_clean,
-                  'bucket': idx.bucket | default('unknown_bucket'),
-                  'scope': idx.scope | default('default'),
-                  'collection': idx.collection | default('default')
+                  'bucket': idx.bucket | default('travel-sample') | string,
+                  'scope': idx.scope | default('default') | string,
+                  'collection': idx.collection | default('default') | string
                 })) -%}
           {%- endfor -%}
           {{ result }}
 
-# -------------------------------
+# --------------------------------------
 # Normalize new query fields
-# -------------------------------
+# --------------------------------------
     - name: Normalize new query fields as list
       set_fact:
         query_normalized_fields_list: >-
@@ -257,9 +257,9 @@
       debug:
         var: query_normalized_fields_list
 
-# -------------------------------
-# Fail if any conflict exists
-# -------------------------------
+# --------------------------------------
+# Fail if any existing index conflicts with new query
+# --------------------------------------
     - name: Fail if any existing index conflicts with new query
       fail:
         msg: >-
@@ -277,9 +277,9 @@
         and (item.scope | lower) == (query_meta.scope | lower)
         and (item.collection | lower) == (query_meta.collection | lower)
 
-# -------------------------------
-# Allow valid cases
-# -------------------------------
+# --------------------------------------
+# Allow execution if name matches or location is different
+# --------------------------------------
     - name: Allow execution if name matches or location is different
       debug:
         msg: "✅ Index is allowed. Either name matches or location is different."
@@ -288,7 +288,7 @@
         query_meta.bucket not in index_meta.bucket or
         query_meta.scope not in index_meta.scope or
         query_meta.collection not in index_meta.collection
-    
+ 
 
 # # -------------------------------
 # # Initialize vars
