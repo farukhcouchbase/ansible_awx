@@ -102,16 +102,16 @@
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
     # --------------------------------------
-# Initialize vars
-# --------------------------------------
+    # Initialize vars
+    # --------------------------------------
     - name: Initialize all_indexes and current_index
       set_fact:
         all_indexes: []
         current_index: {}
 
-# --------------------------------------
-# Parse decoded indexes line by line
-# --------------------------------------
+    # --------------------------------------
+    # Parse decoded indexes line by line
+    # --------------------------------------
     - name: Parse decoded indexes line by line
       set_fact:
         current_index: >-
@@ -128,7 +128,7 @@
       loop_control:
         extended: yes
         index_var: loop_index
-      when: item|trim != ''
+      when: item | trim != ''
 
 # --------------------------------------
 # Append final parsed index
@@ -147,7 +147,7 @@
               }) ]
           }}
 
-# Reset current_index for safety
+    # Reset current_index for safety
     - name: Reset current_index
       set_fact:
         current_index: {}
@@ -224,6 +224,36 @@
           {{ result }}
 
 # --------------------------------------
+# Normalize bucket/scope/collection for comparison
+# --------------------------------------
+    - name: Normalize bucket/scope/collection in existing indexes
+      set_fact:
+        all_indexes_normalized: >-
+          {%- set result = [] -%}
+          {%- for idx in all_indexes_normalized -%}
+          {%-   set bucket_val = idx.bucket | default('') | string | regex_replace('(?i)^none$', '') -%}
+          {%-   set scope_val = idx.scope | default('') | string | regex_replace('(?i)^none$', '') -%}
+          {%-   set collection_val = idx.collection | default('') | string | regex_replace('(?i)^none$', '') -%}
+          {%-   set _ = result.append(idx | combine({
+                  'bucket': bucket_val,
+                  'scope': scope_val,
+                  'collection': collection_val
+                })) -%}
+          {%- endfor -%}
+          {{ result }}
+
+    - name: Normalize bucket/scope/collection in query_meta
+      set_fact:
+        query_meta: >-
+          {{
+            query_meta | combine({
+              'bucket': query_meta.bucket | default('') | string | regex_replace('(?i)^none$', ''),
+              'scope': query_meta.scope | default('') | string | regex_replace('(?i)^none$', ''),
+              'collection': query_meta.collection | default('') | string | regex_replace('(?i)^none$', '')
+            })
+          }}
+
+# --------------------------------------
 # Normalize new query fields
 # --------------------------------------
     - name: Normalize new query fields as list
@@ -288,8 +318,8 @@
         query_meta.bucket not in index_meta.bucket or
         query_meta.scope not in index_meta.scope or
         query_meta.collection not in index_meta.collection
- 
 
+     
 # # -------------------------------
 # # Initialize vars
 # # -------------------------------
