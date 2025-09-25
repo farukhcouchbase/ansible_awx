@@ -111,7 +111,7 @@
             index_queries
             | default([])
             | regex_replace(';$','')      
-            | split('\n')               
+            | splitlines            
             | map('trim')               
             | reject('equalto','')      
             | list
