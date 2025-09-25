@@ -2,7 +2,7 @@
   hosts: all
   gather_facts: no
   vars:
-    couchbase_bin_path: "/path/to/couchbase_bin" 
+    couchbase_bin_path: "/path/to/couchbase_bin"
     couchbase_admin_username: ""
     couchbase_admin_password: "" 
     index_queries: [] 
@@ -176,52 +176,20 @@
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
           
-    - name: Append final parsed index
+    - name: Normalize query_meta values to strings
       set_fact:
-        all_indexes: >-
+        query_meta: >-
           {{
-            all_indexes +
-            [ current_index | combine({
-                'name': current_index.name | default('unnamed_index'),
-                'bucket': current_index.bucket | default('_default'),
-                'scope': current_index.scope | default('_default'),
-                'collection': current_index.collection | default('_default'),
-                'fields': current_index.fields | default('')
-              }) ]
-          }}      
-    # - name: Normalize query_meta values to strings
-    #   set_fact:
-    #     query_meta: >-
-    #       {{
-    #         query_meta | combine({
-    #           'name': (
-    #             (query_meta.name | default([]))[0]
-    #             if (query_meta.name | default([])) is sequence and not (query_meta.name | default([])) is string
-    #             else (query_meta.name | default(''))
-    #           ),
-    #           'bucket': ( 
-    #             (query_meta.bucket | default([]))[0]
-    #             if (query_meta.bucket | default([])) is sequence and not (query_meta.bucket | default([])) is string
-    #             else (query_meta.bucket | default(''))
-    #           ),
-    #           'scope': (
-    #             (query_meta.scope | default([]))[0]
-    #             if (query_meta.scope | default([])) is sequence and not (query_meta.scope | default([])) is string
-    #             else (query_meta.scope | default(''))
-    #           ),
-    #           'collection': (
-    #             (query_meta.collection | default([]))[0]
-    #             if (query_meta.collection | default([])) is sequence and not (query_meta.collection | default([])) is string
-    #             else (query_meta.collection | default(''))
-    #           ),
-    #           'fields': (
-    #             (query_meta.fields | default([]))[0]
-    #             if (query_meta.fields | default([])) is sequence and not (query_meta.fields | default([])) is string
-    #             else (query_meta.fields | default(''))
-    #           )
-    #         })
-    #       }}
-      
+            query_meta | combine({
+              'name':      (query_meta.name[0] if query_meta.name is sequence else query_meta.name | default('')),
+              'bucket':    (query_meta.bucket[0] if query_meta.bucket is sequence else query_meta.bucket | default('')),
+              'scope':     (query_meta.scope[0] if (query_meta.scope | default([])) is sequence else query_meta.scope | default('')),
+              'collection':(query_meta.collection[0] if (query_meta.collection | default([])) is sequence else query_meta.collection | default('')),
+              'fields':    (query_meta.fields[0] if (query_meta.fields | default([])) is sequence else query_meta.fields | default(''))
+            })
+          }}
+
+          
     # - name: Normalize query_meta values to strings
     #   set_fact:
     #     query_meta: >-
@@ -242,40 +210,27 @@
 # -------------------------------
 # Normalize existing indexes
 # -------------------------------
-    - name: Normalize query_meta values to strings
+    - name: Normalize existing index fields as list
       set_fact:
-        query_meta: >-
-          {{
-            query_meta | combine({
-              'name': query_meta.name | default('unnamed_index'),
-              'bucket': (query_meta.bucket | default('')) | default('_default'),
-              'scope': (query_meta.scope | default('')) | default('_default'),
-              'collection': (query_meta.collection | default('')) | default('_default'),
-              'fields': query_meta.fields | default('')
-            })
-          }}
-          
-    # - name: Normalize existing index fields as list
-    #   set_fact:
-    #     all_indexes_normalized: >-
-    #       {%- set result = [] -%}
-    #       {%- for idx in all_indexes -%}
-    #       {%-   set fields_clean = (
-    #               (idx.fields | default(''))
-    #               | regex_replace('^\\[|\\]$', '')        
-    #               | regex_replace("'", '')               
-    #               | regex_replace('`', '')                
-    #               | regex_replace('[()]', '')             
-    #               | regex_replace('\\s+', ' ')            
-    #               | lower
-    #             ).split(',')
-    #             | map('trim')
-    #             | select('ne','')
-    #             | list
-    #       -%}
-    #       {%-   set _ = result.append(idx | combine({'normalized_fields_list': fields_clean})) -%}
-    #       {%- endfor -%}
-    #       {{ result }}
+        all_indexes_normalized: >-
+          {%- set result = [] -%}
+          {%- for idx in all_indexes -%}
+          {%-   set fields_clean = (
+                  (idx.fields | default(''))
+                  | regex_replace('^\\[|\\]$', '')        
+                  | regex_replace("'", '')               
+                  | regex_replace('`', '')                
+                  | regex_replace('[()]', '')             
+                  | regex_replace('\\s+', ' ')            
+                  | lower
+                ).split(',')
+                | map('trim')
+                | select('ne','')
+                | list
+          -%}
+          {%-   set _ = result.append(idx | combine({'normalized_fields_list': fields_clean})) -%}
+          {%- endfor -%}
+          {{ result }}
 
 # -------------------------------
 # Normalize new query fields
