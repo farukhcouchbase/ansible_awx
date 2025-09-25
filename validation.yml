@@ -345,7 +345,7 @@
         and item.name | lower != query_meta.name | lower
         and (item.bucket | lower) == (query_meta.bucket | lower)
         and (item.scope | lower) == (query_meta.scope | lower)
-        and (item.collection | lower) == (query_meta.collection | lower)
+        # and (item.collection | lower) == (query_meta.collection | lower)
 
     - name: Debug comparison for conflict detection
       debug:
