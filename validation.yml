@@ -192,17 +192,25 @@
     - name: Normalize new query fields as list
       set_fact:
         query_normalized_fields_list: >-
-          {{
-            (
-              query_meta.fields | default('') | string
-              | regex_replace("[\\[\\]()`'\"]", "")   
-              | regex_replace("\\s+", " ")         
-              | trim
-              | lower
-            ).split(",")                     
-            | map('trim')                          
-            | list
-          }}
+          {%- set result = [] -%}
+          {%- set raw_fields = query_meta.fields | default('') -%}
+          {%- if raw_fields != '' -%}
+            {%- set fields_clean = (
+                    raw_fields
+                    | regex_replace('^\\[|\\]$', '')        # remove outer brackets
+                    | regex_replace("'", '')                 # remove single quotes
+                    | regex_replace('`', '')                 # remove backticks
+                    | regex_replace('[()]', '')              # remove parentheses
+                    | regex_replace('\\s+', ' ')             # normalize spaces
+                    | lower
+                  ).split(',')
+                  | map('trim')
+                  | select('ne','')
+                  | list
+            -%}
+            {%- set _ = result.extend(fields_clean) -%}
+          {%- endif -%}
+          {{ result }}
 
 
     - name: Fail if any existing index conflicts with new query
