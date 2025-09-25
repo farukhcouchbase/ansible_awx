@@ -123,14 +123,12 @@
       set_fact:
         query_type_flags: []
  
-    # 3. Determine query type for each index query and set flags
     - name: Determine query type for each index query and set flags
       set_fact:
         query_type_flags: >-
           {{
-            index_queries_list | map('regex_search', 
-              '^CREATE INDEX .*`[^`]+`$' # Matches only bucket-level indexes
-            )
+            index_queries_list 
+            | map('regex_search', '^CREATE INDEX .*`[^`]+`$') 
             | map('ternary', 'default', 'specific')
             | list
           }}
