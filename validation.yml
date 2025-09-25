@@ -176,33 +176,19 @@
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
           
-    # - name: Normalize query_meta values to strings
-    #   set_fact:
-    #     query_meta: >-
-    #       {{
-    #         query_meta | combine({
-    #           'name': (query_meta.name[0] if query_meta.name is iterable else query_meta.name),
-    #           'bucket': (query_meta.bucket[0] if query_meta.bucket is iterable else query_meta.bucket),
-    #           'scope': (query_meta.scope[0] if query_meta.scope is iterable else query_meta.scope),
-    #           'collection': (query_meta.collection[0] if query_meta.collection is iterable else query_meta.collection),
-    #           'fields': (query_meta.fields[0] if query_meta.fields is iterable else query_meta.fields)
-    #         })
-    #       }} 
-    
-
-    - name: Normalize query_meta values to strings safely
+    - name: Normalize query_meta values to strings
       set_fact:
         query_meta: >-
           {{
             query_meta | combine({
-              key: (
-                (query_meta[key][0] if query_meta[key] is iterable else query_meta[key])
-                if query_meta[key] is defined and query_meta[key] not in [None, ''] else ''
-              )
-              for key in ['name','bucket','scope','collection','fields']
+              'name': (query_meta.name[0] if query_meta.name is iterable else query_meta.name),
+              'bucket': (query_meta.bucket[0] if query_meta.bucket is iterable else query_meta.bucket),
+              'scope': (query_meta.scope[0] if query_meta.scope is iterable else query_meta.scope),
+              'collection': (query_meta.collection[0] if query_meta.collection is iterable else query_meta.collection),
+              'fields': (query_meta.fields[0] if query_meta.fields is iterable else query_meta.fields)
             })
-          }}
-      
+          }} 
+     
     - name: Debug Extract new index data from index_queries
       debug:
         var: query_meta
