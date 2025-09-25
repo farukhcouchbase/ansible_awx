@@ -104,6 +104,7 @@
     ##################################################################
     # QUERY TYPE IDENTIFICATION (UPDATED)
     ##################################################################
+    # 1. Ensure index_queries is a list
     - name: Ensure index_queries is a list
       set_fact:
         index_queries_list: >-
@@ -116,34 +117,48 @@
             | list
           }}
 
-    - name: Initialize default index lists
+    # 2. Initialize query_type_flags as empty list (safety)
+    - name: Initialize query_type_flags as empty list
       set_fact:
-        default_index_list: "{{ default_index_list | default([]) + [ index_queries_list[item_index] ] }}"
-      loop: "{{ range(0, index_queries_list | length) | list }}"
-      loop_control:
-        loop_var: item_index
-      when: query_type_flags[item_index] == 'default'
+        query_type_flags: []
 
-
+    # 3. Determine query type for each index query and set flags
     - name: Determine query type for each index query and set flags
       set_fact:
         query_type_flags: >-
           {{
-            index_queries_list
+            (index_queries_list | default([]))
             | map('regex_search', '^CREATE INDEX .*`[^`]+`(?:\\.`[^`]+`\\.`[^`]+`)?', ignorecase=True)
             | map('ternary', 'specific', 'default')
             | list
           }}
-      when: index_queries_list | length > 0
 
+    # 4. Debug - Query type flags
     - name: Debug - Query type flags
       debug:
         msg: "Query {{ item_index }} is '{{ query_type_flags[item_index] }}'"
-      loop: "{{ range(0, index_queries_list|length) | list }}"
+      loop: "{{ range(0, index_queries_list | default([]) | length) | list }}"
       loop_control:
         loop_var: item_index
 
-        
+    # 5. Initialize specific index list
+    - name: Initialize specific index list
+      set_fact:
+        specific_index_list: "{{ specific_index_list | default([]) + [ index_queries_list[item_index] ] }}"
+      loop: "{{ range(0, index_queries_list | default([]) | length) | list }}"
+      loop_control:
+        loop_var: item_index
+      when: query_type_flags[item_index] == 'specific'
+
+    # 6. Initialize default index list
+    - name: Initialize default index list
+      set_fact:
+        default_index_list: "{{ default_index_list | default([]) + [ index_queries_list[item_index] ] }}"
+      loop: "{{ range(0, index_queries_list | default([]) | length) | list }}"
+      loop_control:
+        loop_var: item_index
+      when: query_type_flags[item_index] == 'default'
+
     ##################################################################
     # DEFAULT vs SPECIFIC INDEX FLOW EXECUTION PER QUERY
     ##################################################################
