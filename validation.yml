@@ -234,11 +234,8 @@
       loop_control:
         loop_var: item
       when: >
-        # Fields match (ignoring order)
         (item.normalized_fields_list | sort | list) == (query_normalized_fields_list | sort | list)
-        # Names are different
         and item.name | lower != query_meta.name | lower
-        # Location matches (case-insensitive)
         and item.bucket | lower == query_meta.bucket | lower
         and item.scope | lower == query_meta.scope | lower
         and item.collection | lower == query_meta.collection | lower
