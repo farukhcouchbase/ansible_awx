@@ -116,9 +116,14 @@
             | list
           }}
 
-    - name: Initialize query_type_flags as empty list
+    - name: Initialize default index lists
       set_fact:
-        query_type_flags: []
+        default_index_list: "{{ default_index_list | default([]) + [ index_queries_list[item_index] ] }}"
+      loop: "{{ range(0, index_queries_list | length) | list }}"
+      loop_control:
+        loop_var: item_index
+      when: query_type_flags[item_index] == 'default'
+
 
     - name: Determine query type for each index query and set flags
       set_fact:
