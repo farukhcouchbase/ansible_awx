@@ -181,13 +181,27 @@
         query_meta: >-
           {{
             query_meta | combine({
-              'name': (query_meta.name[0] if query_meta.name is iterable else query_meta.name),
-              'bucket': (query_meta.bucket[0] if query_meta.bucket is iterable else query_meta.bucket),
-              'scope': (query_meta.scope[0] if query_meta.scope is iterable else query_meta.scope),
-              'collection': (query_meta.collection[0] if query_meta.collection is iterable else query_meta.collection),
-              'fields': (query_meta.fields[0] if query_meta.fields is iterable else query_meta.fields)
-            })
-          }} 
+              'name': (query_meta.name[0] if query_meta.name is iterable else query_meta.name | default('')) ,
+              'bucket': (query_meta.bucket[0] if query_meta.bucket is iterable else query_meta.bucket | default('')) ,
+              'scope': (query_meta.scope[0] if (query_meta.scope | default([])) is iterable else query_meta.scope | default('')) ,
+              'collection': (query_meta.collection[0] if (query_meta.collection | default([])) is iterable else query_meta.collection | default('')) ,
+              'fields': (query_meta.fields[0] if (query_meta.fields | default([])) is iterable else query_meta.fields | default(''))
+          })
+      }}
+
+          
+    # - name: Normalize query_meta values to strings
+    #   set_fact:
+    #     query_meta: >-
+    #       {{
+    #         query_meta | combine({
+    #           'name': (query_meta.name[0] if query_meta.name is iterable else query_meta.name),
+    #           'bucket': (query_meta.bucket[0] if query_meta.bucket is iterable else query_meta.bucket),
+    #           'scope': (query_meta.scope[0] if query_meta.scope is iterable else query_meta.scope),
+    #           'collection': (query_meta.collection[0] if query_meta.collection is iterable else query_meta.collection),
+    #           'fields': (query_meta.fields[0] if query_meta.fields is iterable else query_meta.fields)
+    #         })
+    #       }} 
      
     - name: Debug Extract new index data from index_queries
       debug:
