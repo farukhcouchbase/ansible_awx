@@ -104,40 +104,38 @@
     ##################################################################
     # QUERY TYPE IDENTIFICATION (UPDATED)
     ##################################################################
+    - name: Ensure index_queries is a list
+      set_fact:
+        index_queries_list: >-
+          {{
+            index_queries
+            | default([])
+            | regex_replace(';$','')      # optional: remove trailing semicolons
+            | split('\n')                # split multi-line string into a list
+            | map('trim')                # remove leading/trailing whitespace
+            | reject('equalto','')       # remove empty lines
+            | list
+          }}
+
+    - name: Initialize query_type_flags as empty list
+      set_fact:
+        query_type_flags: []
+
     - name: Determine query type for each index query and set flags
       set_fact:
         query_type_flags: >-
           {{
-            index_queries
-            | map('regex_search', 'ON `[^`]+`(?:\\.`[^`]+`\\.`[^`]+`)?', ignorecase=True)
+            index_queries_list
+            | map('regex_search', '^CREATE INDEX .*`[^`]+`(?:\\.`[^`]+`\\.`[^`]+`)?', ignorecase=True)
             | map('ternary', 'specific', 'default')
             | list
           }}
-        is_default_flags: >-
-          {{
-            query_type_flags
-            | map('equalto', 'default')
-            | list
-          }}
-        is_specific_flags: >-
-          {{
-            query_type_flags
-            | map('equalto', 'specific')
-            | list
-          }}
+      when: index_queries_list | length > 0
 
-    - name: Debug - Show query type classification
+    - name: Debug - Query type flags
       debug:
         msg: "Query {{ item_index }} is '{{ query_type_flags[item_index] }}'"
-      loop: "{{ range(0, index_queries | length) | list }}"
-      loop_control:
-        loop_var: item_index
-
-    - name: Set per-query variables for easier conditionals
-      set_fact:
-        is_default_query: "{{ is_default_flags[item_index] }}"
-        is_specific_query: "{{ is_specific_flags[item_index] }}"
-      loop: "{{ range(0, index_queries | length) | list }}"
+      loop: "{{ range(0, index_queries_list|length) | list }}"
       loop_control:
         loop_var: item_index
 
