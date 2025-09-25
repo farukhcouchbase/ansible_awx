@@ -159,6 +159,14 @@
         loop_var: item_index
       when: query_type_flags[item_index] == 'default'
 
+    # 7. Optional: Debug the final lists
+    - name: Debug - Final index lists
+      debug:
+        msg:
+          specific_indexes: "{{ specific_index_list | default([]) }}"
+          default_indexes: "{{ default_index_list | default([]) }}"
+
+
     ##################################################################
     # DEFAULT vs SPECIFIC INDEX FLOW EXECUTION PER QUERY
     ##################################################################
