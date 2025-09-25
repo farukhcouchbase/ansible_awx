@@ -131,6 +131,11 @@
         index_var: loop_index
       when: item | trim != ''
 
+
+    - name: Debug current_index after parsing
+      debug:
+        var: current_index  
+
 # --------------------------------------
 # Append final parsed index
 # --------------------------------------
@@ -147,6 +152,10 @@
                 'fields': current_index.fields | default('')
               }) ]
           }}
+
+    - name: Debug all_indexes after append
+      debug:
+        var: all_indexes      
 
 # Reset current_index
     - name: Reset current_index
@@ -165,6 +174,11 @@
           collection: "{{ all_indexes | map(attribute='collection') | list }}"
           fields: "{{ all_indexes | map(attribute='fields') | list }}"
 
+
+    - name: Debug index_meta
+      debug:
+        var: index_meta      
+
 # --------------------------------------
 # Extract new index data from index_queries
 # --------------------------------------
@@ -176,6 +190,10 @@
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('default') }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('default') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
+
+    - name: Debug query_meta raw
+      debug:
+        var: query_meta      
 
     - name: Normalize query_meta values to strings (safe)
       set_fact:
@@ -203,6 +221,10 @@
               'collection': query_meta.collection | default('default') | string | trim if query_meta.collection | trim != '' else 'default'
             })
           }}
+
+    - name: Debug query_meta after defaults
+      debug:
+        var: query_meta      
 
 # --------------------------------------
 # Ensure query_meta.name is a string
@@ -246,6 +268,10 @@
           {%- endfor -%}
           {{ result }}
 
+    - name: Debug normalized fields of existing indexes
+      debug:
+        var: all_indexes_normalized      
+
 # --------------------------------------
 # Ensure bucket/scope/collection have valid defaults for existing indexes
 # --------------------------------------
@@ -264,6 +290,10 @@
                 })) -%}
           {%- endfor -%}
           {{ result }}
+
+    - name: Debug normalized existing indexes after defaulting
+      debug:
+        var: all_indexes_normalized      
 
 # --------------------------------------
 # Normalize new query fields
@@ -291,6 +321,11 @@
           {%- endif -%}
           {{ result }}
 
+    - name: Debug normalized new query fields
+      debug:
+        var: query_normalized_fields_list
+      
+
 # --------------------------------------
 # Fail if any existing index conflicts with new query
 # --------------------------------------
@@ -310,6 +345,14 @@
         and (item.bucket | lower) == (query_meta.bucket | lower)
         and (item.scope | lower) == (query_meta.scope | lower)
         and (item.collection | lower) == (query_meta.collection | lower)
+
+    - name: Debug comparison for conflict detection
+      debug:
+        msg: > 
+          Comparing existing index "{{ item.name }}" 
+          ({{ item.normalized_fields_list }}) 
+          with new index "{{ query_meta.name }}" 
+          ({{ query_normalized_fields_list }})    
 
 # --------------------------------------
 # Allow execution if name matches or location is different
