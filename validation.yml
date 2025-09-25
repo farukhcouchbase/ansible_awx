@@ -194,6 +194,19 @@
         var: query_meta
 
 # --------------------------------------
+# Normalize query_meta.name to string
+# --------------------------------------
+    - name: Ensure query_meta.name is a string
+      set_fact:
+        query_meta: >-
+          {{
+            query_meta | combine({
+              'name': (query_meta.name[0] if query_meta.name is sequence else query_meta.name) | default('unnamed_index')
+            })
+          }}
+    
+
+# --------------------------------------
 # Normalize existing index fields as list
 # --------------------------------------
     - name: Normalize existing index fields as list
