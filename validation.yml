@@ -168,14 +168,17 @@
             all_indexes
             | map('combine', {
                 'normalized_fields_list': (
-                  (item.fields | default('') | regex_replace('[\\[\\]]', '') )
-                  .split(',')
-                  | map('regex_replace', '[`()" ]', '')
-                  | map('trim')
-                  | map('lower')
-                  | select('ne','')
-                  | list
-                )
+                  item.fields
+                  | regex_replace('^\\[|\\]$', '')       # remove outer [ ]
+                  | regex_replace("'", '')               # remove single quotes
+                  | regex_replace('`', '')               # remove backticks
+                  | regex_replace('[()]', '')            # remove parentheses
+                  | regex_replace('\\s+', ' ')           # normalize spaces
+                  | lower
+                ).split(',')
+                | map('trim')
+                | select('ne','')
+                | list
               })
             | list
           }}
@@ -187,14 +190,19 @@
       set_fact:
         query_normalized_fields_list: >-
           {{
-            (query_meta.fields | default('') | regex_replace('[\\[\\]]', '') )
-            .split(',')
-            | map('regex_replace', '[`()" ]', '')
+            (query_meta.fields
+             | regex_replace('^\\[|\\]$', '') 
+             | regex_replace("'", '') 
+             | regex_replace('`', '') 
+             | regex_replace('[()]', '') 
+             | regex_replace('\\s+', ' ') 
+             | lower
+            ).split(',')
             | map('trim')
-            | map('lower')
             | select('ne','')
             | list
           }}
+
 
     # -------------------------------
     # Detect conflicts with existing indexes
