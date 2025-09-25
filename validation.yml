@@ -177,7 +177,7 @@
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
-          name: "{{ (index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+[`]?([\\w]+)[`]?', '\\1') | default('')) | trim }}"
+          name: "{{ (index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+[`]?([\\w]+)[`]?', '\\1') | default('unnamed_index')) | trim }}"
           bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') | trim }}"
           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') | trim }}"
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') | trim }}"
