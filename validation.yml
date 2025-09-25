@@ -101,6 +101,7 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
+  
     # --------------------------------------
     # Initialize vars
     # --------------------------------------
@@ -109,9 +110,9 @@
         all_indexes: []
         current_index: {}
 
-    # --------------------------------------
-    # Parse decoded indexes line by line
-    # --------------------------------------
+# --------------------------------------
+# Parse decoded indexes line by line
+# --------------------------------------
     - name: Parse decoded indexes line by line
       set_fact:
         current_index: >-
@@ -147,7 +148,7 @@
               }) ]
           }}
 
-    # Reset current_index for safety
+# Reset current_index
     - name: Reset current_index
       set_fact:
         current_index: {}
@@ -189,27 +190,22 @@
             })
           }}
 
-    - name: Debug Extract new index data from index_queries
-      debug:
-        var: query_meta
-
-    # --------------------------------------
-    # Ensure bucket/scope/collection have valid defaults
-    # --------------------------------------
+# --------------------------------------
+# Ensure bucket/scope/collection have valid defaults for new query
+# --------------------------------------
     - name: Set default bucket/scope/collection if empty
       set_fact:
         query_meta: >-
           {{
             query_meta | combine({
-              'bucket': (query_meta.bucket | default('travel-sample') | string | trim) if query_meta.bucket | trim != '' else 'travel-sample',
-              'scope': (query_meta.scope | default('default') | string | trim) if query_meta.scope | trim != '' else 'default',
-              'collection': (query_meta.collection | default('default') | string | trim) if query_meta.collection | trim != '' else 'default'
+              'bucket': query_meta.bucket | default('travel-sample') | string | trim if query_meta.bucket | trim != '' else 'travel-sample',
+              'scope': query_meta.scope | default('default') | string | trim if query_meta.scope | trim != '' else 'default',
+              'collection': query_meta.collection | default('default') | string | trim if query_meta.collection | trim != '' else 'default'
             })
           }}
-    
 
 # --------------------------------------
-# Normalize query_meta.name to string
+# Ensure query_meta.name is a string
 # --------------------------------------
     - name: Ensure query_meta.name is a string
       set_fact:
@@ -219,7 +215,6 @@
               'name': (query_meta.name[0] if query_meta.name is sequence else query_meta.name) | default('unnamed_index')
             })
           }}
-    
 
 # --------------------------------------
 # Normalize existing index fields as list
@@ -252,16 +247,16 @@
           {{ result }}
 
 # --------------------------------------
-# Normalize bucket/scope/collection for comparison
+# Ensure bucket/scope/collection have valid defaults for existing indexes
 # --------------------------------------
-    - name: Normalize bucket/scope/collection in existing indexes
+    - name: Set default bucket/scope/collection for existing indexes
       set_fact:
         all_indexes_normalized: >-
           {%- set result = [] -%}
           {%- for idx in all_indexes_normalized -%}
-          {%-   set bucket_val = idx.bucket | default('') | string | regex_replace('(?i)^none$', '') -%}
-          {%-   set scope_val = idx.scope | default('') | string | regex_replace('(?i)^none$', '') -%}
-          {%-   set collection_val = idx.collection | default('') | string | regex_replace('(?i)^none$', '') -%}
+          {%-   set bucket_val = idx.bucket | default('travel-sample') | string | trim -%}
+          {%-   set scope_val = idx.scope | default('default') | string | trim -%}
+          {%-   set collection_val = idx.collection | default('default') | string | trim -%}
           {%-   set _ = result.append(idx | combine({
                   'bucket': bucket_val,
                   'scope': scope_val,
@@ -269,17 +264,6 @@
                 })) -%}
           {%- endfor -%}
           {{ result }}
-
-    - name: Normalize bucket/scope/collection in query_meta
-      set_fact:
-        query_meta: >-
-          {{
-            query_meta | combine({
-              'bucket': query_meta.bucket | default('') | string | regex_replace('(?i)^none$', ''),
-              'scope': query_meta.scope | default('') | string | regex_replace('(?i)^none$', ''),
-              'collection': query_meta.collection | default('') | string | regex_replace('(?i)^none$', '')
-            })
-          }}
 
 # --------------------------------------
 # Normalize new query fields
@@ -306,14 +290,6 @@
             {%- set _ = result.extend(fields_clean) -%}
           {%- endif -%}
           {{ result }}
-
-    - name: Debug normalized existing indexes
-      debug:
-        var: all_indexes_normalized
-
-    - name: Debug normalized new query fields
-      debug:
-        var: query_normalized_fields_list
 
 # --------------------------------------
 # Fail if any existing index conflicts with new query
@@ -347,8 +323,11 @@
         query_meta.scope not in index_meta.scope or
         query_meta.collection not in index_meta.collection
 
-     
-# # -------------------------------
+
+
+        
+
+#============================================================================================================================    
 # # Initialize vars
 # # -------------------------------
 #     - name: Initialize all_indexes and current_index
