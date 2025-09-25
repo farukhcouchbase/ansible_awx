@@ -183,6 +183,11 @@
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') | trim }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') | trim }}"
 
+    - Debug Extract new index data from index_queries
+      vars:
+        query_meta
+        
+
 # -------------------------------
 # Normalize existing indexes
 # -------------------------------
