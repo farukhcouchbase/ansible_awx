@@ -122,18 +122,13 @@
       set_fact:
         query_type_flags: []
 
-    # Determine query type for each index query
     - name: Determine query type for each index query and set flags
       set_fact:
         query_type_flags: >-
           {{
             (index_queries_list | default([]))
-            | map('regex_search', '^CREATE INDEX .*`[^`]+`\\(`)    
-            | map('ternary', 'default', 
-                (index_queries_list | default([]))
-                | map('regex_search', '^CREATE INDEX .*`[^`]+`\\.`[^`]+`\\.`[^`]+`\\(')
-                | map('ternary','scoped','other')
-              )
+            | map('regex_search', '^CREATE INDEX .*`[^`]+`\\(')
+            | map('ternary', 'default', 'scoped')
             | list
           }}
 
