@@ -109,9 +109,8 @@
         query_type_flags: >-
           {{
             index_queries
-            | map('regex_search', 'ON `[^`]+`(?:\\.`[^`]+`\\.`[^`]+`)?', ignorecase=True)
-            | map('regex_search', '^ON `[^`]+`$', ignorecase=True)
-            | map('ternary', 'default', 'specific')
+            | map('regex_search', 'ON `[^`]+`\\.`[^`]+`\\.`[^`]+`', ignorecase=True)
+            | map('ternary', 'specific', 'default')
             | list
           }}
 
@@ -121,6 +120,7 @@
       loop: "{{ range(0, index_queries | length) | list }}"
       loop_control:
         loop_var: item_index
+
 
 
     ##################################################################
