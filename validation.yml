@@ -200,7 +200,7 @@
             | regex_replace('[()]', '')
             | regex_replace('\\s+', ' ')
             | lower
-            | regex_split(',')  
+            ).split(',')
             | map('trim')
             | select('ne','')
             | list
