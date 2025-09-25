@@ -14,15 +14,51 @@
     existing_index_map: []
     query_types: []
     query_type: ""
-    
+
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
 
   tasks:
 
-    ##################################################################
-    # Identify query type (default or specific scope/collection)
-    ##################################################################
+  ##################################################################
+  # INITIALIZATION & DECODE EXISTING INDEXES
+  ##################################################################
+    - name: Initialize variables
+      set_fact:
+        allowed_queries: []
+        allowed_queries1: []
+        allowed_queries2: []
+        not_allowed_queries: []
+        queries_exceeding_fields: []
+        query_field_mapping: {}
+        query_field_list: {}
+        decoded_indexes: ""
+
+    - name: Run Couchbase query to fetch existing indexes
+      shell: >
+        {{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s "SELECT * FROM system:indexes;" > fields.json 2>&1
+
+    - name: Remove first 5 lines and create new_fields.json
+      shell: tail -n +6 fields.json > new_fields.json
+
+    - name: Convert JSON to plain text using jq
+      shell: jq -r '.[] | @text' new_fields.json > plain1.txt
+
+    - name: Run extract2.py and redirect output to fields1.txt
+      shell: python3 extract2.py > fields1.txt
+
+    - name: Read decoded index content
+      slurp:
+        src: fields1.txt
+      register: file_content
+
+    - name: Set decoded file content as variable
+      set_fact:
+        decoded_indexes: "{{ file_content.content | b64decode }}"
+
+  ##################################################################
+  # IDENTIFY QUERY TYPE (DEFAULT OR SPECIFIC)
+  ##################################################################
     - name: Determine if the index query is for default collection/scope
       set_fact:
         is_default_query: "{{ index_queries[0] is search('ON `[^`]+`$') }}"
@@ -31,9 +67,9 @@
       debug:
         msg: "Query is default: {{ is_default_query }}"
 
-    ##################################################################
-    # DEFAULT INDEX FLOW
-    ##################################################################
+  ##################################################################
+  # DEFAULT INDEX FLOW
+  ##################################################################
     - name: DEFAULT INDEX FLOW - Execute only for default queries
       block:
         - name: Initialize default indexes
@@ -179,9 +215,9 @@
 
       when: is_default_query
 
-    ##################################################################
-    # SPECIFIC SCOPE/COLLECTION INDEX FLOW
-    ##################################################################
+  ##################################################################
+  # SPECIFIC SCOPE/COLLECTION INDEX FLOW
+  ##################################################################
     - name: SPECIFIC INDEX FLOW - Execute only for specific scope/collection queries
       block:
         - name: Initialize specific indexes
@@ -267,12 +303,7 @@
                     | select('ne','')
                     | list
               -%}
-              {%-   set _ = result.append(idx | combine({
-                      'normalized_fields_list': fields_clean,
-                      'bucket': idx.bucket | string,
-                      'scope': idx.scope | string,
-                      'collection': idx.collection | string
-                    })) -%}
+              {%-   set _ = result.append(idx | combine({'normalized_fields_list': fields_clean})) -%}
               {%- endfor -%}
               {{ result }}
 
@@ -312,9 +343,9 @@
           when: >
             (item.normalized_fields_list | sort | list) == (specific_query_normalized_fields_list | sort | list)
             and item.name | lower != specific_query_meta.name | lower
-            and (item.bucket | lower) == (specific_query_meta.bucket | lower)
-            and (item.scope | lower) == (specific_query_meta.scope | lower)
-            and (item.collection | lower) == (specific_query_meta.collection | lower)
+            and item.bucket | lower == specific_query_meta.bucket | lower
+            and item.scope | lower == specific_query_meta.scope | lower
+            and item.collection | lower == specific_query_meta.collection | lower
 
         - name: Allow execution if specific query is safe
           debug:
@@ -327,12 +358,9 @@
 
       when: not is_default_query
 
-
-
-
-##################################################################
-    # NEUTRAL SECTION - QUERY VALIDATION AND EXECUTION
-    ##################################################################
+  ##################################################################
+  # NEUTRAL SECTION - VALIDATION & EXECUTION FOR BOTH DEFAULT/SPECIFIC
+  ##################################################################
     - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
@@ -354,18 +382,7 @@
       with_dict: "{{ query_field_list }}"
       when: "query_field_list[item.key] | length > 6"
 
-    - name: Display warning for queries exceeding 6 fields
-      debug:
-        msg: "You are exceeding the limit of 6 fields in query '{{ item.key }}'. Please contact the admin."
-      with_dict: "{{ query_field_list }}"
-      when: "query_field_list[item.key] | length > 6"  
-
-    - name: Debug - Queries exceeding field limits
-      debug:
-        msg: "Query exceeds field limit: {{ item }}"
-      with_items: "{{ queries_exceeding_fields }}"
-
-    - name: Stop execution if any query exceeds allowed field count
+    - name: Fail if any query exceeds allowed field count
       fail:
         msg: "You are exceeding the limit of 6 fields in query. Please contact the admin: {{ queries_exceeding_fields }}"
       when: queries_exceeding_fields | length > 0
@@ -380,20 +397,6 @@
     - name: Remove semicolon using regex
       set_fact:
         allowed_queries2: "{{ allowed_queries | map('regex_replace', ';\\s*$', '') | list }}"
-
-    - name: Debug - Allowed Queries
-      debug:
-        msg: "\033[32mAllowed Index Query: {{ item }}\033[0m"
-      with_items: "{{ allowed_queries }}"
-
-    - name: Debug - Not Allowed Queries
-      debug:
-        msg: "\033[33mNot Allowed Index Query: {{ item }}\033[0m"
-      with_items: "{{ not_allowed_queries }}"
-
-    - name: Show the modified query
-      debug:
-        msg: "\033[34m{{ allowed_queries2 }}\033[0m"
 
     - name: Add WITH defer_build and num_replica options in index queries
       set_fact:
@@ -424,16 +427,6 @@
             | list
           }}
 
-    - name: Debug - Updated Index Queries (Method 1)
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries1 }}"
-
-    - name: Debug - Updated Index Queries (Method 2)
-      debug:
-        msg: "\033[32mUpdated Query: {{ item }}\033[0m"
-      with_items: "{{ updated_queries2 }}"
-      
     - name: Execute allowed index queries (Method 2)
       shell: "{{ couchbase_bin_path }} -u {{ couchbase_admin_username }} -p {{ couchbase_admin_password }} -s '{{ item }}'"
       with_items: "{{ updated_queries2 }}"
@@ -451,7 +444,7 @@
     - name: Run deferred index script for a bucket
       command: "{{ script_path }} --bucket={{ bucket_names | join(',') }}"
       args:
-        chdir: "~"  
+        chdir: "~"
       register: script_output
 
     - name: Show script output
