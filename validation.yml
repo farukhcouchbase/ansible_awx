@@ -102,15 +102,30 @@
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
     ##################################################################
-    # QUERY TYPE IDENTIFICATION
+    # QUERY TYPE IDENTIFICATION (UPDATED)
     ##################################################################
-    - name: Determine if the index query is for default collection/scope
+    - name: Determine query type for each index query
       set_fact:
-        is_default_query: "{{ index_queries[0] is search('ON `[^`]+`$') }}"
+        query_type_flags: >-
+          {{
+            index_queries 
+            | map('regex_search', 'ON `[^`]+`(?:\\.`[^`]+`\\.`[^`]+`)?$', ignorecase=True)
+            | map('ternary', 'default', 'specific') 
+            | list
+          }}
 
-    - name: Debug - Query type identification
+    - name: Debug - Query type flags
       debug:
-        msg: "Query is default: {{ is_default_query }}"
+        msg: "Query {{ item_index }} is '{{ query_type_flags[item_index] }}'"
+      loop: "{{ range(0, index_queries|length) | list }}"
+      loop_control:
+        loop_var: item_index
+
+    ##################################################################
+    # DEFAULT vs SPECIFIC INDEX FLOW EXECUTION PER QUERY
+    ##################################################################
+    - name: Execute default or specific index flow per query
+      block:    
 
     ##################################################################
     # DEFAULT INDEX FLOW
