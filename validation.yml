@@ -197,11 +197,11 @@
           {%- if raw_fields != '' -%}
             {%- set fields_clean = (
                     raw_fields
-                    | regex_replace('^\\[|\\]$', '')        # remove outer brackets
-                    | regex_replace("'", '')                 # remove single quotes
-                    | regex_replace('`', '')                 # remove backticks
-                    | regex_replace('[()]', '')              # remove parentheses
-                    | regex_replace('\\s+', ' ')             # normalize spaces
+                    | regex_replace('^\\[|\\]$', '')     
+                    | regex_replace("'", '')              
+                    | regex_replace('`', '')               
+                    | regex_replace('[()]', '')              
+                    | regex_replace('\\s+', ' ')          
                     | lower
                   ).split(',')
                   | map('trim')
