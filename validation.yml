@@ -368,10 +368,7 @@
             })
           }}
 
-    - name: Debug normalized new query fields
-      debug:
-        var: query_normalized_fields_list
-
+    
     - name: Normalize new query fields as list
       set_fact:
         query_normalized_fields_list: >-
@@ -391,7 +388,10 @@
           -%}
           {{ fields_clean }}
     
-      
+    - name: Debug normalized new query fields
+      debug:
+        var: query_normalized_fields_list
+  
 
 # --------------------------------------
 # Fail if any existing index conflicts with new query
