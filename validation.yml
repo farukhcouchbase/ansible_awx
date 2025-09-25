@@ -193,17 +193,13 @@
       set_fact:
         query_normalized_fields_list: >-
           {{
-            (query_meta.fields | default(''))
-            | regex_replace('^\\[|\\]$', '')
-            | regex_replace("'", '')
-            | regex_replace('`', '')
-            | regex_replace('[()]', '')
-            | regex_replace('\\s+', ' ')
+            (query_meta.fields | default('') | string | quote
+            | regex_replace('[\[\]()`\'"]', '')   
+            | regex_replace('\s+', ' ')          
+            | trim
             | lower
             ).split(',')
-            | map('trim')
-            | select('ne','')
-            | list
+            | map('trim') | list
           }}
 
 # -------------------------------
