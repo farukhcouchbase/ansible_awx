@@ -174,14 +174,14 @@
 # -------------------------------
 # Extract new index data from index_queries
 # -------------------------------
-    - name: Extract new index data from index_queries (safe parsing)
+    - name: Extract new index data from index_queries
       set_fact:
         query_meta:
           name: "{{ (index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+[`]?([\\w]+)[`]?', '\\1') | default('unnamed_index')) | trim }}"
-          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') | trim }}"
-          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') | trim }}"
-          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') | trim }}"
-          fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') | trim }}"
+          bucket: "{{ (index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('')) | trim }}"
+          scope: "{{ (index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('')) | trim }}"
+          collection: "{{ (index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('')) | trim }}"
+          fields: "{{ (index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('')) | trim }}"
 
     - name: Debug Extract new index data from index_queries
       debug:
