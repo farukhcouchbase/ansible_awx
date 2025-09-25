@@ -108,12 +108,11 @@
       set_fact:
         index_queries_list: >-
           {{
-            index_queries
-            | default([])
-            | regex_replace(';$','')      
-            | splitlines            
-            | map('trim')               
-            | reject('equalto','')      
+            (index_queries | default(''))
+            | regex_replace(';$','')                         
+            | regex_findall('[^\r\n]+')                      
+            | map('trim')                                    
+            | reject('equalto','')                            
             | list
           }}
 
