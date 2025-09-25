@@ -110,10 +110,10 @@
           {{
             index_queries
             | default([])
-            | regex_replace(';$','')      # optional: remove trailing semicolons
-            | split('\n')                # split multi-line string into a list
-            | map('trim')                # remove leading/trailing whitespace
-            | reject('equalto','')       # remove empty lines
+            | regex_replace(';$','')      
+            | split('\n')               
+            | map('trim')               
+            | reject('equalto','')      
             | list
           }}
 
