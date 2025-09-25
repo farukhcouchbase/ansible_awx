@@ -193,44 +193,18 @@
       set_fact:
         query_normalized_fields_list: >-
           {{
-            (query_meta.fields | default('') | string
-            | regex_replace("[\\[\\]()`'\"]", "")   
-            | regex_replace("\\s+", " ")         
-            | trim
-            | lower
+            (
+              query_meta.fields | default('') | string
+              | regex_replace("[\\[\\]()`'\"]", "")   
+              | regex_replace("\\s+", " ")         
+              | trim
+              | lower
             ).split(",")                     
             | map('trim')                          
             | list
           }}
 
-# -------------------------------
-# Debug normalized fields
-# -------------------------------
-    - name: Debug normalized existing indexes
-      debug:
-        msg: |
-          Existing indexes normalized:
-          {% for idx in all_indexes_normalized %}
-            - name: {{ idx.name }}
-              bucket: {{ idx.bucket }}
-              scope: {{ idx.scope }}
-              collection: {{ idx.collection }}
-              normalized_fields_list: {{ idx.normalized_fields_list }}
-          {% endfor %}
 
-    - name: Debug normalized new query fields
-      debug:
-        msg: |
-          New query normalized fields:
-          name: {{ query_meta.name }}
-          bucket: {{ query_meta.bucket }}
-          scope: {{ query_meta.scope }}
-          collection: {{ query_meta.collection }}
-          normalized_fields_list: {{ query_normalized_fields_list }}
-
-# -------------------------------
-# Detect conflicts with existing indexes
-# -------------------------------
     - name: Fail if any existing index conflicts with new query
       fail:
         msg: >-
