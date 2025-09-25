@@ -101,17 +101,17 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
-    # -------------------------------
-    # Initialize vars
-    # -------------------------------
+# -------------------------------
+# Initialize vars
+# -------------------------------
     - name: Initialize all_indexes and current_index
       set_fact:
         all_indexes: []
         current_index: {}
 
-    # -------------------------------
-    # Parse decoded indexes line by line
-    # -------------------------------
+# -------------------------------
+# Parse decoded indexes line by line
+# -------------------------------
     - name: Parse decoded indexes line by line
       set_fact:
         current_index: >-
@@ -129,6 +129,28 @@
         extended: yes
         index_var: loop_index
       when: item|trim != ''
+
+# -------------------------------
+# Append final parsed index (robust)
+# -------------------------------
+    - name: Append final parsed index
+      set_fact:
+        all_indexes: >-
+          {{
+            all_indexes +
+            [ current_index | combine({
+                'name': current_index.name | default('unnamed_index'),
+                'bucket': current_index.bucket | default('unknown_bucket'),
+                'scope': current_index.scope | default('default_scope'),
+                'collection': current_index.collection | default('default_collection'),
+                'fields': current_index.fields | default('')
+              }) ]
+          }}
+
+# Reset current_index for safety if needed later
+    - name: Reset current_index
+      set_fact:
+        current_index: {}
 
 # -------------------------------
 # Append final parsed index
