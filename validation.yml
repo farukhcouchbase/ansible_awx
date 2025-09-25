@@ -126,8 +126,7 @@
     ##################################################################
     # DEFAULT vs SPECIFIC INDEX FLOW EXECUTION PER QUERY
     ##################################################################
-    - name: Execute default or specific index flow per query
-      block:    
+    
 
     ##################################################################
     # DEFAULT INDEX FLOW
