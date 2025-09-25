@@ -101,9 +101,9 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
-# -------------------------------
-# Initialize vars
-# -------------------------------
+    # -------------------------------
+    # Initialize vars
+    # -------------------------------
     - name: Initialize all_indexes and current_index
       set_fact:
         all_indexes: []
@@ -118,9 +118,9 @@
           {{
             current_index | combine({
               'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-              'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
-              'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
-              'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
+              'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'unknown_bucket'),
+              'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
+              'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
               'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
             })
           }}
@@ -131,7 +131,7 @@
       when: item|trim != ''
 
 # -------------------------------
-# Append final parsed index (robust)
+# Append final parsed index
 # -------------------------------
     - name: Append final parsed index
       set_fact:
@@ -141,17 +141,17 @@
             [ current_index | combine({
                 'name': current_index.name | default('unnamed_index'),
                 'bucket': current_index.bucket | default('unknown_bucket'),
-                'scope': current_index.scope | default('default_scope'),
-                'collection': current_index.collection | default('default_collection'),
+                'scope': current_index.scope | default('default'),
+                'collection': current_index.collection | default('default'),
                 'fields': current_index.fields | default('')
               }) ]
           }}
 
-# Reset current_index for safety if needed later
+# Reset current_index for safety
     - name: Reset current_index
       set_fact:
         current_index: {}
-        
+
 # -------------------------------
 # Convert all_indexes into index_meta format
 # -------------------------------
@@ -171,28 +171,28 @@
       set_fact:
         query_meta:
           name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('') }}"
-          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
-          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
-          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
+          bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('unknown_bucket') }}"
+          scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('default') }}"
+          collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('default') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
-          
+
     - name: Normalize query_meta values to strings
       set_fact:
         query_meta: >-
           {{
             query_meta | combine({
-              'name':      (query_meta.name[0] if query_meta.name is sequence else query_meta.name | default('')),
-              'bucket':    (query_meta.bucket[0] if query_meta.bucket is sequence else query_meta.bucket | default('')),
-              'scope':     (query_meta.scope[0] if (query_meta.scope | default([])) is sequence else query_meta.scope | default('')),
-              'collection':(query_meta.collection[0] if (query_meta.collection | default([])) is sequence else query_meta.collection | default('')),
-              'fields':    (query_meta.fields[0] if (query_meta.fields | default([])) is sequence else query_meta.fields | default(''))
+              'name': (query_meta.name[0] if query_meta.name is sequence else query_meta.name | default('')),
+              'bucket': (query_meta.bucket[0] if query_meta.bucket is sequence else query_meta.bucket | default('unknown_bucket')),
+              'scope': (query_meta.scope[0] if query_meta.scope is sequence else query_meta.scope | default('default')),
+              'collection': (query_meta.collection[0] if query_meta.collection is sequence else query_meta.collection | default('default')),
+              'fields': (query_meta.fields[0] if query_meta.fields is sequence else query_meta.fields | default(''))
             })
           }}
 
     - name: Debug Extract new index data from index_queries
       debug:
         var: query_meta
-  
+
 # -------------------------------
 # Normalize existing indexes
 # -------------------------------
@@ -214,7 +214,12 @@
                 | select('ne','')
                 | list
           -%}
-          {%-   set _ = result.append(idx | combine({'normalized_fields_list': fields_clean})) -%}
+          {%-   set _ = result.append(idx | combine({
+                  'normalized_fields_list': fields_clean,
+                  'bucket': idx.bucket | default('unknown_bucket'),
+                  'scope': idx.scope | default('default'),
+                  'collection': idx.collection | default('default')
+                })) -%}
           {%- endfor -%}
           {{ result }}
 
@@ -247,14 +252,14 @@
     - name: Debug normalized existing indexes
       debug:
         var: all_indexes_normalized
-        
+
     - name: Debug normalized new query fields
       debug:
         var: query_normalized_fields_list
 
-    # -------------------------------
-    # Fail if any conflict exists
-    # -------------------------------
+# -------------------------------
+# Fail if any conflict exists
+# -------------------------------
     - name: Fail if any existing index conflicts with new query
       fail:
         msg: >-
@@ -268,12 +273,10 @@
       when: >
         (item.normalized_fields_list | sort | list) == (query_normalized_fields_list | sort | list)
         and item.name | lower != query_meta.name | lower
-        and item.bucket | lower == query_meta.bucket | lower
-        and item.scope | lower == query_meta.scope | lower
-        and item.collection | lower == query_meta.collection | lower
+        and (item.bucket | lower) == (query_meta.bucket | lower)
+        and (item.scope | lower) == (query_meta.scope | lower)
+        and (item.collection | lower) == (query_meta.collection | lower)
 
-
-      
 # -------------------------------
 # Allow valid cases
 # -------------------------------
@@ -285,6 +288,192 @@
         query_meta.bucket not in index_meta.bucket or
         query_meta.scope not in index_meta.scope or
         query_meta.collection not in index_meta.collection
+    
+
+# # -------------------------------
+# # Initialize vars
+# # -------------------------------
+#     - name: Initialize all_indexes and current_index
+#       set_fact:
+#         all_indexes: []
+#         current_index: {}
+
+# # -------------------------------
+# # Parse decoded indexes line by line
+# # -------------------------------
+#     - name: Parse decoded indexes line by line
+#       set_fact:
+#         current_index: >-
+#           {{
+#             current_index | combine({
+#               'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+#               'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
+#               'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
+#               'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
+#               'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
+#             })
+#           }}
+#       loop: "{{ decoded_indexes.split('\n') }}"
+#       loop_control:
+#         extended: yes
+#         index_var: loop_index
+#       when: item|trim != ''
+
+# # -------------------------------
+# # Append final parsed index (robust)
+# # -------------------------------
+#     - name: Append final parsed index
+#       set_fact:
+#         all_indexes: >-
+#           {{
+#             all_indexes +
+#             [ current_index | combine({
+#                 'name': current_index.name | default('unnamed_index'),
+#                 'bucket': current_index.bucket | default('unknown_bucket'),
+#                 'scope': current_index.scope | default('default_scope'),
+#                 'collection': current_index.collection | default('default_collection'),
+#                 'fields': current_index.fields | default('')
+#               }) ]
+#           }}
+
+# # Reset current_index for safety if needed later
+#     - name: Reset current_index
+#       set_fact:
+#         current_index: {}
+        
+# # -------------------------------
+# # Convert all_indexes into index_meta format
+# # -------------------------------
+#     - name: Convert all_indexes into index_meta format
+#       set_fact:
+#         index_meta:
+#           name: "{{ all_indexes | map(attribute='name') | list }}"
+#           bucket: "{{ all_indexes | map(attribute='bucket') | list }}"
+#           scope: "{{ all_indexes | map(attribute='scope') | list }}"
+#           collection: "{{ all_indexes | map(attribute='collection') | list }}"
+#           fields: "{{ all_indexes | map(attribute='fields') | list }}"
+
+# # -------------------------------
+# # Extract new index data from index_queries
+# # -------------------------------
+#     - name: Extract new index data from index_queries (safe parsing)
+#       set_fact:
+#         query_meta:
+#           name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('') }}"
+#           bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
+#           scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('') }}"
+#           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
+#           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
+          
+#     - name: Normalize query_meta values to strings
+#       set_fact:
+#         query_meta: >-
+#           {{
+#             query_meta | combine({
+#               'name':      (query_meta.name[0] if query_meta.name is sequence else query_meta.name | default('')),
+#               'bucket':    (query_meta.bucket[0] if query_meta.bucket is sequence else query_meta.bucket | default('')),
+#               'scope':     (query_meta.scope[0] if (query_meta.scope | default([])) is sequence else query_meta.scope | default('')),
+#               'collection':(query_meta.collection[0] if (query_meta.collection | default([])) is sequence else query_meta.collection | default('')),
+#               'fields':    (query_meta.fields[0] if (query_meta.fields | default([])) is sequence else query_meta.fields | default(''))
+#             })
+#           }}
+
+#     - name: Debug Extract new index data from index_queries
+#       debug:
+#         var: query_meta
+  
+# # -------------------------------
+# # Normalize existing indexes
+# # -------------------------------
+#     - name: Normalize existing index fields as list
+#       set_fact:
+#         all_indexes_normalized: >-
+#           {%- set result = [] -%}
+#           {%- for idx in all_indexes -%}
+#           {%-   set fields_clean = (
+#                   (idx.fields | default(''))
+#                   | regex_replace('^\\[|\\]$', '')        
+#                   | regex_replace("'", '')               
+#                   | regex_replace('`', '')                
+#                   | regex_replace('[()]', '')             
+#                   | regex_replace('\\s+', ' ')            
+#                   | lower
+#                 ).split(',')
+#                 | map('trim')
+#                 | select('ne','')
+#                 | list
+#           -%}
+#           {%-   set _ = result.append(idx | combine({'normalized_fields_list': fields_clean})) -%}
+#           {%- endfor -%}
+#           {{ result }}
+
+# # -------------------------------
+# # Normalize new query fields
+# # -------------------------------
+#     - name: Normalize new query fields as list
+#       set_fact:
+#         query_normalized_fields_list: >-
+#           {%- set result = [] -%}
+#           {%- set raw_fields = query_meta.fields | default('') -%}
+#           {%- if raw_fields != '' -%}
+#             {%- set fields_clean = (
+#                     raw_fields
+#                     | regex_replace('^\\[|\\]$', '')     
+#                     | regex_replace("'", '')              
+#                     | regex_replace('`', '')               
+#                     | regex_replace('[()]', '')              
+#                     | regex_replace('\\s+', ' ')          
+#                     | lower
+#                   ).split(',')
+#                   | map('trim')
+#                   | select('ne','')
+#                   | list
+#             -%}
+#             {%- set _ = result.extend(fields_clean) -%}
+#           {%- endif -%}
+#           {{ result }}
+
+#     - name: Debug normalized existing indexes
+#       debug:
+#         var: all_indexes_normalized
+        
+#     - name: Debug normalized new query fields
+#       debug:
+#         var: query_normalized_fields_list
+
+#     # -------------------------------
+#     # Fail if any conflict exists
+#     # -------------------------------
+#     - name: Fail if any existing index conflicts with new query
+#       fail:
+#         msg: >-
+#           ⚠️ Index conflict detected! Existing index "{{ item.name }}" in
+#           bucket "{{ item.bucket }}", scope "{{ item.scope }}",
+#           collection "{{ item.collection }}" has the same fields as new index
+#           "{{ query_meta.name }}" but different name.
+#       loop: "{{ all_indexes_normalized }}"
+#       loop_control:
+#         loop_var: item
+#       when: >
+#         (item.normalized_fields_list | sort | list) == (query_normalized_fields_list | sort | list)
+#         and item.name | lower != query_meta.name | lower
+#         and item.bucket | lower == query_meta.bucket | lower
+#         and item.scope | lower == query_meta.scope | lower
+#         and item.collection | lower == query_meta.collection | lower
+
+
+      
+# # -------------------------------
+# # Allow valid cases
+# # -------------------------------
+#     - name: Allow execution if name matches or location is different
+#       debug:
+#         msg: "✅ Index is allowed. Either name matches or location is different."
+#       when: >
+#         query_meta.name in index_meta.name or
+#         query_meta.bucket not in index_meta.bucket or
+#         query_meta.scope not in index_meta.scope or
+#         query_meta.collection not in index_meta.collection
 
 
     # -------------------------------
