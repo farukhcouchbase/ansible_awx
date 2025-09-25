@@ -175,6 +175,7 @@
           scope: "{{ (index_queries | first | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('')) | trim }}"
           collection: "{{ (index_queries | first | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('')) | trim }}"
           fields: "{{ (index_queries | first | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('')) | trim }}"
+
           
     - name: Debug Extract new index data from index_queries
       debug:
