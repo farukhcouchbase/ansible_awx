@@ -127,10 +127,10 @@
         query_type_flags: >-
           {{
             (index_queries_list | default([]))
-            | map('regex_search', '^CREATE INDEX .*`[^`]+`\\(`)       # default-scope
+            | map('regex_search', '^CREATE INDEX .*`[^`]+`\\(`)       
             | map('ternary', 'default',
                 (index_queries_list | default([]))
-                | map('regex_search', '^CREATE INDEX .*`[^`]+`\\.`[^`]+`\\.`[^`]+`\\(')   # scoped
+                | map('regex_search', '^CREATE INDEX .*`[^`]+`\\.`[^`]+`\\.`[^`]+`\\(')  
                 | map('ternary', 'scoped', 'other')
               )
             | list
