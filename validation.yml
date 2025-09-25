@@ -258,10 +258,16 @@
     - name: Fail if any existing index conflicts with new query
       fail:
         msg: >-
-          ⚠️ Index conflict detected! Existing index "{{ item.name }}" in
-          bucket "{{ item.bucket }}", scope "{{ item.scope }}",
-          collection "{{ item.collection }}" has the same fields as new index
-          "{{ query_meta.name }}" but different name.
+          Index conflict detected:
+          - Existing index: "{{ item.name }}"
+          - Bucket: "{{ item.bucket }}"
+          - Scope: "{{ item.scope }}"
+          - Collection: "{{ item.collection }}"
+          - Fields: "{{ item.normalized_fields_list | join(', ') }}"
+      
+          The new index "{{ query_meta.name }}" has the same fields in the same location 
+          but a different name. 
+          Please choose a unique index name or modify the fields to avoid conflict.
       loop: "{{ all_indexes_normalized }}"
       loop_control:
         loop_var: item
@@ -271,6 +277,7 @@
         and item.bucket | lower == query_meta.bucket | lower
         and item.scope | lower == query_meta.scope | lower
         and item.collection | lower == query_meta.collection | lower
+
       
 # -------------------------------
 # Allow valid cases
