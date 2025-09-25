@@ -101,18 +101,19 @@
       set_fact:
         decoded_indexes: "{{ file_content.content | b64decode }}"
 
+    # -------------------------------
+    # Initialize vars
+    # -------------------------------
     - name: Initialize all_indexes and current_index
       set_fact:
         all_indexes: []
         current_index: {}
 
+    # -------------------------------
+    # Parse decoded indexes line by line
+    # -------------------------------
     - name: Parse decoded indexes line by line
       set_fact:
-        all_indexes: >-
-          {{
-            all_indexes +
-            ([current_index] if current_index.name is defined and current_index.name != '' and loop_index != 0 else [])
-          }}
         current_index: >-
           {{
             current_index | combine({
@@ -127,15 +128,15 @@
       loop_control:
         extended: yes
         index_var: loop_index
- 
-    - name: Debug all_indexes after parsing
-      debug:
-        var: all_indexes
+      when: item|trim != ''
 
-    - name: Append last index if exists
+    - name: Append final parsed index
       set_fact:
         all_indexes: "{{ all_indexes + [current_index] if current_index.name is defined and current_index.name != '' else all_indexes }}"
 
+    # -------------------------------
+    # Convert all_indexes into index_meta format (columnar view)
+    # -------------------------------
     - name: Convert all_indexes into index_meta format
       set_fact:
         index_meta:
@@ -145,10 +146,9 @@
           collection: "{{ all_indexes | map(attribute='collection') | list }}"
           fields: "{{ all_indexes | map(attribute='fields') | list }}"
 
-    - name: Debug all extracted index metadata
-      debug:
-        var: index_meta
-
+    # -------------------------------
+    # Extract new index data from index_queries
+    # -------------------------------
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
@@ -159,7 +159,7 @@
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
 
     # -------------------------------
-    # Normalize existing indexes safely
+    # Normalize existing indexes
     # -------------------------------
     - name: Normalize existing index fields as list
       set_fact:
@@ -168,22 +168,17 @@
             all_indexes
             | map('combine', {
                 'normalized_fields_list': (
-                  (item.fields | default('') | string)
-                  | regex_replace('[\\[\\]()`"]', '')   
-                  | regex_replace('\\s+', ' ')      
-                  | trim
-                  | lower
-                ).split(',')
-                | map('trim')
-                | list
+                  (item.fields | default('') | regex_replace('[\\[\\]]', '') )
+                  .split(',')
+                  | map('regex_replace', '[`()" ]', '')
+                  | map('trim')
+                  | map('lower')
+                  | select('ne','')
+                  | list
+                )
               })
             | list
           }}
-
-    
-    - name: Debug normalized existing indexes
-      debug:
-        var: all_indexes_normalized
 
     # -------------------------------
     # Normalize new query fields
@@ -192,24 +187,14 @@
       set_fact:
         query_normalized_fields_list: >-
           {{
-            all_indexes
-            | map('combine', {
-                'normalized_fields_list': (
-                  (item.fields | default('') | string)
-                  | regex_replace('[\\[\\]()`"]', '')   
-                  | regex_replace('\\s+', ' ')      
-                  | trim
-                  | lower
-                ).split(',')
-                | map('trim')
-                | list
-              })
+            (query_meta.fields | default('') | regex_replace('[\\[\\]]', '') )
+            .split(',')
+            | map('regex_replace', '[`()" ]', '')
+            | map('trim')
+            | map('lower')
+            | select('ne','')
             | list
           }}
-
-    - name: Debug normalized new query fields
-      debug:
-        var: query_normalized_fields_list
 
     # -------------------------------
     # Detect conflicts with existing indexes
@@ -217,19 +202,22 @@
     - name: Fail if any existing index conflicts with new query
       fail:
         msg: >-
-          ⚠️ Index conflict detected! Existing index "{{ item.name }}" in bucket "{{ item.bucket }}", scope "{{ item.scope }}", collection "{{ item.collection }}" has the same fields as new index "{{ query_meta.name }}" but different name.
+          ⚠️ Index conflict detected! Existing index "{{ item.name }}" in
+          bucket "{{ item.bucket }}", scope "{{ item.scope }}",
+          collection "{{ item.collection }}" has the same fields as new index
+          "{{ query_meta.name }}" but different name.
       loop: "{{ all_indexes_normalized }}"
       loop_control:
         loop_var: item
       when: >
-        (item.normalized_fields_list | map('to_json') | sort | list)  == (query_normalized_fields_list | map('to_json') | sort | list) and
+        (item.normalized_fields_list | sort | list) == (query_normalized_fields_list | sort | list) and
         item.name != query_meta.name and
         item.bucket == query_meta.bucket and
         item.scope == query_meta.scope and
         item.collection == query_meta.collection
 
     # -------------------------------
-    # Allow execution if name matches or location is different
+    # Allow valid cases
     # -------------------------------
     - name: Allow execution if name matches or location is different
       debug:
@@ -240,6 +228,9 @@
         query_meta.scope not in index_meta.scope or
         query_meta.collection not in index_meta.collection
 
+    # -------------------------------
+    # Identify queries exceeding field limits
+    # -------------------------------
     - name: Identify queries exceeding field limits
       set_fact:
         query_field_mapping: "{{ query_field_mapping | default({}) | combine({item: (item | regex_replace('.*ON\\s*[^()]+\\(([^)]+)\\).*', '\\1'))}) }}"
@@ -358,7 +349,7 @@
     - name: Run deferred index script for a bucket
       command: "{{ script_path }} --bucket={{ bucket_names | join(',') }}"
       args:
-        chdir: "~"  # ensure we are in home directory
+        chdir: "~"  
       register: script_output
 
     - name: Show script output
