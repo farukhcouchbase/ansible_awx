@@ -193,6 +193,21 @@
       debug:
         var: query_meta
 
+    # --------------------------------------
+    # Ensure bucket/scope/collection have valid defaults
+    # --------------------------------------
+    - name: Set default bucket/scope/collection if empty
+      set_fact:
+        query_meta: >-
+          {{
+            query_meta | combine({
+              'bucket': (query_meta.bucket | default('travel-sample') | string | trim) if query_meta.bucket | trim != '' else 'travel-sample',
+              'scope': (query_meta.scope | default('default') | string | trim) if query_meta.scope | trim != '' else 'default',
+              'collection': (query_meta.collection | default('default') | string | trim) if query_meta.collection | trim != '' else 'default'
+            })
+          }}
+    
+
 # --------------------------------------
 # Normalize query_meta.name to string
 # --------------------------------------
