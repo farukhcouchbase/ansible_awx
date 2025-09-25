@@ -241,65 +241,32 @@
 # --------------------------------------
 # Normalize existing index fields as list
 # --------------------------------------
-    # - name: Normalize existing index fields as list
-    #   set_fact:
-    #     all_indexes_normalized: >-
-    #       {%- set result = [] -%}
-    #       {%- for idx in all_indexes -%}
-    #       {%-   set fields_clean = (
-    #               (idx.fields | default(''))
-    #               | regex_replace('^\\[|\\]$', '')        
-    #               | regex_replace("'", '')               
-    #               | regex_replace('`', '')                
-    #               | regex_replace('[()]', '')             
-    #               | regex_replace('\\s+', ' ')            
-    #               | lower
-    #             ).split(',')
-    #             | map('trim')
-    #             | select('ne','')
-    #             | list
-    #       -%}
-    #       {%-   set _ = result.append(idx | combine({
-    #               'normalized_fields_list': fields_clean,
-    #               'bucket': idx.bucket | default('travel-sample') | string,
-    #               'scope': idx.scope | default('default') | string,
-    #               'collection': idx.collection | default('default') | string
-    #             })) -%}
-    #       {%- endfor -%}
-    #       {{ result }}
-
-    - name: Normalize existing index fields and set defaults
+    - name: Normalize existing index fields as list
       set_fact:
         all_indexes_normalized: >-
           {%- set result = [] -%}
           {%- for idx in all_indexes -%}
-            {%- set bucket_val = (idx.bucket | trim) if idx.bucket not in [None, 'None', ''] else 'travel-sample' -%}
-            {%- set scope_val = (idx.scope | trim) if idx.scope not in [None, 'None', ''] else 'default' -%}
-            {%- set collection_val = (idx.collection | trim) if idx.collection not in [None, 'None', ''] else 'default' -%}
-
-            {%- set fields_clean = (
-                (idx.fields | default(''))
-                | regex_replace('^\\[|\\]$', '')      
-                | regex_replace("'", '')              
-                | regex_replace('`', '')               
-                | regex_replace('[()]', '')            
-                | regex_replace('\\s+', ' ')           
-                | lower
-              ).split(',')
-              | map('trim')
-              | select('ne','')
-              | list
-            -%}
-
-            {%- set _ = result.append(idx | combine({
-              'bucket': bucket_val,
-              'scope': scope_val,
-              'collection': collection_val,
-              'normalized_fields_list': fields_clean
-            })) -%}
+          {%-   set fields_clean = (
+                  (idx.fields | default(''))
+                  | regex_replace('^\\[|\\]$', '')        
+                  | regex_replace("'", '')               
+                  | regex_replace('`', '')                
+                  | regex_replace('[()]', '')             
+                  | regex_replace('\\s+', ' ')            
+                  | lower
+                ).split(',')
+                | map('trim')
+                | select('ne','')
+                | list
+          -%}
+          {%-   set _ = result.append(idx | combine({
+                  'normalized_fields_list': fields_clean,
+                  'bucket': idx.bucket | default('travel-sample') | string,
+                  'scope': idx.scope | default('default') | string,
+                  'collection': idx.collection | default('default') | string
+                })) -%}
           {%- endfor -%}
           {{ result }}
-
 
     - name: Debug normalized fields of existing indexes
       debug:
@@ -332,66 +299,33 @@
 # --------------------------------------
 # Normalize new query fields
 # --------------------------------------
-    # - name: Normalize new query fields as list
-    #   set_fact:
-    #     query_normalized_fields_list: >-
-    #       {%- set result = [] -%}
-    #       {%- set raw_fields = query_meta.fields | default('') -%}
-    #       {%- if raw_fields != '' -%}
-    #         {%- set fields_clean = (
-    #                 raw_fields
-    #                 | regex_replace('^\\[|\\]$', '')     
-    #                 | regex_replace("'", '')              
-    #                 | regex_replace('`', '')               
-    #                 | regex_replace('[()]', '')              
-    #                 | regex_replace('\\s+', ' ')          
-    #                 | lower
-    #               ).split(',')
-    #               | map('trim')
-    #               | select('ne','')
-    #               | list
-    #         -%}
-    #         {%- set _ = result.extend(fields_clean) -%}
-    #       {%- endif -%}
-    #       {{ result }}
-
-   
-    - name: Normalize new query fields and set defaults
-      set_fact:
-        query_meta: >-
-          {{
-            query_meta | combine({
-              'bucket': (query_meta.bucket | trim if query_meta.bucket | trim not in [None, ''] else 'travel-sample'),
-              'scope': (query_meta.scope | trim if query_meta.scope | trim not in [None, ''] else 'default'),
-              'collection': (query_meta.collection | trim if query_meta.collection | trim not in [None, ''] else 'default'),
-              'fields': query_meta.fields | join(',') if query_meta.fields is iterable else query_meta.fields
-            })
-          }}
-
-    
     - name: Normalize new query fields as list
       set_fact:
         query_normalized_fields_list: >-
+          {%- set result = [] -%}
           {%- set raw_fields = query_meta.fields | default('') -%}
-          {%- set fields_clean = (
-                raw_fields
-                | regex_replace('^\\[|\\]$', '')       
-                | regex_replace("'", '')                
-                | regex_replace('`', '')                
-                | regex_replace('[()]', '')              
-                | regex_replace('\\s+', ' ')            
-                | lower
-              ).split(',')
-              | map('trim')
-              | select('ne','')
-              | list
-          -%}
-          {{ fields_clean }}
-    
+          {%- if raw_fields != '' -%}
+            {%- set fields_clean = (
+                    raw_fields
+                    | regex_replace('^\\[|\\]$', '')     
+                    | regex_replace("'", '')              
+                    | regex_replace('`', '')               
+                    | regex_replace('[()]', '')              
+                    | regex_replace('\\s+', ' ')          
+                    | lower
+                  ).split(',')
+                  | map('trim')
+                  | select('ne','')
+                  | list
+            -%}
+            {%- set _ = result.extend(fields_clean) -%}
+          {%- endif -%}
+          {{ result }}
+
     - name: Debug normalized new query fields
       debug:
         var: query_normalized_fields_list
-  
+      
 
 # --------------------------------------
 # Fail if any existing index conflicts with new query
