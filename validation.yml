@@ -130,13 +130,16 @@
         index_var: loop_index
       when: item|trim != ''
 
+# -------------------------------
+# Append final parsed index
+# -------------------------------
     - name: Append final parsed index
       set_fact:
         all_indexes: "{{ all_indexes + [current_index] if current_index.name is defined and current_index.name != '' else all_indexes }}"
 
-    # -------------------------------
-    # Convert all_indexes into index_meta format (columnar view)
-    # -------------------------------
+# -------------------------------
+# Convert all_indexes into index_meta format
+# -------------------------------
     - name: Convert all_indexes into index_meta format
       set_fact:
         index_meta:
@@ -146,9 +149,9 @@
           collection: "{{ all_indexes | map(attribute='collection') | list }}"
           fields: "{{ all_indexes | map(attribute='fields') | list }}"
 
-    # -------------------------------
-    # Extract new index data from index_queries
-    # -------------------------------
+# -------------------------------
+# Extract new index data from index_queries
+# -------------------------------
     - name: Extract new index data from index_queries (safe parsing)
       set_fact:
         query_meta:
@@ -158,55 +161,79 @@
           collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
           fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
 
-    # -------------------------------
-    # Normalize existing indexes
-    # -------------------------------
+# -------------------------------
+# Normalize existing indexes
+# -------------------------------
     - name: Normalize existing index fields as list
       set_fact:
         all_indexes_normalized: >-
-          {{
-            all_indexes
-            | map('combine', {
-                'normalized_fields_list': (
-                  item.fields
-                  | regex_replace('^\\[|\\]$', '')      
-                  | regex_replace("'", '')               
-                  | regex_replace('`', '')               
-                  | regex_replace('[()]', '')            
-                  | regex_replace('\\s+', ' ')           
+          {%- set result = [] -%}
+          {%- for idx in all_indexes -%}
+          {%-   set fields_clean = (
+                  (idx.fields | default(''))
+                  | regex_replace('^\\[|\\]$', '')        # remove outer brackets
+                  | regex_replace("'", '')                # remove single quotes
+                  | regex_replace('`', '')                # remove backticks
+                  | regex_replace('[()]', '')             # remove parentheses
+                  | regex_replace('\\s+', ' ')            # normalize spaces
                   | lower
                 ).split(',')
                 | map('trim')
                 | select('ne','')
                 | list
-              })
-            | list
-          }}
+          -%}
+          {%-   set _ = result.append(idx | combine({'normalized_fields_list': fields_clean})) -%}
+          {%- endfor -%}
+          {{ result }}
 
-    # -------------------------------
-    # Normalize new query fields
-    # -------------------------------
+# -------------------------------
+# Normalize new query fields
+# -------------------------------
     - name: Normalize new query fields as list
       set_fact:
         query_normalized_fields_list: >-
           {{
-            (query_meta.fields
-             | regex_replace('^\\[|\\]$', '') 
-             | regex_replace("'", '') 
-             | regex_replace('`', '') 
-             | regex_replace('[()]', '') 
-             | regex_replace('\\s+', ' ') 
-             | lower
-            ).split(',')
+            (query_meta.fields | default(''))
+            | regex_replace('^\\[|\\]$', '')
+            | regex_replace("'", '')
+            | regex_replace('`', '')
+            | regex_replace('[()]', '')
+            | regex_replace('\\s+', ' ')
+            | lower
+            | split(',')
             | map('trim')
             | select('ne','')
             | list
           }}
 
+# -------------------------------
+# Debug normalized fields
+# -------------------------------
+    - name: Debug normalized existing indexes
+      debug:
+        msg: |
+          Existing indexes normalized:
+          {% for idx in all_indexes_normalized %}
+            - name: {{ idx.name }}
+              bucket: {{ idx.bucket }}
+              scope: {{ idx.scope }}
+              collection: {{ idx.collection }}
+              normalized_fields_list: {{ idx.normalized_fields_list }}
+          {% endfor %}
 
-    # -------------------------------
-    # Detect conflicts with existing indexes
-    # -------------------------------
+    - name: Debug normalized new query fields
+      debug:
+        msg: |
+          New query normalized fields:
+          name: {{ query_meta.name }}
+          bucket: {{ query_meta.bucket }}
+          scope: {{ query_meta.scope }}
+          collection: {{ query_meta.collection }}
+          normalized_fields_list: {{ query_normalized_fields_list }}
+
+# -------------------------------
+# Detect conflicts with existing indexes
+# -------------------------------
     - name: Fail if any existing index conflicts with new query
       fail:
         msg: >-
@@ -224,9 +251,9 @@
         item.scope == query_meta.scope and
         item.collection == query_meta.collection
 
-    # -------------------------------
-    # Allow valid cases
-    # -------------------------------
+# -------------------------------
+# Allow valid cases
+# -------------------------------
     - name: Allow execution if name matches or location is different
       debug:
         msg: "✅ Index is allowed. Either name matches or location is different."
@@ -235,6 +262,7 @@
         query_meta.bucket not in index_meta.bucket or
         query_meta.scope not in index_meta.scope or
         query_meta.collection not in index_meta.collection
+
 
     # -------------------------------
     # Identify queries exceeding field limits
