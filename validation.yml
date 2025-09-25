@@ -279,11 +279,11 @@
 
             {%- set fields_clean = (
                 (idx.fields | default(''))
-                | regex_replace('^\\[|\\]$', '')       # remove brackets
-                | regex_replace("'", '')               # remove quotes
-                | regex_replace('`', '')               # remove backticks
-                | regex_replace('[()]', '')            # remove parentheses
-                | regex_replace('\\s+', ' ')           # normalize spaces
+                | regex_replace('^\\[|\\]$', '')      
+                | regex_replace("'", '')              
+                | regex_replace('`', '')               
+                | regex_replace('[()]', '')            
+                | regex_replace('\\s+', ' ')           
                 | lower
               ).split(',')
               | map('trim')
