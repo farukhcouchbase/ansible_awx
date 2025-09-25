@@ -111,10 +111,10 @@
         index_queries_list: >-
           {{
             (index_queries | default(''))
-            | regex_replace(';$','')                         # Remove trailing semicolon
-            | regex_findall('[^\r\n]+')                      # Split by line
-            | map('trim')                                    # Trim spaces
-            | reject('equalto','')                           # Remove empty lines
+            | regex_replace(';$','')                       
+            | regex_findall('[^\r\n]+')                   
+            | map('trim')                                   
+            | reject('equalto','')                         
             | list
           }}
 
