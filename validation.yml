@@ -222,7 +222,7 @@
       loop_control:
         loop_var: item
       when: >
-        (item.normalized_fields_list | sort) == (query_normalized_fields_list | sort) and
+        (item.normalized_fields_list | map('to_json') | sort | list)  == (query_normalized_fields_list | map('to_json') | sort | list) and
         item.name != query_meta.name and
         item.bucket == query_meta.bucket and
         item.scope == query_meta.scope and
