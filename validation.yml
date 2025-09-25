@@ -280,9 +280,9 @@
         all_indexes_normalized: >-
           {%- set result = [] -%}
           {%- for idx in all_indexes_normalized -%}
-          {%-   set bucket_val = idx.bucket | default('travel-sample') | string | trim -%}
-          {%-   set scope_val = idx.scope | default('default') | string | trim -%}
-          {%-   set collection_val = idx.collection | default('default') | string | trim -%}
+          {%-   set bucket_val = idx.bucket | string | trim | regex_replace('(?i)^(none)?$', 'travel-sample') -%}
+          {%-   set scope_val = idx.scope | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
+          {%-   set collection_val = idx.collection | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
           {%-   set _ = result.append(idx | combine({
                   'bucket': bucket_val,
                   'scope': scope_val,
@@ -290,6 +290,7 @@
                 })) -%}
           {%- endfor -%}
           {{ result }}
+
 
     - name: Debug normalized existing indexes after defaulting
       debug:
