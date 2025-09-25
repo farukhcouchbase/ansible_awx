@@ -218,9 +218,7 @@
         
     - name: Debug normalized new query fields
       debug:
-        msg:
-          raw: "{{ query_meta.fields }}"
-          cleaned: "{{ query_normalized_fields_list }}"  
+        var: query_normalized_fields_list
 
     # -------------------------------
     # Fail if any conflict exists
