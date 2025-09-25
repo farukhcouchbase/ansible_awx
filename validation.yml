@@ -294,7 +294,21 @@
 
     - name: Debug normalized existing indexes after defaulting
       debug:
-        var: all_indexes_normalized      
+        var: all_indexes_normalized   
+
+    - name: Normalize collection value for existing indexes
+      set_fact:
+        all_indexes_normalized: >-
+          {%- set result = [] -%}
+          {%- for idx in all_indexes_normalized -%}
+          {%-   set collection_val = (
+                    idx.collection | string | trim | regex_replace('(?i)^(travel-sample)$', 'default')
+                ) -%}
+          {%-   set _ = result.append(idx | combine({'collection': collection_val})) -%}
+          {%- endfor -%}
+          {{ result }}
+    
+        
 
 # --------------------------------------
 # Normalize new query fields
