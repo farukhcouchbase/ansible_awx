@@ -177,8 +177,8 @@
 # --------------------------------------
 # Execute default index handling only if default_index_list has items
 # --------------------------------------
-- name: Process default indexes
-  block:
+  - name: Process default indexes
+    block:
 
     # --------------------------------------
     # Initialize vars
@@ -462,8 +462,8 @@
 # --------------------------------------
 # Process specific indexes
 # --------------------------------------
-- name: Process specific indexes
-  block:
+  - name: Process specific indexes
+    block:
         
     
     - name: Initialize all_indexes and current_index
