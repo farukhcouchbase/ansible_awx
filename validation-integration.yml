@@ -365,7 +365,7 @@
       debug:
         msg: > 
           Comparing existing index "{{ item.name }}" 
-          ({{ item.normalized_fields_list }}) 
+          ({{ item.normalized_fields_list }})  
           with new index "{{ query_meta.name }}" 
           ({{ query_normalized_fields_list }})    
 
