@@ -165,27 +165,7 @@
         msg:
           default_indexes: "{{ default_index_list | default([]) }}"
           specific_indexes: "{{ specific_index_list | default([]) }}"
-          
-    ##################################################################
-    # FLOW DECISION: DEFAULT vs SPECIFIC
-    ##################################################################
-    - name: Set query flow type
-      set_fact:
-        is_default_query: "{{ default_index_list | length > 0 }}"
 
-    ##################################################################
-    # DEFAULT INDEX FLOW
-    ##################################################################
-    - name: DEFAULT INDEX FLOW - Execute only for default queries
-      block:
-      when: is_default_query
-
-    ##################################################################
-    # SPECIFIC INDEX FLOW
-    ##################################################################
-    - name: SPECIFIC INDEX FLOW - Execute only for specific queries
-      block:
-      when: not is_default_query
 
 
     ##################################################################
