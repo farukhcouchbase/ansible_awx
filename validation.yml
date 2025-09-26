@@ -133,6 +133,7 @@
             | map('split', '(')
             | map('first')
             | map('trim')
+            | map('regex_replace', '`', '')  
             | map('split', '.')
             | map('length')
             | map('ternary', 'default', 'specific', 1)
