@@ -127,15 +127,9 @@
       set_fact:
         query_type_flags: >-
           {{
-            index_queries_list
-            | map('regex_replace', '^.*ON\\s+', '')     
-            | map('regex_replace', '\\(.*$', '')         
-            | map('regex_replace', '`', '')             
-            | map('regex_replace', '\\s+', '')           
-            | map('regex_replace', '[^\\.]+', 'X')       
-            | map('regex_replace', '[^X]', '')          
-            | map('length')                              
-            | map('ternary', 'default', 'specific', 1)   
+            (index_queries_list | default([]))
+            | map('regex_search', '^CREATE INDEX .*`[^`]+`(?:\\.`[^`]+`\\.`[^`]+`)?', ignorecase=True)
+            | map('ternary', 'specific', 'default')
             | list
           }}
 
