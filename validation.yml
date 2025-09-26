@@ -129,7 +129,7 @@
           {{
             index_queries_list
             | map('regex_replace', '^.*ON\\s+', '')   
-            | map('regex_replace', '\\(.*$', '')     
+            | map('regex_replace', '\\(.*$', '')       
             | map('trim')                                                
             | map('length')                           
             | map('ternary', 'default', 'specific', 1) 
