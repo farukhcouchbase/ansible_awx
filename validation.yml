@@ -13,6 +13,9 @@
     existing_index_map: []
     query_types: []
     query_type: ""
+
+    specific_index_list: []
+    default_index_list: []
     
     deffered_index_path: "/path/to/deffered_index.sh"
     default_index_path: "/path/to/default_index.sh"
