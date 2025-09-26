@@ -128,8 +128,14 @@
         query_type_flags: >-
           {{
             index_queries_list
-            | map('regex_search', 'ON\\s+`[^`]+`\\.`[^`]+`\\.`[^`]+`\\s*\\(')
-            | map('ternary', 'specific', 'default')
+            | map('split', 'ON')              # split at ON
+            | map('last')                     # take everything after ON
+            | map('split', '(')               # remove column list
+            | map('first')                    # get bucket/scope/collection part
+            | map('trim')                     # remove whitespace
+            | map('split', '.')               # split by dot
+            | map('length')                   # count parts
+            | map('ternary', 'default', 'specific', 1)  # length 1 → default, >1 → specific
             | list
           }}
 
