@@ -178,7 +178,6 @@
     ##################################################################
     - name: DEFAULT INDEX FLOW - Execute only for default queries
       block:
-        # paste your default flow tasks here (from your earlier block)
       when: is_default_query
 
     ##################################################################
@@ -186,7 +185,6 @@
     ##################################################################
     - name: SPECIFIC INDEX FLOW - Execute only for specific queries
       block:
-        # paste your specific flow tasks here (from your earlier block)
       when: not is_default_query
 
 
