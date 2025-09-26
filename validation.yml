@@ -128,11 +128,8 @@
         query_type_flags: >-
           {{
             index_queries_list
-            | map('regex_replace', '^.*ON\s+', '', True)   
-            | map('regex_replace', '\(.*$', '', True)      
-            | map('trim')                                                
-            | map('length')                           
-            | map('ternary', 'default', 'specific', 1) 
+            | map('regex_search', 'ON\\s+`[^`]+`\\.`[^`]+`\\.`[^`]+`\\s*\\(')
+            | map('ternary', 'specific', 'default')
             | list
           }}
 
