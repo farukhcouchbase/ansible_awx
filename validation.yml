@@ -128,15 +128,14 @@
         query_type_flags: >-
           {{
             index_queries_list
-            | map('split', 'ON')
-            | map('last')
-            | map('split', '(')
-            | map('first')
-            | map('trim')
-            | map('regex_replace', '`', '')  
-            | map('split', '.')
-            | map('length')
-            | map('ternary', 'default', 'specific', 1)
+            | map('regex_replace', '^.*ON\\s+', '')                     
+            | map('regex_replace', '\\(.*$', '')                  
+            | map('regex_replace', '`', '')                             
+            | map('regex_replace', '\\s+', '')                         
+            | map('regex_replace', '[^\\.]+', 'X')                      
+            | map('regex_replace', '[^X]', '')                       
+            | map('length')                                             
+            | map('ternary', 'default', 'specific', 2)               
             | list
           }}
 
