@@ -130,7 +130,7 @@
             (index_queries_list | default([]))
             | map('regex_search', '^CREATE INDEX .*`[^`]+`(?:\\.`[^`]+`\\.`[^`]+`)?', ignorecase=True)
             | map('ternary', 'specific', 'default')
-            | list
+            | list 
           }}
 
     # 4. Debug - Query type flags
