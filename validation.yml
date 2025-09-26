@@ -444,13 +444,7 @@
             and (item.scope | lower) == (query_meta.scope | lower)
             and (item.collection | lower) == (query_meta.collection | lower)
 
-        - name: Debug comparison for conflict detection
-          debug:
-            msg: > 
-              Comparing existing index "{{ item.name }}" 
-              ({{ item.normalized_fields_list }})  
-              with new index "{{ query_meta.name }}" 
-              ({{ query_normalized_fields_list }})    
+          
 
 # --------------------------------------
 # Allow execution if name matches or location is different
