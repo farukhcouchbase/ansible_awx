@@ -128,14 +128,14 @@
         query_type_flags: >-
           {{
             index_queries_list
-            | map('regex_replace', '^.*ON\\s+', '')         # Remove everything before ON
-            | map('regex_replace', '\\\\(.*$', '')          # Remove everything after (
-            | map('regex_replace', '`', '')                 # Remove backticks
-            | map('regex_replace', '\\s+', '')              # Remove whitespace
-            | map('regex_replace', '[^\\.]+', 'X')          # Replace non-dot segments with X
-            | map('regex_replace', '[^X]', '')              # Remove everything except X
-            | map('length')                                 # Count number of Xs
-            | map('ternary', 'default', 'specific', 2)      # 2 or more dots = specific
+            | map('regex_replace', '^.*ON\\s+', '')      
+            | map('regex_replace', '\\\\(.*$', '')        
+            | map('regex_replace', '`', '')             
+            | map('regex_replace', '\\s+', '')           
+            | map('regex_replace', '[^\\.]+', 'X')         
+            | map('regex_replace', '[^X]', '')           
+            | map('length')                                
+            | map('ternary', 'default', 'specific', 2)     
             | list
           }}
 
