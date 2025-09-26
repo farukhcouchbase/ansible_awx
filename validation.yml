@@ -127,8 +127,8 @@
       set_fact:
         query_type_flags: >-
           {{
-            index_queries_list 
-            | map('regex_search', '^CREATE INDEX .*`[^`]+`$') 
+            index_queries_list
+            | map('regex_search', 'ON\\s+`[^`]+`\\s*\\(')       
             | map('ternary', 'default', 'specific')
             | list
           }}
