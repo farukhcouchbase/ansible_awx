@@ -128,16 +128,17 @@
         query_type_flags: >-
           {{
             index_queries_list
-            | map('regex_replace', '^.*ON\\s+', '')                     
-            | map('regex_replace', '\\(.*$', '')                  
-            | map('regex_replace', '`', '')                             
-            | map('regex_replace', '\\s+', '')                         
-            | map('regex_replace', '[^\\.]+', 'X')                      
-            | map('regex_replace', '[^X]', '')                       
-            | map('length')                                             
-            | map('ternary', 'default', 'specific', 2)               
+            | map('regex_replace', '^.*ON\\s+', '')       
+            | map('regex_replace', '\\(.*$', '')         
+            | map('regex_replace', '`', '')               
+            | map('regex_replace', '\\s+', '')             
+            | map('regex_replace', '[^\\.]+', 'X')        
+            | map('regex_replace', '[^X]', '')             
+            | map('length')                                 
+            | map('ternary', 'default', 'specific', 2)      
             | list
           }}
+
 
     # 4. Debug - Query type flags
     - name: Debug - Query type flags
