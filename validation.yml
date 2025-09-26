@@ -174,45 +174,50 @@
         is_default_query: "{{ (default_index_list | length > 0) and (specific_index_list | length == 0) }}"
         is_specific_query: "{{ (specific_index_list | length > 0) and (default_index_list | length == 0) }}"   
 
-# --------------------------------------
-# Execute default index handling only if default_index_list has items
-# --------------------------------------
-  - name: Process default indexes
-    block:
+
 
     # --------------------------------------
-    # Initialize vars
+    # Execute default index handling only if default_index_list has items
     # --------------------------------------
-      - name: Initialize all_indexes and current_index
-        set_fact:
-          all_indexes: []
-          current_index: {}
+    - name: Process default indexes
+      block:
 
-# --------------------------------------
-# Parse decoded indexes line by line
-# --------------------------------------
-      - name: Parse decoded indexes line by line
-        set_fact:
-          current_index: >-
-            {{
-              current_index | combine({
-                'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-                'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
-                'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
-                'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
-                'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
-              })
-            }}
-        loop: "{{ decoded_indexes.split('\n') }}"
-        loop_control:
-          extended: yes
-          index_var: loop_index
-        when: item | trim != ''
+        # --------------------------------------
+        # Initialize vars
+        # --------------------------------------
+        - name: Initialize all_indexes and current_index
+          set_fact:
+            all_indexes: []
+            current_index: {}
 
+        # --------------------------------------
+        # Parse decoded indexes line by line
+        # --------------------------------------
+        - name: Parse decoded indexes line by line
+          set_fact:
+            current_index: >-
+              {{
+                current_index | combine({
+                  'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
+                  'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
+                  'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
+                  'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
+                })
+              }}
+          loop: "{{ decoded_indexes.split('\n') }}"
+          loop_control:
+            extended: yes
+            index_var: loop_index
+          when: item | trim != ''
 
-      - name: Debug current_index after parsing
-        debug:
-          var: current_index  
+        - name: Debug current_index after parsing
+          debug:
+            var: current_index
+
+  
+  
+    
 
 # --------------------------------------
 # Append final parsed index
