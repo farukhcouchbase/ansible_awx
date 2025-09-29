@@ -173,9 +173,7 @@
       set_fact:
         is_default_query: "{{ (default_index_list | length > 0) and (specific_index_list | length == 0) }}"
         is_specific_query: "{{ (specific_index_list | length > 0) and (default_index_list | length == 0) }}"   
-
-
-
+        
     # --------------------------------------
     # Execute default index handling only if default_index_list has items
     # --------------------------------------
@@ -215,10 +213,6 @@
           debug:
             var: current_index
 
-  
-  
-    
-
 # --------------------------------------
 # Append final parsed index
 # --------------------------------------
@@ -256,7 +250,6 @@
               scope: "{{ all_indexes | map(attribute='scope') | list }}"
               collection: "{{ all_indexes | map(attribute='collection') | list }}"
               fields: "{{ all_indexes | map(attribute='fields') | list }}"
-
 
         - name: Debug index_meta
           debug:
@@ -391,8 +384,6 @@
               {%- endfor -%}
               {{ result }}
     
-        
-
 # --------------------------------------
 # Normalize new query fields
 # --------------------------------------
@@ -423,7 +414,6 @@
           debug:
             var: query_normalized_fields_list
       
-
 # --------------------------------------
 # Fail if any existing index conflicts with new query
 # --------------------------------------
@@ -443,8 +433,6 @@
             and (item.bucket | lower) == (query_meta.bucket | lower)
             and (item.scope | lower) == (query_meta.scope | lower)
             and (item.collection | lower) == (query_meta.collection | lower)
-
-          
 
 # --------------------------------------
 # Allow execution if name matches or location is different
@@ -632,8 +620,6 @@
             and item.bucket | lower == query_meta.bucket | lower
             and item.scope | lower == query_meta.scope | lower
             and item.collection | lower == query_meta.collection | lower
-
-
       
 # -------------------------------
 # Allow valid cases
@@ -647,9 +633,7 @@
             query_meta.scope not in index_meta.scope or
             query_meta.collection not in index_meta.collection
 
-
-
-  # -------------------------------
+    # -------------------------------
     # Identify queries exceeding field limits
     # -------------------------------
     - name: Identify queries exceeding field limits
