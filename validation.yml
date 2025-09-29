@@ -537,7 +537,7 @@
                   'fields':     ((query_meta.fields  | default([]))[0] if (query_meta.fields  | default([])) is sequence else (query_meta.fields  | default('')))
                 })
               }}
-             
+         
         - name: Debug Extract new index data from index_queries
           debug:
             var: query_meta
