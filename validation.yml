@@ -530,13 +530,15 @@
             query_meta: >-
               {{
                 query_meta | combine({
-                  'name':       ((query_meta.name    | default([]))[0] if (query_meta.name    | default([])) is sequence else (query_meta.name    | default(''))),
-                  'bucket':     ((query_meta.bucket  | default([]))[0] if (query_meta.bucket  | default([])) is sequence else (query_meta.bucket  | default(''))),
-                  'scope':      ((query_meta.scope   | default([]))[0] if (query_meta.scope   | default([])) is sequence else (query_meta.scope   | default(''))),
+                  'name':       ((query_meta.name       | default([]))[0] if (query_meta.name       | default([])) is sequence else (query_meta.name       | default(''))),
+                  'bucket':     ((query_meta.bucket     | default([]))[0] if (query_meta.bucket     | default([])) is sequence else (query_meta.bucket     | default(''))),
+                  'scope':      ((query_meta.scope      | default([]))[0] if (query_meta.scope      | default([])) is sequence else (query_meta.scope      | default(''))),
                   'collection': ((query_meta.collection | default([]))[0] if (query_meta.collection | default([])) is sequence else (query_meta.collection | default(''))),
-                  'fields':     ((query_meta.fields  | default([]))[0] if (query_meta.fields  | default([])) is sequence else (query_meta.fields  | default('')))
+                  'fields':     ((query_meta.fields     | default([]))[0] if (query_meta.fields     | default([])) is sequence else (query_meta.fields     | default('')))
                 })
               }}
+
+              
               # {{
               #   query_meta | combine({
               #     'name':      (query_meta.name[0] if query_meta.name is sequence else query_meta.name | default('')),
