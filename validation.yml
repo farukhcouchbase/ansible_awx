@@ -525,7 +525,20 @@
               collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
               fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
           
-        - name: Normalize query_meta values to strings
+        # - name: Normalize query_meta values to strings
+        #   set_fact:
+        #     query_meta: >-
+        #       {{
+        #         query_meta | combine({
+        #           'name':       (query_meta.name[0] if query_meta.name is iterable and query_meta.name is not string else query_meta.name | default('')),
+        #           'bucket':     (query_meta.bucket[0] if query_meta.bucket is iterable and query_meta.bucket is not string else query_meta.bucket | default('')),
+        #           'scope':      (query_meta.scope[0] if query_meta.scope is iterable and query_meta.scope is not string else query_meta.scope | default('')),
+        #           'collection': (query_meta.collection[0] if query_meta.collection is iterable and query_meta.collection is not string else query_meta.collection | default('')),
+        #           'fields':     (query_meta.fields[0] if query_meta.fields is iterable and query_meta.fields is not string else query_meta.fields | default(''))
+        #         })
+        #       }}
+
+        - name: Normalize query_meta values
           set_fact:
             query_meta: >-
               {{
@@ -534,9 +547,14 @@
                   'bucket':     (query_meta.bucket[0] if query_meta.bucket is iterable and query_meta.bucket is not string else query_meta.bucket | default('')),
                   'scope':      (query_meta.scope[0] if query_meta.scope is iterable and query_meta.scope is not string else query_meta.scope | default('')),
                   'collection': (query_meta.collection[0] if query_meta.collection is iterable and query_meta.collection is not string else query_meta.collection | default('')),
-                  'fields':     (query_meta.fields[0] if query_meta.fields is iterable and query_meta.fields is not string else query_meta.fields | default(''))
+                  'fields': (
+                    query_meta.fields 
+                    if query_meta.fields is iterable and query_meta.fields is not string
+                    else ([query_meta.fields] if query_meta.fields is string else [])
+                  )
                 })
               }}
+
 
         - name: Debug Extract new index data from index_queries
           debug:
