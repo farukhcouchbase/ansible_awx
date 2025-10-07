@@ -461,8 +461,16 @@
 # -------------------------------
 # Parse decoded indexes line by line
 # -------------------------------
+
+        
         - name: Parse decoded indexes line by line
           set_fact:
+            all_indexes: >-
+              {{
+                all_indexes +
+                ([current_index] if
+                  (item.startswith('NAME') and current_index.name is defined) else [])
+              }}
             current_index: >-
               {{
                 current_index | combine({
@@ -477,29 +485,65 @@
           loop_control:
             extended: yes
             index_var: loop_index
-          when: item|trim != ''
+          when: item | trim != ''
+
+        # - name: Parse decoded indexes line by line
+        #   set_fact:
+        #     current_index: >-
+        #       {{
+        #         current_index | combine({
+        #           'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+        #           'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
+        #           'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
+        #           'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
+        #           'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
+        #         })
+        #       }}
+        #   loop: "{{ decoded_indexes.split('\n') }}"
+        #   loop_control:
+        #     extended: yes
+        #     index_var: loop_index
+        #   when: item|trim != ''
 
 # -------------------------------
 # Append final parsed index (robust)
 # -------------------------------
-        - name: Append final parsed index
+
+        - name: Append final index after loop
           set_fact:
             all_indexes: >-
               {{
                 all_indexes +
-                [ current_index | combine({
+                [current_index | combine({
                     'name': current_index.name | default('unnamed_index'),
                     'bucket': current_index.bucket | default('unknown_bucket'),
                     'scope': current_index.scope | default('default_scope'),
                     'collection': current_index.collection | default('default_collection'),
                     'fields': current_index.fields | default('')
-                  }) ]
+                })]
               }}
-
-# Reset current_index for safety if needed later
         - name: Reset current_index
           set_fact:
             current_index: {}
+
+        # - name: Append final parsed index
+        #   set_fact:
+        #     all_indexes: >-
+        #       {{
+        #         all_indexes +
+        #         [ current_index | combine({
+        #             'name': current_index.name | default('unnamed_index'),
+        #             'bucket': current_index.bucket | default('unknown_bucket'),
+        #             'scope': current_index.scope | default('default_scope'),
+        #             'collection': current_index.collection | default('default_collection'),
+        #             'fields': current_index.fields | default('')
+        #           }) ]
+        #       }}
+
+# Reset current_index for safety if needed later
+        # - name: Reset current_index
+        #   set_fact:
+        #     current_index: {}
         
 # -------------------------------
 # Convert all_indexes into index_meta format
