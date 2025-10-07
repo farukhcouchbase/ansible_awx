@@ -417,7 +417,8 @@
 # --------------------------------------
 # Fail if any existing index conflicts with new query
 # --------------------------------------
-        - name: Fail if any existing index conflicts with new query
+
+        - name: Compare new index with each existing index
           fail:
             msg: >-
               ⚠️ Index conflict detected! Existing index "{{ item.name }}" in
@@ -429,10 +430,27 @@
             loop_var: item
           when: >
             (item.normalized_fields_list | sort | list) == (query_normalized_fields_list | sort | list)
-            and item.name | lower != query_meta.name | lower
+            and (item.name | lower) != (query_meta.name | lower)
             and (item.bucket | lower) == (query_meta.bucket | lower)
             and (item.scope | lower) == (query_meta.scope | lower)
             and (item.collection | lower) == (query_meta.collection | lower)
+
+        # - name: Fail if any existing index conflicts with new query
+        #   fail:
+        #     msg: >-
+        #       ⚠️ Index conflict detected! Existing index "{{ item.name }}" in
+        #       bucket "{{ item.bucket }}", scope "{{ item.scope }}",
+        #       collection "{{ item.collection }}" has the same fields as new index
+        #       "{{ query_meta.name }}" but different name.
+        #   loop: "{{ all_indexes_normalized }}"
+        #   loop_control:
+        #     loop_var: item
+        #   when: >
+        #     (item.normalized_fields_list | sort | list) == (query_normalized_fields_list | sort | list)
+        #     and item.name | lower != query_meta.name | lower
+        #     and (item.bucket | lower) == (query_meta.bucket | lower)
+        #     and (item.scope | lower) == (query_meta.scope | lower)
+        #     and (item.collection | lower) == (query_meta.collection | lower)
 
 # --------------------------------------
 # Allow execution if name matches or location is different
