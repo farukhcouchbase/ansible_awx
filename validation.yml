@@ -191,72 +191,27 @@
         # --------------------------------------
         # Parse decoded indexes line by line
         # --------------------------------------
-        # --------------------------------------
-        # Parse decoded indexes line by line and build all_indexes list (fixed)
-        # --------------------------------------
-        - name: Parse decoded indexes and build all_indexes list
+        - name: Parse decoded indexes line by line
           set_fact:
-            all_indexes: >-
-              {%- set indexes = [] -%}
-              {%- set current = {} -%}
-              {%- for raw_line in decoded_indexes.split('\n') -%}
-                {%- set line = raw_line | trim -%}
+            current_index: >-
+              {{
+                current_index | combine({
+                  'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
+                  'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
+                  'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
+                  'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
+                })
+              }}
+          loop: "{{ decoded_indexes.split('\n') }}"
+          loop_control:
+            extended: yes
+            index_var: loop_index
+          when: item | trim != ''
 
-                {# Skip empty lines safely (no continue needed) #}
-                {%- if line != '' -%}
-
-                  {# When a new NAME line starts, store the previous index (if any) #}
-                  {%- if line.startswith('NAME') and current|length > 0 -%}
-                    {%- set _ = indexes.append(current) -%}
-                    {%- set current = {} -%}
-                  {%- endif -%}
-
-                  {# Update fields dynamically #}
-                  {%- if line.startswith('NAME') -%}
-                    {%- set _ = current.update({'name': line.split(':',1)[1] | trim}) -%}
-                  {%- elif line.startswith('Bucket ID') -%}
-                    {%- set _ = current.update({'bucket': line.split(':',1)[1] | trim | default('travel-sample')}) -%}
-                  {%- elif line.startswith('Scope ID') -%}
-                    {%- set _ = current.update({'scope': line.split(':',1)[1] | trim | default('default')}) -%}
-                  {%- elif line.startswith('Keyspace ID') -%}
-                    {%- set _ = current.update({'collection': line.split(':',1)[1] | trim | default('default')}) -%}
-                  {%- elif line.startswith('Index Key') -%}
-                    {%- set _ = current.update({'fields': line.split(':',1)[1] | trim}) -%}
-                  {%- endif -%}
-
-                {%- endif -%}
-              {%- endfor -%}
-
-              {# Append the last parsed index (if not empty) #}
-              {%- if current|length > 0 -%}
-                {%- set _ = indexes.append(current) -%}
-              {%- endif -%}
-              {{ indexes }}
-
-        - name: Debug all_indexes after append
+        - name: Debug current_index after parsing
           debug:
-            var: all_indexes
-        # - name: Parse decoded indexes line by line
-        #   set_fact:
-        #     current_index: >-
-        #       {{
-        #         current_index | combine({
-        #           'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-        #           'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
-        #           'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
-        #           'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
-        #           'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
-        #         })
-        #       }}
-        #   loop: "{{ decoded_indexes.split('\n') }}"
-        #   loop_control:
-        #     extended: yes
-        #     index_var: loop_index
-        #   when: item | trim != ''
-
-        # - name: Debug current_index after parsing
-        #   debug:
-        #     var: current_index
+            var: current_index
 
 # --------------------------------------
 # Append final parsed index
