@@ -191,9 +191,13 @@
         # --------------------------------------
         # Parse decoded indexes line by line
         # --------------------------------------
-        - name: Parse decoded indexes line by line
+
+        - name: Parse decoded indexes line by line and append each index
           set_fact:
             current_index: >-
+              {%
+                set _ = [] 
+              %}
               {{
                 current_index | combine({
                   'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
@@ -208,20 +212,29 @@
             extended: yes
             index_var: loop_index
           when: item | trim != ''
+          register: parsed_indexes
 
-        - name: Debug current_index after parsing
-          debug:
-            var: current_index
-
-# --------------------------------------
-# Append final parsed index
-# --------------------------------------
-        - name: Append final parsed index
+        - name: Append each index when new NAME is encountered
           set_fact:
             all_indexes: >-
               {{
-                all_indexes +
-                [ current_index | combine({
+                all_indexes + ([ current_index | combine({
+                  'name': current_index.name | default('unnamed_index'),
+                  'bucket': current_index.bucket | default('travel-sample'),
+                  'scope': current_index.scope | default('default'),
+                  'collection': current_index.collection | default('default'),
+                  'fields': current_index.fields | default('')
+                }) ] if item.startswith('NAME') and loop_index != 0 else [])
+              }}
+          loop: "{{ decoded_indexes.split('\n') }}"
+          loop_control:
+            extended: yes
+            index_var: loop_index
+
+        - name: Ensure last index is appended after loop ends
+          set_fact:
+            all_indexes: >-
+              {{ all_indexes + [ current_index | combine({
                     'name': current_index.name | default('unnamed_index'),
                     'bucket': current_index.bucket | default('travel-sample'),
                     'scope': current_index.scope | default('default'),
@@ -230,14 +243,59 @@
                   }) ]
               }}
 
-        - name: Debug all_indexes after append
+        - name: Debug all parsed indexes
           debug:
-            var: all_indexes      
+            var: all_indexes
+     
 
-  # Reset current_index
-        - name: Reset current_index
-          set_fact:
-            current_index: {}
+
+#         - name: Parse decoded indexes line by line
+#           set_fact:
+#             current_index: >-
+#               {{
+#                 current_index | combine({
+#                   'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+#                   'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
+#                   'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
+#                   'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
+#                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
+#                 })
+#               }}
+#           loop: "{{ decoded_indexes.split('\n') }}"
+#           loop_control:
+#             extended: yes
+#             index_var: loop_index
+#           when: item | trim != ''
+
+#         - name: Debug current_index after parsing
+#           debug:
+#             var: current_index
+
+# # --------------------------------------
+# # Append final parsed index
+# # --------------------------------------
+#         - name: Append final parsed index
+#           set_fact:
+#             all_indexes: >-
+#               {{
+#                 all_indexes +
+#                 [ current_index | combine({
+#                     'name': current_index.name | default('unnamed_index'),
+#                     'bucket': current_index.bucket | default('travel-sample'),
+#                     'scope': current_index.scope | default('default'),
+#                     'collection': current_index.collection | default('default'),
+#                     'fields': current_index.fields | default('')
+#                   }) ]
+#               }}
+
+#         - name: Debug all_indexes after append
+#           debug:
+#             var: all_indexes      
+
+#   # Reset current_index
+#         - name: Reset current_index
+#           set_fact:
+#             current_index: {}
 
 # --------------------------------------
 # Convert all_indexes into index_meta format
