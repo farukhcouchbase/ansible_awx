@@ -191,17 +191,16 @@
         # --------------------------------------
         # Parse decoded indexes line by line
         # --------------------------------------
-
         - name: Parse decoded indexes line by line
           set_fact:
             current_index: >-
               {{
-                (current_index | default({})) | combine({
-                  'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else (current_index.name | default('')),
-                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else (current_index.bucket | default('travel-sample')),
-                  'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else (current_index.scope | default('default')),
-                  'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else (current_index.collection | default('default')),
-                  'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else (current_index.fields | default(''))
+                current_index | combine({
+                  'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
+                  'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
+                  'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
+                  'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
                 })
               }}
           loop: "{{ decoded_indexes.split('\n') }}"
@@ -209,29 +208,20 @@
             extended: yes
             index_var: loop_index
           when: item | trim != ''
-          
-        - name: Append final parsed index to all_indexes
-          set_fact:
-            all_indexes: >-
-              
-              {{
-                all_indexes + [ current_index | combine({
-                  'name': current_index.name | default('unnamed_index'),
-                  'bucket': current_index.bucket | default('travel-sample'),
-                  'scope': current_index.scope | default('default'),
-                  'collection': current_index.collection | default('default'),
-                  'fields': current_index.fields | default('')
-                }) ]
-              }}
 
-        - name: Debug all parsed indexes
+        - name: Debug current_index after parsing
           debug:
-            var: all_indexes
-            
-        - name: Ensure last index is appended after loop ends
+            var: current_index
+
+# --------------------------------------
+# Append final parsed index
+# --------------------------------------
+        - name: Append final parsed index
           set_fact:
             all_indexes: >-
-              {{ all_indexes + [ current_index | combine({
+              {{
+                all_indexes +
+                [ current_index | combine({
                     'name': current_index.name | default('unnamed_index'),
                     'bucket': current_index.bucket | default('travel-sample'),
                     'scope': current_index.scope | default('default'),
@@ -240,59 +230,14 @@
                   }) ]
               }}
 
-        - name: Debug all parsed indexes
+        - name: Debug all_indexes after append
           debug:
-            var: all_indexes
-     
+            var: all_indexes      
 
-
-#         - name: Parse decoded indexes line by line
-#           set_fact:
-#             current_index: >-
-#               {{
-#                 current_index | combine({
-#                   'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-#                   'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
-#                   'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
-#                   'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
-#                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
-#                 })
-#               }}
-#           loop: "{{ decoded_indexes.split('\n') }}"
-#           loop_control:
-#             extended: yes
-#             index_var: loop_index
-#           when: item | trim != ''
-
-#         - name: Debug current_index after parsing
-#           debug:
-#             var: current_index
-
-# # --------------------------------------
-# # Append final parsed index
-# # --------------------------------------
-#         - name: Append final parsed index
-#           set_fact:
-#             all_indexes: >-
-#               {{
-#                 all_indexes +
-#                 [ current_index | combine({
-#                     'name': current_index.name | default('unnamed_index'),
-#                     'bucket': current_index.bucket | default('travel-sample'),
-#                     'scope': current_index.scope | default('default'),
-#                     'collection': current_index.collection | default('default'),
-#                     'fields': current_index.fields | default('')
-#                   }) ]
-#               }}
-
-#         - name: Debug all_indexes after append
-#           debug:
-#             var: all_indexes      
-
-#   # Reset current_index
-#         - name: Reset current_index
-#           set_fact:
-#             current_index: {}
+  # Reset current_index
+        - name: Reset current_index
+          set_fact:
+            current_index: {}
 
 # --------------------------------------
 # Convert all_indexes into index_meta format
@@ -580,6 +525,19 @@
               collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('') }}"
               fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
           
+        # - name: Normalize query_meta values to strings
+        #   set_fact:
+        #     query_meta: >-
+        #       {{
+        #         query_meta | combine({
+        #           'name':       (query_meta.name[0] if query_meta.name is iterable and query_meta.name is not string else query_meta.name | default('')),
+        #           'bucket':     (query_meta.bucket[0] if query_meta.bucket is iterable and query_meta.bucket is not string else query_meta.bucket | default('')),
+        #           'scope':      (query_meta.scope[0] if query_meta.scope is iterable and query_meta.scope is not string else query_meta.scope | default('')),
+        #           'collection': (query_meta.collection[0] if query_meta.collection is iterable and query_meta.collection is not string else query_meta.collection | default('')),
+        #           'fields':     (query_meta.fields[0] if query_meta.fields is iterable and query_meta.fields is not string else query_meta.fields | default(''))
+        #         })
+        #       }}
+
         - name: Normalize query_meta values
           set_fact:
             query_meta: >-
