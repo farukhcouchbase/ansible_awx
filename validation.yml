@@ -191,7 +191,7 @@
         # --------------------------------------
         # Parse decoded indexes line by line
         # --------------------------------------
-        - name: Parse decoded indexes line by line
+        - name: Parse decoded indexes line by line and append to all_indexes
           set_fact:
             current_index: >-
               {{
@@ -203,16 +203,16 @@
                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
                 })
               }}
+            all_indexes: >-
+              {{
+                all_indexes + [current_index] if item.startswith('NAME') else all_indexes
+              }}
           loop: "{{ decoded_indexes.split('\n') }}"
           loop_control:
             extended: yes
             index_var: loop_index
           when: item | trim != ''
 
-        - name: Append index when NAME line appears (i.e., new index)
-          set_fact:
-            all_indexes: "{{ all_indexes + [current_index] }}"
-          when: item.startswith('NAME')
           
         - name: Debug current_index after parsing
           debug:
