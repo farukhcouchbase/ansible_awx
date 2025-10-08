@@ -209,11 +209,6 @@
             index_var: loop_index
           when: item | trim != ''
 
-        - name: Save completed index when a new NAME line appears
-          set_fact:
-            parsed_indexes: "{{ parsed_indexes + [current_index] }}"
-          when: item.startswith('NAME')
-          
         - name: Debug current_index after parsing
           debug:
             var: current_index
