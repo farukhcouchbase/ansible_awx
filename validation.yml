@@ -209,9 +209,14 @@
             index_var: loop_index
           when: item | trim != ''
 
+        - name: Append index when NAME line appears (i.e., new index)
+          set_fact:
+            all_indexes: "{{ all_indexes + [current_index] }}"
+          when: item.startswith('NAME')
+          
         - name: Debug current_index after parsing
           debug:
-            var: current_index
+            var: all_indexes
 
 # --------------------------------------
 # Append final parsed index
