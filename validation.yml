@@ -192,19 +192,16 @@
         # Parse decoded indexes line by line
         # --------------------------------------
 
-        - name: Parse decoded indexes line by line and append each index
+        - name: Parse decoded indexes line by line
           set_fact:
             current_index: >-
-              {%
-                set _ = [] 
-              %}
               {{
-                current_index | combine({
-                  'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
-                  'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
-                  'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
-                  'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
+                (current_index | default({})) | combine({
+                  'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else (current_index.name | default('')),
+                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else (current_index.bucket | default('travel-sample')),
+                  'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else (current_index.scope | default('default')),
+                  'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else (current_index.collection | default('default')),
+                  'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else (current_index.fields | default(''))
                 })
               }}
           loop: "{{ decoded_indexes.split('\n') }}"
@@ -212,25 +209,25 @@
             extended: yes
             index_var: loop_index
           when: item | trim != ''
-          register: parsed_indexes
-
-        - name: Append each index when new NAME is encountered
+          
+        - name: Append final parsed index to all_indexes
           set_fact:
             all_indexes: >-
+              
               {{
-                all_indexes + ([ current_index | combine({
+                all_indexes + [ current_index | combine({
                   'name': current_index.name | default('unnamed_index'),
                   'bucket': current_index.bucket | default('travel-sample'),
                   'scope': current_index.scope | default('default'),
                   'collection': current_index.collection | default('default'),
                   'fields': current_index.fields | default('')
-                }) ] if item.startswith('NAME') and loop_index != 0 else [])
+                }) ]
               }}
-          loop: "{{ decoded_indexes.split('\n') }}"
-          loop_control:
-            extended: yes
-            index_var: loop_index
 
+        - name: Debug all parsed indexes
+          debug:
+            var: all_indexes
+            
         - name: Ensure last index is appended after loop ends
           set_fact:
             all_indexes: >-
