@@ -486,6 +486,10 @@
             index_var: loop_index
           when: item|trim != ''
 
+        - name: Show current_index for each line
+          debug:
+            var: current_index  
+
 # -------------------------------
 # Append final parsed index (robust)
 # -------------------------------
