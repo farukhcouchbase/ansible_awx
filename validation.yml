@@ -503,15 +503,9 @@
           set_fact:
             all_indexes: >-
               {{
-                all_indexes +
-                [ current_index | combine({
-                    'name': current_index.name | default('unnamed_index'),
-                    'bucket': current_index.bucket | default('unknown_bucket'),
-                    'scope': current_index.scope | default('default_scope'),
-                    'collection': current_index.collection | default('default_collection'),
-                    'fields': current_index.fields | default('')
-                  }) ]
-              }}
+                all_indexes
+                + [ current_index | combine({}, recursive=True) ]
+               }}
 
         - name: Debug all collected indexes
           debug:
