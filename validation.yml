@@ -468,10 +468,25 @@
 # -------------------------------
         - name: Parse decoded indexes line by line
           set_fact:
+            all_indexes: >-
+              {{
+                # If a new index starts and we already have one, append it first
+                (all_indexes + [current_index])
+                if (item.startswith('NAME') and current_index | length > 0)
+                else all_indexes
+              }}
             current_index: >-
               {{
-                current_index | combine({
-                  'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+                # If line starts with NAME, start a new index dict
+                ({
+                  'name': item.split(':',1)[1] | trim,
+                  'bucket': '',
+                  'scope': '',
+                  'collection': '',
+                  'fields': ''
+                })
+                if item.startswith('NAME')
+                else current_index | combine({
                   'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
                   'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', ''),
                   'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', ''),
@@ -479,31 +494,18 @@
                 })
               }}
           loop: "{{ decoded_indexes.split('\n') }}"
-          loop_control:
-            extended: yes
-            index_var: loop_index
-          when: item|trim != ''
-          
-        - name: Show current_index for each line
-          debug:
-            var: current_index
-# -------------------------------
-# Append final parsed index (robust)
-# -------------------------------
+          when: item | trim != ''
+
+        # -------------------------------------------
+        # Append the last parsed index (after the loop)
+        # -------------------------------------------
         - name: Append final parsed index
           set_fact:
-            all_indexes: >-
-              {{
-                all_indexes +
-                [ current_index | combine({
-                    'name': current_index.name | default('unnamed_index'),
-                    'bucket': current_index.bucket | default('unknown_bucket'),
-                    'scope': current_index.scope | default('default_scope'),
-                    'collection': current_index.collection | default('default_collection'),
-                    'fields': current_index.fields | default('')
-                  }) ]
-              }}
+            all_indexes: "{{ all_indexes + [current_index] }}"
 
+        # -------------------------------------------
+        # Show all collected indexes
+        # -------------------------------------------
         - name: Debug all collected indexes
           debug:
             var: all_indexes      
