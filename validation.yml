@@ -187,6 +187,7 @@
           set_fact:
             all_indexes: []
             current_index: {}
+          when: is_default_query | bool  
 
         # --------------------------------------
         # Parse decoded indexes line by line
@@ -462,6 +463,7 @@
           set_fact:
             all_indexes: []
             current_index: {}
+          when: is_specific_query | bool  
 
 # -------------------------------
 # Parse decoded indexes line by line
