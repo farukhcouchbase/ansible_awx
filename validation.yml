@@ -187,7 +187,6 @@
           set_fact:
             all_indexes: []
             current_index: {}
-          
 
         # --------------------------------------
         # Parse decoded indexes line by line
@@ -463,7 +462,6 @@
           set_fact:
             all_indexes: []
             current_index: {}
-          
 
 # -------------------------------
 # Parse decoded indexes line by line
@@ -485,11 +483,10 @@
             extended: yes
             index_var: loop_index
           when: item|trim != ''
-
+          
         - name: Show current_index for each line
           debug:
-            var: current_index  
-
+            var: current_index
 # -------------------------------
 # Append final parsed index (robust)
 # -------------------------------
