@@ -481,7 +481,8 @@
               }}
             all_indexes: >-
               {{
-                all_indexes + [current_index]
+                all_indexes
+                + [ (current_index | combine({}, recursive=True)) ]
                 if item.startswith('NAME')
                 else all_indexes
               }}
