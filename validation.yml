@@ -504,6 +504,10 @@
                   }) ]
               }}
 
+        - name: Debug all collected indexes
+          debug:
+            var: all_indexes      
+
 # Reset current_index for safety if needed later
         - name: Reset current_index
           set_fact:
