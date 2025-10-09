@@ -463,10 +463,11 @@
             all_indexes: []
             current_index: {}
 
-# -------------------------------
-# Parse decoded indexes line by line
-# -------------------------------
-        - name: Parse decoded indexes line by line
+
+        # -------------------------------
+        # Parse decoded indexes line by line
+        # -------------------------------
+        - name: Parse decoded indexes line by line and append when NAME found
           set_fact:
             current_index: >-
               {{
@@ -478,18 +479,25 @@
                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
                 })
               }}
+            all_indexes: >-
+              {{
+                all_indexes + [current_index]
+                if item.startswith('NAME')
+                else all_indexes
+              }}
           loop: "{{ decoded_indexes.split('\n') }}"
           loop_control:
             extended: yes
             index_var: loop_index
-          when: item|trim != ''
-          
-        - name: Show current_index for each line
+          when: item | trim != ''
+
+        - name: Debug current_index for each line (optional)
           debug:
             var: current_index
-# -------------------------------
-# Append final parsed index (robust)
-# -------------------------------
+
+        # -------------------------------
+        # Append final parsed index (ensures last index is added)
+        # -------------------------------
         - name: Append final parsed index
           set_fact:
             all_indexes: >-
@@ -506,16 +514,16 @@
 
         - name: Debug all collected indexes
           debug:
-            var: all_indexes      
+            var: all_indexes     
 
-# Reset current_index for safety if needed later
+        # Reset current_index for safety if needed later
         - name: Reset current_index
           set_fact:
             current_index: {}
         
-# -------------------------------
-# Convert all_indexes into index_meta format
-# -------------------------------
+        # -------------------------------
+        # Convert all_indexes into index_meta format
+        # -------------------------------
         - name: Convert all_indexes into index_meta format
           set_fact:
             index_meta:
