@@ -212,15 +212,14 @@
             extended: yes
             index_var: loop_index
           when: item | trim != ''
-
-          
+ 
         - name: Debug current_index after parsing
           debug:
             var: all_indexes
 
-# --------------------------------------
-# Append final parsed index
-# --------------------------------------
+        # --------------------------------------
+        # Append final parsed index
+        # --------------------------------------
         - name: Append final parsed index
           set_fact:
             all_indexes: >-
@@ -244,9 +243,9 @@
           set_fact:
             current_index: {}
 
-# --------------------------------------
-# Convert all_indexes into index_meta format
-# --------------------------------------
+        # --------------------------------------
+        # Convert all_indexes into index_meta format
+        # --------------------------------------
         - name: Convert all_indexes into index_meta format
           set_fact:
             index_meta:
@@ -260,9 +259,9 @@
           debug:
             var: index_meta      
 
-# --------------------------------------
-# Extract new index data from index_queries
-# --------------------------------------
+        # --------------------------------------
+        # Extract new index data from index_queries
+        # --------------------------------------
         - name: Extract new index data from index_queries (safe parsing)
           set_fact:
             query_meta:
@@ -289,9 +288,9 @@
                 })
               }}
 
-# --------------------------------------
-# Ensure bucket/scope/collection have valid defaults for new query
-# --------------------------------------
+        # --------------------------------------
+        # Ensure bucket/scope/collection have valid defaults for new query
+        # --------------------------------------
         - name: Set default bucket/scope/collection if empty
           set_fact:
             query_meta: >-
@@ -307,9 +306,9 @@
           debug:
             var: query_meta      
 
-# --------------------------------------
-# Ensure query_meta.name is a string
-# --------------------------------------
+        # --------------------------------------
+        # Ensure query_meta.name is a string
+        # --------------------------------------
         - name: Ensure query_meta.name is a string
           set_fact:
             query_meta: >-
@@ -319,9 +318,9 @@
                 })
               }}
 
-# --------------------------------------
-# Normalize existing index fields as list
-# --------------------------------------
+        # --------------------------------------
+        # Normalize existing index fields as list
+        # --------------------------------------
         - name: Normalize existing index fields as list
           set_fact:
             all_indexes_normalized: >-
@@ -353,9 +352,9 @@
           debug:
             var: all_indexes_normalized      
 
-# --------------------------------------
-# Ensure bucket/scope/collection have valid defaults for existing indexes
-# --------------------------------------
+        # --------------------------------------
+        # Ensure bucket/scope/collection have valid defaults for existing indexes
+        # --------------------------------------
         - name: Set default bucket/scope/collection for existing indexes
           set_fact:
             all_indexes_normalized: >-
@@ -371,7 +370,6 @@
                     })) -%}
               {%- endfor -%}
               {{ result }}
-
 
         - name: Debug normalized existing indexes after defaulting
           debug:
@@ -389,9 +387,9 @@
               {%- endfor -%}
               {{ result }}
     
-# --------------------------------------
-# Normalize new query fields
-# --------------------------------------
+        # --------------------------------------
+        # Normalize new query fields
+        # --------------------------------------
         - name: Normalize new query fields as list
           set_fact:
             query_normalized_fields_list: >-
@@ -419,9 +417,9 @@
           debug:
             var: query_normalized_fields_list
       
-# --------------------------------------
-# Fail if any existing index conflicts with new query
-# --------------------------------------
+        # --------------------------------------
+        # Fail if any existing index conflicts with new query
+        # --------------------------------------
         - name: Fail if any existing index conflicts with new query
           fail:
             msg: >-
@@ -439,9 +437,9 @@
             and (item.scope | lower) == (query_meta.scope | lower)
             and (item.collection | lower) == (query_meta.collection | lower)
 
-# --------------------------------------
-# Allow execution if name matches or location is different
-# --------------------------------------
+        # --------------------------------------
+        # Allow execution if name matches or location is different
+        # --------------------------------------
         - name: Allow execution if name matches or location is different
           debug:
             msg: "✅ Index is allowed. Either name matches or location is different."
@@ -451,18 +449,16 @@
             query_meta.scope not in index_meta.scope or
             query_meta.collection not in index_meta.collection
 
-# --------------------------------------
-# Process specific indexes
-# --------------------------------------
+    # --------------------------------------
+    # Process specific indexes
+    # --------------------------------------
     - name: Process specific indexes
       block:
-        
-    
+            
         - name: Initialize all_indexes and current_index
           set_fact:
             all_indexes: []
             current_index: {}
-
 
         # -------------------------------
         # Parse decoded indexes line by line
@@ -528,9 +524,9 @@
               collection: "{{ all_indexes | map(attribute='collection') | list }}"
               fields: "{{ all_indexes | map(attribute='fields') | list }}"
 
-# -------------------------------
-# Extract new index data from index_queries
-# -------------------------------
+        # -------------------------------
+        # Extract new index data from index_queries
+        # -------------------------------
         - name: Extract new index data from index_queries (safe parsing)
           set_fact:
             query_meta:
@@ -557,14 +553,13 @@
                 })
               }}
 
-
         - name: Debug Extract new index data from index_queries
           debug:
             var: query_meta
   
-# -------------------------------
-# Normalize existing indexes
-# -------------------------------
+        # -------------------------------
+        # Normalize existing indexes
+        # -------------------------------
         - name: Normalize existing index fields as list
           set_fact:
             all_indexes_normalized: >-
@@ -587,9 +582,9 @@
               {%- endfor -%}
               {{ result }}
 
-# -------------------------------
-# Normalize new query fields
-# -------------------------------
+        # -------------------------------
+        # Normalize new query fields
+        # -------------------------------
         - name: Normalize new query fields as list
           set_fact:
             query_normalized_fields_list: >-
@@ -621,9 +616,9 @@
           debug:
             var: query_normalized_fields_list
 
-    # -------------------------------
-    # Fail if any conflict exists
-    # -------------------------------
+        # -------------------------------
+        # Fail if any conflict exists
+        # -------------------------------
         - name: Fail if any existing index conflicts with new query
           fail:
             msg: >-
@@ -641,9 +636,9 @@
             and item.scope | lower == query_meta.scope | lower
             and item.collection | lower == query_meta.collection | lower
       
-# -------------------------------
-# Allow valid cases
-# -------------------------------
+        # -------------------------------
+        # Allow valid cases
+        # -------------------------------
         - name: Allow execution if name matches or location is different
           debug:
             msg: "✅ Index is allowed. Either name matches or location is different."
