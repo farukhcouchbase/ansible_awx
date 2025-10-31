@@ -197,7 +197,7 @@
               {{
                 current_index | combine({
                   'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'travel-sample'),
+                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'School'),
                   'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
                   'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
@@ -227,7 +227,7 @@
                 all_indexes +
                 [ current_index | combine({
                     'name': current_index.name | default('unnamed_index'),
-                    'bucket': current_index.bucket | default('travel-sample'),
+                    'bucket': current_index.bucket | default('School'),
                     'scope': current_index.scope | default('default'),
                     'collection': current_index.collection | default('default'),
                     'fields': current_index.fields | default('')
@@ -266,7 +266,7 @@
           set_fact:
             query_meta:
               name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('unnamed_index') }}"
-              bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('travel-sample') }}"
+              bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('School') }}"
               scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('default') }}"
               collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('default') }}"
               fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
@@ -281,7 +281,7 @@
               {{
                 query_meta | combine({
                   'name': query_meta.name | default('unnamed_index'),
-                  'bucket': query_meta.bucket | default('travel-sample'),
+                  'bucket': query_meta.bucket | default('School'),
                   'scope': query_meta.scope | default('default'),
                   'collection': query_meta.collection | default('default'),
                   'fields': query_meta.fields | default('')
@@ -296,7 +296,7 @@
             query_meta: >-
               {{
                 query_meta | combine({
-                  'bucket': query_meta.bucket | default('travel-sample') | string | trim if query_meta.bucket | trim != '' else 'travel-sample',
+                  'bucket': query_meta.bucket | default('School') | string | trim if query_meta.bucket | trim != '' else 'School',
                   'scope': query_meta.scope | default('default') | string | trim if query_meta.scope | trim != '' else 'default',
                   'collection': query_meta.collection | default('default') | string | trim if query_meta.collection | trim != '' else 'default'
                 })
@@ -341,7 +341,7 @@
               -%}
               {%-   set _ = result.append(idx | combine({
                       'normalized_fields_list': fields_clean,
-                      'bucket': idx.bucket | default('travel-sample') | string,
+                      'bucket': idx.bucket | default('School') | string,
                       'scope': idx.scope | default('default') | string,
                       'collection': idx.collection | default('default') | string
                     })) -%}
@@ -360,7 +360,7 @@
             all_indexes_normalized: >-
               {%- set result = [] -%}
               {%- for idx in all_indexes_normalized -%}
-              {%-   set bucket_val = idx.bucket | string | trim | regex_replace('(?i)^(none)?$', 'travel-sample') -%}
+              {%-   set bucket_val = idx.bucket | string | trim | regex_replace('(?i)^(none)?$', 'School') -%}
               {%-   set scope_val = idx.scope | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
               {%-   set collection_val = idx.collection | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
               {%-   set _ = result.append(idx | combine({
@@ -381,7 +381,7 @@
               {%- set result = [] -%}
               {%- for idx in all_indexes_normalized -%}
               {%-   set collection_val = (
-                        idx.collection | string | trim | regex_replace('(?i)^(travel-sample)$', 'default')
+                        idx.collection | string | trim | regex_replace('(?i)^(School)$', 'default')
                     ) -%}
               {%-   set _ = result.append(idx | combine({'collection': collection_val})) -%}
               {%- endfor -%}
