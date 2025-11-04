@@ -415,11 +415,14 @@
               {%- set result = [] -%}
               {%- for idx in all_indexes_normalized -%}
               {%-   set collection_val = (
-                        idx.collection | string | trim | regex_replace('(?i)^(default_bucket)$', 'default')
+                        'default'
+                        if idx.collection | lower not in ['default', 'none', '']
+                        else idx.collection
                     ) -%}
               {%-   set _ = result.append(idx | combine({'collection': collection_val})) -%}
               {%- endfor -%}
               {{ result }}
+
     
         # --------------------------------------
         # Normalize new query fields
