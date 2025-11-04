@@ -202,25 +202,9 @@
               {{
                 current_index | combine({
                   'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
+                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
                   'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
-                  'bucket': >-
-                    {{
-                      (item.split(':',1)[1] | trim)
-                        if item.startswith('Bucket ID') and (item.split(':',1)[1] | trim) not in ['None', '']
-                        else
-                        (
-                          (item.split(':',1)[1] | trim)
-                            if item.startswith('Keyspace ID') and current_index.get('bucket', '') in ['None', '', 'School']
-                            else current_index.get('bucket', 'School')
-                        )
-                    }},
-                  'collection': >-
-                    {{
-                      (item.split(':',1)[1] | trim)
-                        if item.startswith('Keyspace ID') and (item.split(':',1)[1] | trim) not in ['Bucket-1', '', 'None']
-                        else current_index.get('collection', 'default')
-                    }},
-
+                  'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
                 })
               }}
@@ -248,7 +232,7 @@
                 all_indexes +
                 [ current_index | combine({
                     'name': current_index.name | default('unnamed_index'),
-                    'bucket': current_index.bucket | default('School'),
+                    'bucket': current_index.bucket | default(''),
                     'scope': current_index.scope | default('default'),
                     'collection': current_index.collection | default('default'),
                     'fields': current_index.fields | default('')
@@ -381,7 +365,7 @@
             all_indexes_normalized: >-
               {%- set result = [] -%}
               {%- for idx in all_indexes_normalized -%}
-              {%-   set bucket_val = idx.bucket | string | trim | regex_replace('(?i)^(none)?$', 'School') -%}
+              {%-   set bucket_val = idx.bucket | string | trim | default('') -%}
               {%-   set scope_val = idx.scope | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
               {%-   set collection_val = idx.collection | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
               {%-   set _ = result.append(idx | combine({
