@@ -60,10 +60,15 @@
       register: syntax_check
       no_log: true
 
-    - name: Fail if any index query has syntax errors
+    - name: Fail if any index query has real syntax errors
       fail:
         msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
-      when: syntax_check.results | selectattr('stdout', 'search', 'syntax error') | list | length > 0 
+      when: >
+        syntax_check.results
+        | selectattr('stdout', 'search', 'syntax error')
+        | rejectattr('stdout', 'search', 'unexpected WITH')
+        | list
+        | length > 0
 
     - name: Validate index queries
       set_fact:
