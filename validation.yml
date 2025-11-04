@@ -360,14 +360,42 @@
         # --------------------------------------
         # Ensure bucket/scope/collection have valid defaults for existing indexes
         # --------------------------------------
-        - name: Set default bucket/scope/collection for existing indexes
+        # - name: Set default bucket/scope/collection for existing indexes
+        #   set_fact:
+        #     all_indexes_normalized: >-
+        #       {%- set result = [] -%}
+        #       {%- for idx in all_indexes_normalized -%}
+        #       {%-   set bucket_val = idx.bucket | string | trim | regex_replace('(?i)^(none)?$', 'default_bucket') -%}
+        #       {%-   set scope_val = idx.scope | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
+        #       {%-   set collection_val = idx.collection | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
+        #       {%-   set _ = result.append(idx | combine({
+        #               'bucket': bucket_val,
+        #               'scope': scope_val,
+        #               'collection': collection_val
+        #             })) -%}
+        #       {%- endfor -%}
+        #       {{ result }}
+        
+        - name: Normalize bucket/scope/collection names dynamically
           set_fact:
             all_indexes_normalized: >-
               {%- set result = [] -%}
               {%- for idx in all_indexes_normalized -%}
-              {%-   set bucket_val = idx.bucket | string | trim | regex_replace('(?i)^(none)?$', 'default_bucket') -%}
-              {%-   set scope_val = idx.scope | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
-              {%-   set collection_val = idx.collection | string | trim | regex_replace('(?i)^(none)?$', 'default') -%}
+              {%-   set bucket_val = (
+                        'default_bucket'
+                        if idx.bucket | lower not in ['default_bucket', 'none']
+                        else idx.bucket
+                    ) -%}
+              {%-   set scope_val = (
+                        'default'
+                        if idx.scope | lower in ['none', '']
+                        else idx.scope
+                    ) -%}
+              {%-   set collection_val = (
+                        'default'
+                        if idx.collection | lower in ['none', '']
+                        else idx.collection
+                    ) -%}
               {%-   set _ = result.append(idx | combine({
                       'bucket': bucket_val,
                       'scope': scope_val,
@@ -375,6 +403,7 @@
                     })) -%}
               {%- endfor -%}
               {{ result }}
+
 
         - name: Debug normalized existing indexes after defaulting
           debug:
