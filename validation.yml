@@ -202,9 +202,25 @@
               {{
                 current_index | combine({
                   'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', 'School'),
                   'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
-                  'collection': (item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('collection', 'default'),
+                  'bucket': >-
+                    {{
+                      (item.split(':',1)[1] | trim)
+                        if item.startswith('Bucket ID') and (item.split(':',1)[1] | trim) not in ['None', '']
+                        else
+                        (
+                          (item.split(':',1)[1] | trim)
+                            if item.startswith('Keyspace ID') and current_index.get('bucket', '') in ['None', '', 'School']
+                            else current_index.get('bucket', 'School')
+                        )
+                    }},
+                  'collection': >-
+                    {{
+                      (item.split(':',1)[1] | trim)
+                        if item.startswith('Keyspace ID') and (item.split(':',1)[1] | trim) not in ['Bucket-1', '', 'None']
+                        else current_index.get('collection', 'default')
+                    }},
+
                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
                 })
               }}
