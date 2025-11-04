@@ -376,26 +376,64 @@
         #       {%- endfor -%}
         #       {{ result }}
         
-        - name: Normalize bucket/scope/collection names dynamically
+        # - name: Normalize bucket/scope/collection names dynamically
+        #   set_fact:
+        #     all_indexes_normalized: >-
+        #       {%- set result = [] -%}
+        #       {%- for idx in all_indexes_normalized -%}
+        #       {%-   set bucket_val = (
+        #                 'default_bucket'
+        #                 if idx.bucket | lower in ['none', '', 'null']
+        #                 else idx.bucket
+        #             ) -%}
+        #       {%-   set scope_val = (
+        #                 'default'
+        #                 if idx.scope | lower in ['none', '']
+        #                 else idx.scope
+        #             ) -%}
+        #       {%-   set collection_val = (
+        #                 'default'
+        #                 if idx.collection | lower in ['none', '']
+        #                 else idx.collection
+        #             ) -%}
+        #       {%-   set _ = result.append(idx | combine({
+        #               'bucket': bucket_val,
+        #               'scope': scope_val,
+        #               'collection': collection_val
+        #             })) -%}
+        #       {%- endfor -%}
+        #       {{ result }}
+
+        - name: Normalize bucket/scope/collection names dynamically (preserve real buckets)
           set_fact:
             all_indexes_normalized: >-
               {%- set result = [] -%}
               {%- for idx in all_indexes_normalized -%}
+              {%-   set raw_bucket = idx.bucket | default('') | string | trim -%}
+              {%-   set raw_scope  = idx.scope  | default('') | string | trim -%}
+              {%-   set raw_coll   = idx.collection | default('') | string | trim -%}
+
+              {# Preserve real bucket names; only default when truly missing/none/null #}
               {%-   set bucket_val = (
                         'default_bucket'
-                        if idx.bucket | lower in ['none', '', 'null']
-                        else idx.bucket
+                        if raw_bucket | lower in ['none', 'null', '']
+                        else raw_bucket
                     ) -%}
+
+              {# Default missing scope to 'default' #}
               {%-   set scope_val = (
                         'default'
-                        if idx.scope | lower in ['none', '']
-                        else idx.scope
+                        if raw_scope | lower in ['none', 'null', '']
+                        else raw_scope
                     ) -%}
+
+              {# Default missing collection to 'default' #}
               {%-   set collection_val = (
                         'default'
-                        if idx.collection | lower in ['none', '']
-                        else idx.collection
+                        if raw_coll | lower in ['none', 'null', '']
+                        else raw_coll
                     ) -%}
+
               {%-   set _ = result.append(idx | combine({
                       'bucket': bucket_val,
                       'scope': scope_val,
