@@ -267,45 +267,14 @@
         # --------------------------------------
         # Extract new index data from index_queries
         # --------------------------------------
-        # - name: Extract new index data from index_queries (safe parsing)
-        #   set_fact:
-        #     query_meta:
-        #       name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('unnamed_index') }}"
-        #       bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('default_bucket') }}"
-        #       scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('default') }}"
-        #       collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('default') }}"
-        #       fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
-        - name: Extract new index data from index_queries (safe parsing, multi-pattern)
+        - name: Extract new index data from index_queries (safe parsing)
           set_fact:
             query_meta:
-              name: >-
-                {{
-                  (index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+[`"]?([\\w-]+)[`"]?', '\\1'))
-                  or 'unnamed_index'
-                }}
-              bucket: >-
-                {{
-                  (index_queries | regex_search('ON\\s+`([^`]+)`\\s*\\(', '\\1'))
-                  or (index_queries | regex_search('ON\\s+`([^`]+)`\\.', '\\1'))
-                  or 'default_bucket'
-                }}
-              scope: >-
-                {{
-                  (index_queries | regex_search('ON\\s+`[^`]+`\\.`([^`]+)`\\.', '\\1'))
-                  or 'default'
-                }}
-              collection: >-
-                {{
-                  (index_queries | regex_search('ON\\s+`[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1'))
-                  or (index_queries | regex_search('ON\\s+`[^`]+`\\.`([^`]+)`\\s*\\(', '\\1'))
-                  or 'default'
-                }}
-              fields: >-
-                {{
-                  (index_queries | regex_search('\\((.*?)\\)\\s*(WHERE|WITH|$)', '\\1'))
-                  or ''
-                }}
-
+              name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('unnamed_index') }}"
+              bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('default_bucket') }}"
+              scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('default') }}"
+              collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('default') }}"
+              fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
 
         - name: Debug query_meta raw
           debug:
