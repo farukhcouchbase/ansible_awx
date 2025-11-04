@@ -60,7 +60,7 @@
       register: syntax_check
       no_log: true
 
-    - name: Fail if any index query has real syntax errors
+    - name: Fail if any index query has real syntax errors (ignore double WITH)
       fail:
         msg: "Index Query contains a syntax error. Double-check the error and re-run the query."
       when: >
