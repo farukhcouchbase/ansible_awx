@@ -383,7 +383,7 @@
               {%- for idx in all_indexes_normalized -%}
               {%-   set bucket_val = (
                         'default_bucket'
-                        if idx.bucket | lower not in ['default_bucket', 'none']
+                        if idx.bucket | lower in ['none', '', 'null']
                         else idx.bucket
                     ) -%}
               {%-   set scope_val = (
