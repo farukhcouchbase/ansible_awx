@@ -271,7 +271,7 @@
           set_fact:
             query_meta:
               name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('unnamed_index') }}"
-              bucket: "{{ index_queries | regex_search('ON `([^`]+)`', '\\1') | default('') }}"
+              bucket: "{{ (index_queries | regex_search('ON `([^`]+)`', '\\1') | default('')) | first }}"
               scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('default') }}"
               collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('default') }}"
               fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
