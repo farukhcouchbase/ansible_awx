@@ -202,7 +202,7 @@
               {{
                 current_index | combine({
                   'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-                  'bucket': ((item.split(':',1)[1] | trim) if item.split(':',1)[1] | trim != 'None' else ''),
+                  'bucket': ((item.split(':',1)[1] | trim) if item.startswith('Keyspace ID') else current_index.get('bucket', '')),
                   'collection': 'default',
                   'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
