@@ -386,7 +386,7 @@
               {%- set result = [] -%}
               {%- for idx in all_indexes_normalized -%}
               {%-   set collection_val = (
-                        idx.collection | string | trim | regex_replace('(?i)^(School)$', 'default')
+                        idx.collection | string | trim | regex_replace('(?i)^()$', 'default')
                     ) -%}
               {%-   set _ = result.append(idx | combine({'collection': collection_val})) -%}
               {%- endfor -%}
