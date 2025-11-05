@@ -202,7 +202,7 @@
               {{
                 current_index | combine({
                   'name': (item.split(':',1)[1] | trim) if item.startswith('NAME') else current_index.get('name', ''),
-                  'bucket': (item.split(':',1)[1] | trim) if item.startswith('Bucket ID') else current_index.get('bucket', ''),
+                  'bucket': ((item.split(':',1)[1] | trim) if item.split(':',1)[1] | trim != 'None' else ''),
                   'collection': 'default',
                   'scope': (item.split(':',1)[1] | trim) if item.startswith('Scope ID') else current_index.get('scope', 'default'),
                   'fields': (item.split(':',1)[1] | trim) if item.startswith('Index Key') else current_index.get('fields', '')
@@ -271,7 +271,7 @@
           set_fact:
             query_meta:
               name: "{{ index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+([`\\w]+)', '\\1') | default('unnamed_index') }}"
-              bucket: "{{ index_queries | regex_search('ON `([^`]+)`\\.', '\\1') | default('') }}"
+              bucket: "{{ index_queries | regex_search('ON `([^`]+)`', '\\1') | default('') }}"
               scope: "{{ index_queries | regex_search('ON `[^`]+`\\.`([^`]+)`\\.', '\\1') | default('default') }}"
               collection: "{{ index_queries | regex_search('ON `[^`]+`\\.`[^`]+`\\.`([^`]+)`', '\\1') | default('default') }}"
               fields: "{{ index_queries | regex_search('\\((.*?)\\)\\s*WHERE', '\\1') | default('') }}"
