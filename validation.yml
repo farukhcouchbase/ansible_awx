@@ -192,13 +192,6 @@
           set_fact:
             all_indexes: []
             current_index: {}
-            
-        - name: Debug initial variables
-          debug:
-            msg:
-              all_indexes: "{{ all_indexes }}"
-              current_index: "{{ current_index }}"
-    
 
         # --------------------------------------
         # Parse decoded indexes line by line
@@ -224,15 +217,6 @@
             extended: yes
             index_var: loop_index
           when: item | trim != ''
-
-        - name: Debug current_index inside loop
-          debug:
-            msg:
-              loop_index: "{{ loop_index }}"
-              item: "{{ item }}"
-              current_index: "{{ current_index }}"
-              all_indexes: "{{ all_indexes }}"
-  
  
         - name: Debug current_index after parsing
           debug:
@@ -308,11 +292,7 @@
                   'fields': query_meta.fields | default('')
                 })
               }}
-              
-        - name: Debug normalized query_meta
-          debug:
-            var: query_meta
-            
+
         # --------------------------------------
         # Ensure bucket/scope/collection have valid defaults for new query
         # --------------------------------------
@@ -445,16 +425,6 @@
         # --------------------------------------
         # Fail if any existing index conflicts with new query
         # --------------------------------------
-
-
-        - name: Debug before conflict check
-          debug:
-            msg:
-              all_existing_fields: "{{ all_indexes_normalized | map(attribute='normalized_fields_list') | list }}"
-              new_index_fields: "{{ query_normalized_fields_list }}"
-              all_index_names: "{{ all_indexes_normalized | map(attribute='name') | list }}"
-              new_index_name: "{{ query_meta.name }}"
-      
         - name: Fail if any existing index conflicts with new query
           fail:
             msg: >-
