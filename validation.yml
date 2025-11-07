@@ -280,26 +280,15 @@
           set_fact:
             query_meta:
               name: >-
-                {{ index_queries
-                  | regex_search('(?i)CREATE\\s+INDEX\\s+`?([\\w]+)`?', '\\1')
-                  | default('unnamed_index') }}
+                {{ (index_queries | regex_search('(?i)CREATE\\s+INDEX\\s+`?([\\w]+)`?') | default([]))[0] | default('unnamed_index') }}
               bucket: >-
-                {{ index_queries
-                  | regex_search('ON\\s+`?([\\w]+)`?', '\\1')
-                  | default('') }}
+                {{ (index_queries | regex_search('ON\\s+`?([\\w]+)`?') | default([]))[0] | default('') }}
               scope: >-
-                {{ index_queries
-                  | regex_search('ON\\s+`?[\\w]+`?\\.`?([\\w]+)`?\\.', '\\1')
-                  | default('default') }}
+                {{ (index_queries | regex_search('ON\\s+`?[\\w]+`?\\.`?([\\w]+)`?\\.') | default([]))[0] | default('default') }}
               collection: >-
-                {{ index_queries
-                  | regex_search('ON\\s+`?[\\w]+`?\\.`?[\\w]+`?\\.`?([\\w]+)`?', '\\1')
-                  | default('default') }}
+                {{ (index_queries | regex_search('ON\\s+`?[\\w]+`?\\.`?[\\w]+`?\\.`?([\\w]+)`?') | default([]))[0] | default('default') }}
               fields: >-
-                {{ index_queries
-                  | regex_search('\\((.*?)\\)\\s*WHERE', '\\1')
-                  | default('') }}
-
+                {{ (index_queries | regex_search('\\((.*?)\\)\\s*WHERE') | default([]))[0] | default('') }}
         
         - name: Debug query_meta raw
           debug:
