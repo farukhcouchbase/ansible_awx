@@ -8,7 +8,7 @@
     cpu_threshold_percent: 5
     memory_threshold_percent: 5
     disk_threshold_percent: 5
-    alert_webhook_url: "https://webhook.site/e88546e8-013b-436d-bbb6-eb6d555625f7"
+    alert_webhook_url: "https://webhook.site/79a4a030-8211-46db-869e-6b4ebb6ab1ea"
 
   tasks:
 
