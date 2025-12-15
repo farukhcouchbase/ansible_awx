@@ -780,3 +780,4 @@
     - name: Show script output
       debug:
         var: script_output.stdout 
+- import_playbook: couchbase_resource_monitor.yml
