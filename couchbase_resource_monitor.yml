@@ -195,4 +195,13 @@
           Index_Memory: "{{ (index_used_bytes | int / 1024 / 1024) | round(2) }} MiB / {{ (index_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB"
           CPU_Usage: "{{ cpu_used | float | round(2) }} % / {{ cpu_threshold_percent | float | round(2) }} %"
           Memory_Usage: "{{ (memory_used | int / 1024 / 1024) | round(2) }} MiB / {{ (memory_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB"
-          Disk_Usage: "{{ disk_used_percent | float | round(2) }} % / {{ disk_threshold_percent | float | round(2) }} %"      
+          Disk_Usage: "{{ disk_used_percent | float | round(2) }} % / {{ disk_threshold_percent | float | round(2) }} %"  
+
+    - name: Fail if any threshold exceeded
+      fail:
+        msg: "Resource thresholds exceeded. Aborting index creation."
+      when: >
+        index_used_bytes > index_threshold_bytes
+        or cpu_used | float > cpu_threshold_percent | float
+        or memory_used | float > memory_threshold_bytes | float
+        or disk_used_percent | float > disk_threshold_percent | float
