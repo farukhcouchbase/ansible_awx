@@ -21,6 +21,9 @@
     default_index_path: "/path/to/default_index.sh"
 
   tasks:
+  
+- import_playbook: couchbase_resource_monitor.yml
+  
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
@@ -780,4 +783,3 @@
     - name: Show script output
       debug:
         var: script_output.stdout 
-- import_playbook: couchbase_resource_monitor.yml
