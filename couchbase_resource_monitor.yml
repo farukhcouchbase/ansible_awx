@@ -200,28 +200,35 @@
     - name: Fail if any Couchbase resource threshold exceeded
       fail:
         msg: |
-          Playbook failed due to the following reason(s):
-
-          {% if index_used_bytes | int > index_threshold_bytes | int %}
-          - Index memory usage exceeded threshold
-          {% endif %}
-
-          {% if cpu_used | float > cpu_threshold_percent | float %}
-          - CPU usage exceeded threshold
-          {% endif %}
-
-          {% if memory_used | float > memory_threshold_bytes | float %}
-          - Memory usage exceeded threshold
-          {% endif %}
-
           {% if disk_used_percent | float > disk_threshold_percent | float %}
-          - Disk usage exceeded threshold
-          {% endif %}
+          Disk usage above threshold! Usage: {{ disk_used_percent | float | round(2) }}%
+          Threshold: {{ disk_threshold_percent | float }}%
+          Total: {{ (disk_total | float / 1024 / 1024 / 1024) | round(2) }} GiB
+          Used: {{ (disk_used | float / 1024 / 1024 / 1024) | round(2) }} GiB
 
-          Aborting index creation.
+          {% endif %}
+          {% if memory_used | float > memory_threshold_bytes | float %}
+          Memory usage above threshold! Used: {{ (memory_used | float / 1024 / 1024) | round(2) }} MiB
+          Threshold: {{ (memory_threshold_bytes | float / 1024 / 1024) | round(2) }} MiB
+
+          {% endif %}
+          {% if index_used_bytes | int > index_threshold_bytes | int %}
+          Index memory usage above threshold! Used: {{ index_used_bytes | int }} bytes
+          ({{ (index_used_bytes | int / 1024 / 1024) | round(2) }} MiB)
+          Threshold: {{ (index_threshold_bytes | int / 1024 / 1024) | round(2) }} MiB
+
+          {% endif %}
+          {% if cpu_used | float > cpu_threshold_percent | float %}
+          CPU usage above threshold! Current CPU: {{ cpu_used | float | round(2) }}%
+          Threshold: {{ cpu_threshold_percent | float }}%
+
+          {% endif %}
       when: >
         index_used_bytes | int > index_threshold_bytes | int
         or cpu_used | float > cpu_threshold_percent | float
         or memory_used | float > memory_threshold_bytes | float
         or disk_used_percent | float > disk_threshold_percent | float
+
+
+
 
