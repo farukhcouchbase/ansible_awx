@@ -4,10 +4,10 @@
   gather_facts: false
   vars:
     # Thresholds
-    index_memory_threshold_percent: 90
-    cpu_threshold_percent: 90
-    memory_threshold_percent: 90
-    disk_threshold_percent: 90
+    index_memory_threshold_percent: 1
+    cpu_threshold_percent: 1
+    memory_threshold_percent: 1
+    disk_threshold_percent: 1
     alert_webhook_url: "https://webhook.site/92b2481a-73e1-4d6b-b6b9-54f004620b03"
 
   tasks:
