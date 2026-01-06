@@ -1,4 +1,4 @@
-#- import_playbook: couchbase_resource_monitor.yml
+- import_playbook: couchbase_resource_monitor.yml
   
 - name: Validate and Create Couchbase Indexes 
   hosts: all
