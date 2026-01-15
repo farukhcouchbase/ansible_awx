@@ -1,5 +1,3 @@
-# - import_playbook: couchbase_resource_monitor.yml
-  
 - name: Validate and Create Couchbase Indexes 
   hosts: all
   gather_facts: no  
@@ -23,7 +21,6 @@
     default_index_path: "/path/to/default_index.sh"
 
   tasks:
-  
     - name: Identify and categorize index queries
       set_fact:
         allowed_queries: []
