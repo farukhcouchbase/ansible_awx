@@ -6,7 +6,7 @@
     # Thresholds
     index_memory_threshold_percent: 80
     cpu_threshold_percent: 80
-    memory_threshold_percent: 80
+    memory_threshold_percent: 5
     disk_threshold_percent: 80
     alert_webhook_url: "https://webhook.site/5c6737ec-ad61-4976-9902-3767f4a051c8"
 
